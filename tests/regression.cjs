@@ -30,6 +30,8 @@ function verify(html){
 
  const evidence=new Function('fget','fput','childArt','esc',source+
  'let count=0;for(let l=0;l<4;l++){const seen=new Set();for(let n=0;n<32;n++){const q=academyLogicQuestion("evidence",n,l);if(!q.opts.includes(q.answer)||new Set(q.opts).size!==3||!q.why)throw Error("evidence");seen.add(q.q);count++}if(seen.size<(l===3?4:8))throw Error("evidence diversity")}return {count,bank:evidenceBank.length};')(()=>null,()=>true,()=>'',s=>s);
- return {evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+ const groups=new Function('fget','fput','childArt','esc',source+
+ 'let count=0;for(const [kind,skills] of [["math",academyMath],["logic",academyLogic]]){const keys=academyMenuGroups[kind].flatMap(x=>x[1]);if(keys.length!==skills.length||new Set(keys).size!==skills.length||skills.some(x=>!keys.includes(x[0])))throw Error("menu coverage");count+=keys.length}return count;')(()=>null,()=>true,()=>'',s=>s);
+ return {groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}

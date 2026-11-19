@@ -1,0 +1,46 @@
+/* Browser smoke test. Install Playwright separately; node tests/browser-smoke.cjs.
+   Uses a temporary local profile and does not touch production or personal data. */
+const {chromium,webkit}=require('playwright');
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'..');
+const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript','.json':'application/json','.css':'text/css','.txt':'text/plain'};
+const server=http.createServer((req,res)=>{
+ const name=new URL(req.url,'http://127.0.0.1').pathname;
+ const file=path.resolve(root,'.'+(name==='/'?'/index.html':name));
+ if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);return res.end()}
+ res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
+});
+(async()=>{
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const url='http://127.0.0.1:'+server.address().port+'/?view=personal';
+ const engine=process.env.BROWSER==='webkit'?webkit:chromium;
+ let browser;
+ try{
+ browser=await engine.launch({headless:true});
+ for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
+ const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(url);await page.locator('#childLearn').click();
+ await page.locator('#learnMath').click();assert.equal(await page.locator('[data-academy]').count(),12);
+ await page.locator('[data-academy="add"]').click();
+ await page.locator('#studyQuestion').waitFor({state:'visible'});
+ await page.locator('#studySolution').click();await page.locator('#studyNext').click();
+ await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnLogic').click();
+ assert.equal(await page.locator('[data-academy]').count(),6);
+ await page.locator('.academy-topic-group').nth(1).locator('summary').click();
+ await page.locator('[data-academy="evidence"]').click();
+ await page.locator('#studyChoices button').first().click();
+ await page.locator('#studyFeedback').waitFor({state:'visible'});
+ await page.locator('#close').click();await page.locator('#readingEntry').click();
+ await page.locator('[data-story]').first().click();await page.locator('#readingNumber').waitFor({state:'visible'});
+ await page.waitForFunction(()=>document.getElementById('readingNumber')?.textContent.includes('/'));
+ for(let i=0;i<3;i++){
+ const dims=await page.locator('#readingText').evaluate(el=>({client:el.clientHeight,scroll:el.scrollHeight}));
+ assert.ok(dims.client>0&&dims.scroll<=dims.client+2,'reading text overflow '+JSON.stringify(dims));
+ if(await page.locator('#readingNext').textContent()==='Закончить')break;
+ await page.locator('#readingNext').click();
+ }
+ assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
+ }
+ }finally{if(browser)await browser.close();server.close()}
+})().catch(e=>{console.error(e);process.exitCode=1});
