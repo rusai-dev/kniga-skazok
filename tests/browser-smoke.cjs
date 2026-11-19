@@ -44,6 +44,17 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#sequenceCheck').isDisabled(),true);
  await page.locator('#studyNext').click();
  assert.equal(await page.locator('#studySequence').isVisible(),false);
+ await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnWorld').click();
+ assert.equal(await page.locator('[data-area]').count(),4);
+ await page.locator('[data-area="1"]').click();
+ assert.equal(await page.locator('.explore-grid [data-world]').count(),7);
+ await page.locator('[data-world="bee"]').click();
+ await page.locator('#worldBack').click();
+ assert.equal(await page.locator('[data-area="1"]').getAttribute('aria-pressed'),'true');
+ await page.locator('[data-area="0"]').click();await page.locator('[data-world="day"]').click();
+ assert.equal(await page.locator('#dayExperiment').isVisible(),false);
+ await page.locator('#worldUnsure').click();await page.locator('#dayRotate').click();await page.locator('#dayRotate').click();
+ assert.ok((await page.locator('.day-model-label').textContent()).includes('Ночь'));
  await page.locator('#close').click();await page.locator('#readingEntry').click();
  await page.locator('[data-story]').first().click();await page.locator('#readingNumber').waitFor({state:'visible'});
  await page.waitForFunction(()=>document.getElementById('readingNumber')?.textContent.includes('/'));
