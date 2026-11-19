@@ -112,6 +112,11 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('[data-lab="2"]').getAttribute('aria-pressed'),'true');
   await page.locator('#worldNext').click();assert.equal(await page.locator('#worldLab').isVisible(),false);
  }
+ await page.locator('#worldBack').click();await page.locator('[data-area="1"]').click();await page.locator('[data-world="seed"]').click();
+ assert.equal(await page.locator('#seedExperiment').isVisible(),false);await page.locator('#worldUnsure').click();
+ assert.ok(await page.locator('#seedExperiment').isVisible());assert.ok((await page.locator('#seedArt svg').getAttribute('aria-label')).includes('Предскажи'));
+ await page.locator('[data-seed="1"]').click();await page.locator('#seedYes').click();assert.ok((await page.locator('#seedFeedback').textContent()).includes('Без воды'));assert.equal(await page.locator('#seedYes').isVisible(),false);
+ await page.locator('[data-seed="4"]').click();await page.locator('#seedYes').click();assert.ok((await page.locator('#seedFeedback').textContent()).includes('может прорасти без света'));await page.locator('#worldNext').click();assert.equal(await page.locator('#seedExperiment').isVisible(),false);
  await page.keyboard.press('Escape');await page.locator('#readingEntry').click();
  await page.locator('[data-story]').first().click();await page.locator('#readingNumber').waitFor({state:'visible'});
  await page.waitForFunction(()=>document.getElementById('readingNumber')?.textContent.includes('/'));
