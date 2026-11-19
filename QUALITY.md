@@ -160,3 +160,8 @@ Four existing lesson subjects expanded from 3 to 4 stages, with previous-step na
 ## Candidate 1.5.54 — six drawing lesson subjects
 
 Added fox and butterfly to the existing four drawing lessons, with four cumulative instructional steps each, making six four-step lessons. The regression suite evaluates every lesson stage. These are still simple vector instructional outlines, not the professional artwork required by the approved PDF. Browser and physical iPad testing are not yet complete. This is not a published release.
+
+
+## Candidate 1.5.55 — personal story search on iPad
+
+Search across all user-authored stories regardless of the selected author or topic, with ё/е normalization, case-insensitive multiword title/body matching, clear control, result count and actionable empty state. Input has 16px font, safe scroll margin, focus scroll and Enter-to-dismiss keyboard. No data migration. Dependency-free regression passed; physical iPad Safari and browser visual checks pending. Unpublished.
