@@ -58,6 +58,13 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#sequenceCheck').isDisabled(),true);
  await page.locator('#studyNext').click();
  assert.equal(await page.locator('#studySequence').isVisible(),false);
+ await page.locator('#close').click();
+ await page.evaluate(()=>{let v=studyState("logic-order");v.n=3;v.level=2;studySave("logic-order",v);studyOpen("logic","order")});
+ assert.ok(await page.locator('#studySpatial').isVisible());await page.locator('#spatialControls button:enabled').first().click();
+ assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 1');
+ await page.locator('#spatialUndo').click();assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 0');
+ await page.locator('#studySolution').click();assert.ok(await page.locator('#spatialCheck').isDisabled());
+ await page.locator('#studyNext').click();assert.equal(await page.locator('#studySpatial').isVisible(),false);
  await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnWorld').click();
  assert.equal(await page.locator('[data-area]').count(),4);
  await page.locator('[data-area="1"]').click();

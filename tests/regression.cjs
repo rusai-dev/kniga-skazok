@@ -140,6 +140,43 @@ function verify(html){
  };
  const modelAlternativesUI=new Function('fget','fput','childArt','esc','$','openModal',source+'\nreturn ('+alternativeUICode.toString()+')();')(k=>modelStore.get(k)||null,(k,v)=>{modelStore.set(k,v);return true},()=>'',s=>s,modelNode,()=>modelNodes.clear());
 
- return {models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+
+ const spatialTestCode=function(){
+ let count=0,mazes=0,rotations=0;
+ for(let l=0;l<4;l++)for(let n=0;n<180;n++){
+  const q=spatialQuestion(n,l);if(!q){if([3,5].includes(n%6))throw Error("missing spatial");continue}const m=q.spatial;
+  if(!spatialValid(m,m.solution)||spatialValid(m,m.initial)||spatialValid(m,[])||!spatialArt(m,m.solution).endsWith("</svg>"))throw Error("spatial validity "+n);
+  if(m.kind==="maze"){
+   const dist=Array(m.side*m.side).fill(Infinity);dist[m.start]=0;
+   for(let j=0;j<dist.length;j++)for(let u=0;u<dist.length;u++)if(!m.walls.includes(u))for(let v=0;v<dist.length;v++)if(!m.walls.includes(v)&&Math.abs(u%m.side-v%m.side)+Math.abs(Math.floor(u/m.side)-Math.floor(v/m.side))===1)dist[v]=Math.min(dist[v],dist[u]+1);
+   if(dist[m.goal]!==m.solution.length-1||m.walls.includes(m.start)||m.walls.includes(m.goal)||spatialValid(m,[m.start,m.goal]))throw Error("maze shortest");
+   let s=m.initial;for(let i=1;i<m.solution.length;i++){const d=spatialNeighbors(m,s.at(-1)).find(p=>p.i===m.solution[i]).d;s=spatialMove(m,s,d)}if(!spatialValid(m,s))throw Error("move");mazes++;
+  }else {if(new Set([0,1,2,3].map(i=>JSON.stringify(spatialRotate(m.cells,i)))).size!==4||!spatialValid(m,[m.delta])||spatialValid(m,[(m.delta+1)%4]))throw Error("rotation symmetry");rotations++}
+  count++;
+ }return {count,mazes,rotations};
+ };
+ const spatialTests=new Function('fget','fput','childArt','esc',source+'\nreturn ('+spatialTestCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
+ const spatialNodes=new Map(),spatialStore=new Map();
+ function spatialNode(id){if(!spatialNodes.has(id)){const x={id,hidden:false,disabled:false,textContent:'',value:'',dataset:{},children:[],querySelectorAll(){return this.children},setAttribute(){}};Object.defineProperty(x,'innerHTML',{set(v){this.markup=v;this.children=[...v.matchAll(/data-spatial="(\d+)"/g)].map(m=>({dataset:{spatial:m[1]}}))}});spatialNodes.set(id,x)}return spatialNodes.get(id)}
+ const spatialUICode=function(){
+  const key="logic-order";
+  for(const n of [3,5]){
+   let v=studyState(key);v.n=n;v.level=2;studySave(key,v);const m=spatialQuestion(n,2).spatial;
+   studyOpen("logic","order");if($("studySpatial").hidden||!$("studyNumberForm").hidden)throw Error("spatial mode");
+   const click=d=>$("spatialControls").children.find(x=>+x.dataset.spatial===d).onclick();
+   if(m.kind==="maze"){const moves=m.solution.slice(1).map((cell,i)=>spatialNeighbors(m,m.solution[i]).find(p=>p.i===cell).d);click(moves[0]);$("spatialUndo").onclick();if($("spatialStatus").textContent!=="Шагов: 0")throw Error("undo");moves.forEach(click)}
+   else {click(1);$("spatialReset").onclick();$("spatialCheck").onclick();for(let i=0;i<m.delta;i++)click(1)}
+   $("spatialCheck").onclick();if($("studyNext").hidden||!$("spatialCheck").disabled||studyState(key).independent!==v.independent+(n===3?1:0))throw Error("spatial submit");
+   $("spatialCheck").onclick();if(studyState(key).done!==v.done+1)throw Error("duplicate");
+   $("studyNext").onclick();if(!$("studySpatial").hidden)throw Error("restore sequence");
+  }return 2;
+ };
+ const spatialUI=new Function('fget','fput','childArt','esc','$','openModal',source+'\nreturn ('+spatialUICode.toString()+')();')(k=>spatialStore.get(k)||null,(k,v)=>{spatialStore.set(k,v);return true},()=>'',s=>s,spatialNode,()=>spatialNodes.clear());
+ const gap=new Function('fget','fput','childArt','esc',source+
+ 'let v=studyState("add"),t=1000;v=studyAdvance(v,true,t);if(v.delayedDone||v.lastPractice!==t)throw Error("legacy gap");v=studyAdvance(v,true,t+academyDay-1);if(v.delayedDone)throw Error("early gap");v=studyAdvance(v,false,v.lastPractice+academyDay);if(v.delayedDone!==1||v.delayedCorrect!==0)throw Error("due gap");v=studyAdvance(v,true,v.lastPractice+academyDay);if(v.delayedDone!==2||v.delayedCorrect!==1)throw Error("second gap");v=studyAdvance(v,true,v.lastPractice+1);if(v.delayedDone!==2)throw Error("duplicate gap");return 5;')(()=>null,()=>true,()=>'',s=>s);
+ const gapArchive=new Function(between('const portableKeys=','function backup(){')+
+ 'const k="skazki-study-skills-v2",valid=x=>portableValid(k,JSON.stringify({add:x}));if(!valid({done:2})||!valid({done:2,lastPractice:1000,delayedDone:1,delayedCorrect:1})||valid({lastPractice:1000,delayedDone:1,delayedCorrect:2})||valid({delayedDone:1}))throw Error("gap backup");return 4;')();
+
+ return {spatialTests,spatialUI,gap,gapArchive,models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}
