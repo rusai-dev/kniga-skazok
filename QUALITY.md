@@ -170,3 +170,8 @@ Search across all user-authored stories regardless of the selected author or top
 ## Candidate 1.5.58 — visual coloring catalog and workspace
 
 Added 12 named and individually previewed coloring choices, using combinations of the existing four scene settings and four character drawings. Each selection opens the actual canvas with outline mode and flood-fill selected. Enlarged the canvas layout on the standalone drawing screen. All previous drawing/gallery storage keys remain unchanged. Dependency-free regression passed (including 4,800 math variants, 19 books and 12 coloring entries). These 12 combinations are **not 12 independent professionally illustrated assets**; watercolor concept illustrations have been prepared separately but are not yet installed in the application. Browser/WebKit and iPad verification and publishing remain pending. Do not treat this candidate as meeting the PDF artwork acceptance gate.
+
+
+## Candidate 1.5.59 — lesson completion behavior
+
+Drawing lessons now stop on their final step instead of wrapping unexpectedly to step one. The last button is disabled and reads 'Урок завершён'; the reference image has an accessible step label. No storage keys or gallery records changed. Dependency-free regression passed. The full 2.0 PDF is **not** implemented: 12 independent professional line-art assets, full browser/iPad checks and publication remain pending. Release remains on the working branch.
