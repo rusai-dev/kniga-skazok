@@ -928,7 +928,7 @@ function studioFitImage(w,h,iw,ih){const scale=Math.min(w/iw,h/ih),dw=iw*scale,d
 
 /* Original, hand-authored vector story compositions, 720×480. No remote assets.
    Closed white shapes are painted back-to-front to give a single, continuous ink boundary. */
-const ORIGINAL_COLORING_IDS=['hedgehog-garden','fox-owl-stream','bear-library','kitten-balloon'];
+const ORIGINAL_COLORING_IDS=['hedgehog-garden','fox-owl-stream','bear-library','kitten-balloon','undersea-palace','winter-village','forest-picnic','dragon-clouds','rabbit-workshop','squirrel-autumn','owl-observatory','forest-train'];
 function originalColoring(ctx,key){
  if(!ORIGINAL_COLORING_IDS.includes(key))return false;
  const paper='#fffdf7',ink='#40382f';
@@ -1002,16 +1002,109 @@ function originalColoring(ctx,key){
   zone('M290 365 H432 L416 434 Q363 449 306 434Z');zone('M285 356 H437 V377 H285Z');detail('M300 392 H423 M303 409 H420 M327 378 V436 M361 378 V441 M395 378 V436');oval(333,365,14,10);oval(399,365,14,10);
   for(const [x,y] of [[112,193],[576,174],[654,346]]){zone('M'+x+' '+(y-11)+' q-22 -11 -19 10 q3 17 19 14 q18 2 21 -14 q0 -20 -21 -10Z');detail('M'+x+' '+(y-11)+' q-4 -10 5 -15')}
  }
+
+ if(key==='undersea-palace'){
+  oval(86,78,17,17);oval(112,40,9,9);oval(632,125,12,12);oval(671,80,8,8);
+  zone('M0 390 Q156 351 340 390 Q520 348 720 388 V480 H0Z');
+  for(const [x,y] of [[168,130],[548,130]]){zone('M'+(x-60)+' '+(y+72)+' L'+x+' '+y+' L'+(x+60)+' '+(y+72)+'Z');zone('M'+(x-43)+' '+(y+72)+' H'+(x+43)+' V394 H'+(x-43)+'Z');zone('M'+(x-20)+' '+(y+155)+' Q'+x+' '+(y+124)+' '+(x+20)+' '+(y+155)+' V'+(y+192)+' H'+(x-20)+'Z')}
+  zone('M238 208 Q360 81 482 208Z');zone('M257 208 H463 V395 H257Z');
+  zone('M320 395 V309 Q360 250 400 309 V395Z');oval(360,238,23,23);detail('M337 238 H383 M360 215 V261');
+  for(const x of [280,436])zone('M'+(x-11)+' 279 Q'+x+' 258 '+(x+11)+' 279 V318 H'+(x-11)+'Z');
+  zone('M47 252 Q93 211 138 252 Q162 224 184 221 L175 253 L184 285 Q158 282 138 257 Q93 294 47 252Z');eye(79,251);detail('M111 235 Q122 251 111 268');
+  zone('M561 328 Q596 292 635 324 L675 302 L670 350 L635 329 Q596 364 561 328Z');eye(588,327);
+  for(const x of [35,88,612,681]){zone('M'+x+' 438 Q'+(x-34)+' 386 '+(x-12)+' 360 Q'+(x+9)+' 390 '+x+' 421 Q'+(x+6)+' 366 '+(x+26)+' 370 Q'+(x+34)+' 410 '+(x+8)+' 447Z')}
+  zone('M286 451 Q310 414 339 437 Q366 415 390 450 Q344 472 286 451Z');detail('M339 437 V456 M310 439 L323 455 M367 439 L354 455');
+ }
+ if(key==='winter-village'){
+  oval(611,65,25,25);cloud(127,66,.9);cloud(366,43,.7);
+  zone('M0 320 L156 104 L248 245 L386 83 L551 305 L650 185 L720 321 V480 H0Z');
+  zone('M0 349 Q154 310 300 350 Q520 304 720 351 V480 H0Z');
+  for(const [x,y,k] of [[160,220,1],[402,242,.85],[586,257,.65]]){ctx.save();ctx.translate(x,y);ctx.scale(k,k);zone('M-83 58 L0 -42 L83 58Z');zone('M-66 58 H66 V179 H-66Z');zone('M-13 179 V120 Q0 104 13 120 V179Z');for(const a of [-43,27]){zone('M'+a+' 80 H'+(a+24)+' V108 H'+a+'Z');detail('M'+(a+12)+' 80 V108 M'+a+' 94 H'+(a+24))}zone('M30 -7 V-46 H47 V13Z');zone('M-83 58 L0 -42 L83 58 L72 68 L0 -19 L-72 68Z');ctx.restore()}
+  for(const [x,y] of [[54,376],[306,335],[673,385]]){zone('M'+x+' '+(y-95)+' l-41 66 h22 l-29 44 h37 v20 h22 v-20 h36 l-28 -44 h22Z')}
+  oval(338,425,29,24);oval(338,391,23,23);oval(338,355,19,19);eye(332,350);eye(344,350);zone('M338 359 L361 363 L338 367Z');zone('M315 371 Q337 362 361 372 V386 Q338 382 315 386Z');detail('M322 394 L293 377 M355 394 L379 374');oval(338,394,3,3,true);oval(338,410,3,3,true);
+  detail('M61 448 Q122 433 169 451 M442 446 Q488 436 543 448');
+ }
+ if(key==='forest-picnic'){
+  cloud(140,54,.95);oval(613,74,33,33);
+  zone('M0 335 Q176 285 360 332 Q560 281 720 327 V480 H0Z');
+  zone('M24 320 V56 Q64 88 106 45 L112 93 Q94 173 100 320Z');for(const [x,y,r] of [[36,44,-.8],[83,56,.7],[117,85,.9]])leaf(x,y,r);
+  zone('M156 363 L567 350 L674 466 L58 466Z');for(const y of [385,413,442])detail('M'+(156-(y-363)*.9)+' '+y+' L'+(567+(y-350)*.85)+' '+y);
+  for(const x of [190,270,350,430,510])detail('M'+x+' 364 L'+(x+(x-350)*.44)+' 466');
+  oval(193,310,52,65);oval(148,234,16,47);oval(177,218,15,52);oval(179,263,48,42);eye(161,257);eye(195,257);oval(178,273,6,5,true);detail('M178 278 Q169 285 164 280 M178 278 Q188 285 194 280');
+  oval(498,292,54,64);oval(464,214,22,23);oval(534,214,22,23);oval(499,247,57,48);oval(499,267,23,16);eye(480,239);eye(518,239);oval(499,260,8,5,true);detail('M499 266 Q501 279 512 269');
+  zone('M286 299 L302 365 Q351 391 403 365 L418 299Z');zone('M286 299 Q350 279 418 299 L417 316 Q351 335 287 316Z');zone('M306 299 Q297 222 351 222 Q405 222 397 299 H383 Q390 240 351 240 Q312 240 320 299Z');detail('M310 330 L320 373 M335 333 L342 380 M365 333 L360 380 M392 330 L385 373');
+  oval(241,417,45,19);zone('M224 416 Q213 397 236 388 Q254 385 261 404 Q263 419 247 424Z');oval(555,409,44,18);zone('M535 405 L554 375 L574 405Z');
+  flower(678,325,.6);flower(54,350,.65);
+ }
+ if(key==='dragon-clouds'){
+  cloud(116,85,1.15);cloud(607,71,1.1);cloud(100,341,1.2);cloud(611,392,1.25);
+  oval(615,202,30,30);
+  zone('M296 259 Q216 137 149 158 Q186 198 169 264 Q219 220 254 286Z');detail('M179 179 Q232 208 254 269');
+  zone('M412 256 Q485 111 561 134 Q531 184 554 235 Q508 204 460 283Z');detail('M539 155 Q486 197 460 267');
+  zone('M412 354 Q495 420 582 345 L601 310 L606 355 L633 369 L600 379 Q509 452 410 392Z');
+  zone('M292 235 Q271 291 288 350 Q319 418 411 381 Q470 355 438 282 Q426 244 400 234Z');
+  zone('M322 265 Q298 319 331 369 Q366 388 388 360 Q413 312 379 267Z');detail('M322 304 Q353 321 397 305 M325 332 Q361 349 394 333');
+  zone('M278 185 Q244 145 284 129 L309 101 L323 132 Q352 119 375 132 L409 96 L419 139 Q462 168 447 211 Q429 258 358 251 Q282 258 278 185Z');zone('M309 104 L303 142 L328 134Z');zone('M409 96 L390 136 L419 139Z');
+  eye(319,183);eye(404,183);zone('M327 207 Q355 189 389 207 Q405 231 357 238 Q312 232 327 207Z');oval(344,213,3,4,true);oval(374,213,3,4,true);detail('M345 225 Q359 234 374 225');
+  oval(302,358,21,28);oval(425,356,21,28);oval(319,391,31,17);oval(406,391,31,17);
+  for(const [x,y] of [[82,211],[228,75],[513,56]])zone('M'+x+' '+(y-21)+' l6 14 15 7 -15 6 -6 15 -6 -15 -15 -6 15 -7Z');
+ }
+ if(key==='rabbit-workshop'){
+  zone('M20 25 H700 V376 H20Z');zone('M48 46 H248 V222 H48Z');zone('M63 61 H233 V208 H63Z');detail('M148 61 V208 M63 133 H233');
+  zone('M0 376 H720 V480 H0Z');
+  zone('M297 154 Q274 99 291 46 Q309 12 330 49 Q353 97 336 149Z');zone('M373 147 Q364 99 389 51 Q412 15 429 50 Q440 101 412 153Z');zone('M309 139 Q292 84 310 62 Q330 87 322 137Z');zone('M385 137 Q389 80 411 63 Q427 90 402 139Z');
+  zone('M287 246 Q258 285 272 370 H439 Q469 303 422 246Z');zone('M286 170 Q310 129 359 130 Q420 130 439 183 Q457 252 361 269 Q265 263 286 170Z');eye(328,197);eye(396,197);oval(362,222,8,6,true);detail('M362 227 Q349 242 337 230 M362 227 Q375 242 387 230');
+  zone('M307 274 L323 303 H398 L416 274 L420 368 H302Z');oval(362,337,29,19);detail('M333 332 H391');
+  zone('M27 355 H693 V381 H27Z');zone('M53 381 H75 V468 H53Z');zone('M647 381 H669 V468 H647Z');
+  zone('M452 334 L468 194 H622 L637 334Z');zone('M475 220 H613 V313 H475Z');zone('M455 334 H639 V352 H455Z');detail('M503 313 L480 353 M591 313 L612 353');
+  zone('M502 282 Q520 243 543 275 Q561 243 580 282 Q555 302 542 300 Q525 301 502 282Z');
+  zone('M115 307 H184 L173 352 H126Z');for(const x of [135,151,167])zone('M'+x+' 307 L'+(x-5)+' 250 L'+(x+4)+' 242 L'+(x+10)+' 307Z');
+  oval(211,343,17,9);oval(247,342,18,10);oval(306,348,18,11);oval(418,348,18,11);
+ }
+ if(key==='squirrel-autumn'){
+  oval(606,74,29,29);cloud(340,59,1);zone('M0 327 Q175 294 335 332 Q530 292 720 328 V480 H0Z');
+  zone('M39 331 Q62 220 45 71 L5 15 H98 L124 95 L191 42 L212 77 L131 151 Q111 236 133 330Z');detail('M75 87 Q92 222 78 308');
+  for(const [x,y,r] of [[190,88,1.1],[133,116,-.7],[222,135,.4],[74,46,-.9],[170,48,.7],[609,260,1.5],[657,179,-1.2],[534,109,.7]])leaf(x,y,r);
+  zone('M100 396 Q98 372 122 361 L135 326 Q145 304 166 326 L186 360 Q211 372 206 396Z');detail('M126 350 Q155 363 180 349');
+  zone('M363 368 Q488 386 548 300 Q608 206 529 157 Q466 114 423 177 Q400 224 436 254 Q468 280 495 252 Q478 309 409 310Z');
+  detail('M510 174 Q563 199 540 253 Q528 299 481 321');
+  zone('M276 274 Q244 305 268 370 Q313 421 377 380 Q405 346 386 293 Q371 263 343 263Z');oval(326,350,34,43);
+  zone('M263 226 L245 160 Q239 135 261 143 L293 174 Q325 157 352 170 L390 142 Q409 137 400 168 L383 221 Q390 259 351 276 Q306 291 275 263 Q260 250 263 226Z');zone('M259 156 L273 196 L289 179Z');zone('M389 155 L364 181 L381 194Z');eye(296,224);eye(350,221);oval(326,245,8,6,true);detail('M326 252 Q340 262 350 248');
+  zone('M281 306 Q300 269 320 299 Q346 270 363 304 L348 344 H299Z');zone('M299 298 Q296 281 319 278 Q343 277 350 298Z');detail('M304 287 L343 287');oval(282,319,16,23);oval(370,318,16,23);oval(286,393,25,13);oval(363,393,25,13);
+  for(const [x,y,r] of [[178,434,1.1],[217,401,-.9],[564,437,.9],[650,393,-1.2],[481,459,-.4]])leaf(x,y,r);
+ }
+ if(key==='owl-observatory'){
+  oval(607,76,29,29);
+  for(const [x,y] of [[97,67],[167,122],[334,45],[519,112],[657,151]])zone('M'+x+' '+(y-20)+' l6 14 14 6 -14 6 -6 14 -6 -14 -14 -6 14 -6Z');
+  zone('M0 366 Q165 288 326 361 Q526 299 720 359 V480 H0Z');
+  zone('M52 349 Q62 189 203 189 Q342 189 350 349Z');zone('M80 349 H322 V438 H80Z');zone('M168 438 V383 Q201 342 234 383 V438Z');
+  zone('M184 191 L216 189 L233 335 H194Z');detail('M68 313 Q200 284 336 313');
+  zone('M482 313 L397 222 L429 193 L519 278Z');zone('M397 222 L380 205 L427 158 L444 176 L429 193Z');zone('M494 304 L509 292 L550 334 L535 347Z');oval(517,331,16,17);zone('M510 345 H525 L577 446 H561 L518 371 L475 446 H458Z');
+  zone('M402 328 Q378 299 392 273 L386 248 L416 261 Q441 247 467 261 L499 245 L492 279 Q508 319 482 348 Q448 376 413 354Z');
+  oval(424,294,20,21);oval(467,294,20,21);eye(424,294);eye(467,294);zone('M437 312 L454 312 L445 326Z');zone('M411 331 Q388 320 401 349 Q416 366 433 352Z');zone('M477 330 Q498 318 490 348 Q477 365 460 353Z');detail('M433 337 Q444 327 456 337 M433 349 Q444 339 456 349');
+  oval(430,369,14,8);oval(463,369,14,8);zone('M389 376 H505 V394 H389Z');
+ }
+ if(key==='forest-train'){
+  cloud(141,59,1);oval(616,68,25,25);cloud(493,72,.8);
+  zone('M0 336 Q167 292 344 333 Q552 300 720 335 V480 H0Z');
+  for(const [x,y] of [[49,284],[658,279]]){zone('M'+x+' '+(y-90)+' l-40 61 h20 l-28 42 h38 v36 h20 v-36 h37 l-27 -42 h20Z')}
+  zone('M0 428 H720 V438 H0Z');zone('M0 457 H720 V467 H0Z');for(const x of [14,92,170,248,326,404,482,560,638])zone('M'+x+' 439 h30 l14 17 h-30Z');
+  zone('M60 310 H252 V408 H60Z');zone('M60 310 V226 H177 V310Z');zone('M48 212 H189 V230 H48Z');zone('M79 245 H153 V297 H79Z');
+  oval(115,273,24,23);oval(102,244,10,15);oval(128,244,10,15);eye(106,271);eye(123,271);oval(115,284,4,3,true);
+  zone('M194 310 V243 H220 V310Z');zone('M185 228 H229 V244 H185Z');zone('M252 353 L282 407 H252Z');oval(116,410,31,31);oval(214,410,31,31);oval(116,410,12,12);oval(214,410,12,12);
+  for(const [x,k] of [[295,0],[493,1]]){zone('M'+x+' 284 h170 v124 h-170Z');zone('M'+(x-9)+' 269 h188 v17 h-188Z');zone('M'+(x+18)+' 298 h134 v64 h-134Z');oval(x+45,409,24,24);oval(x+128,409,24,24);oval(x+45,409,8,8);oval(x+128,409,8,8);if(k===0){oval(x+85,330,31,26);oval(x+61,309,13,13);oval(x+109,309,13,13);eye(x+73,327);eye(x+98,327);oval(x+85,343,6,4,true)}else{zone('M'+(x+51)+' 335 l-5 -34 32 13 h15 l32 -13 -7 35 q-32 43 -67 -1Z');eye(x+70,331);eye(x+102,331);oval(x+86,343,5,4,true)}}
+  detail('M282 379 H295 M465 379 H493');cloud(208,165,.52);cloud(252,122,.65);
+ }
  ctx.restore();return true
 }
 
 const STORY_COLORING_SCENES=[
  ['Ёжик в цветочном саду','hedgehog-garden'],['Лисёнок и сова у ручья','fox-owl-stream'],
  ['Медвежонок в библиотеке','bear-library'],['Котёнок на воздушном шаре','kitten-balloon'],
- ['Зайчик на лесной поляне','forest','rabbit'],['Лисёнок у замка','castle','fox'],
- ['Мишка у моря','sea','bear'],['Сова в волшебном лесу','forest','owl'],
- ['Зайчик под луной','night','rabbit'],['Лисёнок на берегу','sea','fox'],
- ['Медвежонок в ночном саду','night','bear'],['Совёнок у дворца','castle','owl']
+ ['Подводный дворец','undersea-palace'],['Волшебная зимняя деревня','winter-village'],
+ ['Лесные звери на пикнике','forest-picnic'],['Дракончик среди облаков','dragon-clouds'],
+ ['Зайчонок в мастерской','rabbit-workshop'],['Белочка в осеннем парке','squirrel-autumn'],
+ ['Совёнок в обсерватории','owl-observatory'],['Лесной поезд с друзьями','forest-train']
 ];
 function initDrawing(form,insertPicture){
  const panel=$('drawingPanel'),canvas=$('drawingCanvas'),ctx=canvas.getContext('2d',{alpha:false}),start=$('drawStory');
@@ -2662,7 +2755,7 @@ async function checkRelease(manual=false){
  }catch(e){if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
  finally{releaseChecking=false}
 }
-const APP_RELEASE='1.5.61';let releaseChecking=false;
+const APP_RELEASE='1.5.62';let releaseChecking=false;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
  $('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);
  window.addEventListener('focus',()=>checkRelease());
