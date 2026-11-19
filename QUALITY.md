@@ -135,3 +135,43 @@ Implemented the approved uploaded PDF page 2 composition with a larger central g
 ## Release 1.5.49 — interior laboratory and forest maze
 
 Applied page 4 reference to the existing maze renderer with an original illustrated meadow/stone board, visible plotted route, larger board and four directional controls in their spatial positions; no suggested solution, no change to maze generator or validator. Added a bean-seed prediction laboratory inspired by page 5: five controlled illustrative conditions, prediction before result, explanation after prediction. Light is not required for germination of bean seeds; the simulation is explicitly schematic, not a real growth experiment, and predictions do not modify assessed scores. Laboratory is available only after the first science answer and hidden on subsequent recall questions. Existing world progress, records and art preserved. Five seed-model states and new browser interaction assertions added. Source principle is consistent with the existing seed lesson; attempted external source search returned no results, so independent external verification is still outstanding. Full regression and browser syntax checks ran; actual browser results tracked separately. Physical iPad and learning outcomes unverified.
+
+
+## Candidate 1.5.50 — PDF reference learning and creative interiors
+
+Reworked the base-ten model into two equal illustrated panels with centered groups, ten explicit unit blocks per rod, and explicit zero states. Added color-matched controls and distinct primary actions. Refined reading spread, page navigation and evening-mode surface without changing pagination, bookmarks or art assets. Refined real drawing sheet and palette, including three-column palette in wide landscape. Kept all existing storage keys and educational validators. Full dependency-free regression suite passed in JS runtime, including 100 additional base-ten states; browser test syntax checked, browser execution and physical iPad validation pending. No claim of pixel-exact visual equivalence or measured learning gain.
+
+
+## Candidate 1.5.51 — reader return and accessible mathematical controls
+
+Reading view now uses a clear arrow-labeled shelf return with a descriptive accessible name. Base-ten controls expose independent named groups and maintain at least 44px targets in narrow layouts; book paging and the save action retain prominent touch targets. Added regression assertions for group names and a browser assertion for the reader return. Dependency-free regression and browser syntax passed in JS; actual iPad/browser execution and visual comparison are still outstanding. This is an unmerged candidate.
+
+
+## Candidate 1.5.52 — visible art-mode entry
+
+Standalone drawing now exposes three large named mode cards for free drawing, coloring and lessons, wired to the existing canvas, template picker and lesson pane. Existing storage keys remain unchanged. Dependency-free regression passed; browser/iPad testing and professional illustration expansion remain pending. Unpublished candidate.
+
+
+## Candidate 1.5.53 — four-step drawing lessons
+
+Four existing lesson subjects expanded from 3 to 4 stages, with previous-step navigation and dynamic step counts. Existing draft and gallery storage remain unchanged. Dependency-free regression passed; browser and iPad testing outstanding. Six professional lessons and full visual reference matching remain incomplete. Unpublished.
+
+
+## Candidate 1.5.54 — six drawing lesson subjects
+
+Added fox and butterfly to the existing four drawing lessons, with four cumulative instructional steps each, making six four-step lessons. The regression suite evaluates every lesson stage. These are still simple vector instructional outlines, not the professional artwork required by the approved PDF. Browser and physical iPad testing are not yet complete. This is not a published release.
+
+
+## Candidate 1.5.55 — personal story search on iPad
+
+Search across all user-authored stories regardless of the selected author or topic, with ё/е normalization, case-insensitive multiword title/body matching, clear control, result count and actionable empty state. Input has 16px font, safe scroll margin, focus scroll and Enter-to-dismiss keyboard. No data migration. Dependency-free regression passed; physical iPad Safari and browser visual checks pending. Unpublished.
+
+
+## Candidate 1.5.58 — visual coloring catalog and workspace
+
+Added 12 named and individually previewed coloring choices, using combinations of the existing four scene settings and four character drawings. Each selection opens the actual canvas with outline mode and flood-fill selected. Enlarged the canvas layout on the standalone drawing screen. All previous drawing/gallery storage keys remain unchanged. Dependency-free regression passed (including 4,800 math variants, 19 books and 12 coloring entries). These 12 combinations are **not 12 independent professionally illustrated assets**; watercolor concept illustrations have been prepared separately but are not yet installed in the application. Browser/WebKit and iPad verification and publishing remain pending. Do not treat this candidate as meeting the PDF artwork acceptance gate.
+
+
+## Candidate 1.5.59 — lesson completion behavior
+
+Drawing lessons now stop on their final step instead of wrapping unexpectedly to step one. The last button is disabled and reads 'Урок завершён'; the reference image has an accessible step label. No storage keys or gallery records changed. Dependency-free regression passed. The full 2.0 PDF is **not** implemented: 12 independent professional line-art assets, full browser/iPad checks and publication remain pending. Release remains on the working branch.

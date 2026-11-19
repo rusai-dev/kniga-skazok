@@ -38,6 +38,22 @@ const server=http.createServer((req,res)=>{
  await page.locator('#home').click();assert.ok(await page.locator('#storybookHome').isVisible());await page.goBack();assert.ok(await page.locator('#libraryHome').isVisible());
  await page.reload();assert.ok(await page.locator('#storybookHome').isVisible());assert.equal(await page.evaluate(()=>location.hash),'');
  assert.equal(await page.locator('#homeLabel').textContent(),'Книга сказок');
+ // P0: personal search must find a persisted book outside its selected topic/author.
+ await page.evaluate(()=>{const book={id:'qa-personal-search',title:'Ёжик и северное сияние',body:'Светлячок нашёл волшебный фонарь.',theme:'Винни-Пух',author:OWN,icon:'📖'};if(!commitLibrary({...data,stories:[...data.stories,book]}))throw Error('personal search fixture');});
+ await page.locator('#homeBooks').click();
+ await page.evaluate(()=>chooseTheme('Море'));
+ await page.locator('#bookSearch').fill('ежик фонарь');
+ assert.equal(await page.locator('#books .book-title').count(),1);
+ assert.equal(await page.locator('#books .book-title').textContent(),'Ёжик и северное сияние');
+ assert.ok(await page.locator('#clearBookSearch').isVisible());
+ await page.locator('#bookSearch').press('Enter');
+ assert.equal(await page.locator('#bookSearch').evaluate(e=>document.activeElement===e),false);
+ await page.locator('#books .book-title').click();assert.ok(await page.locator('#modal').isVisible());
+ await page.keyboard.press('Escape');await page.reload();
+ await page.locator('#homeBooks').click();await page.locator('#bookSearch').fill('СИЯНИ');
+ assert.equal(await page.locator('#books .book-title').count(),1);
+ await page.locator('#clearBookSearch').click();assert.equal(await page.locator('#bookSearch').inputValue(),'');
+ await page.locator('#home').click();
  await page.locator('#adultEntry').click();assert.ok(await page.locator('#adultHome').isVisible());assert.ok(await page.locator('#adultProgress .study-parent').isVisible());await page.locator('#home').click();
  await page.locator('#childLearn').click();assert.equal(await page.locator('#modal .study-parent').count(),0);assert.equal(await page.locator('#close').textContent(),'← Главная');await page.locator('#close').click();assert.ok(await page.locator('#storybookHome').isVisible());await page.locator('#childLearn').click();
  await page.locator('#learnOutcomes').click();await page.locator('[data-outcome="story"]').click();
@@ -62,7 +78,9 @@ const server=http.createServer((req,res)=>{
  await page.locator('#studyBack').click();await page.locator('[data-academy="place"]').click();
  assert.equal(await page.locator('#studyModel').isVisible(),true);
  await page.locator('[data-model-i="0"][data-model-d="1"]').click();assert.equal(await page.locator('#modelValue0').textContent(),'1');
+ assert.equal(await page.locator('#studyModel').getAttribute('data-model-kind'),'place');assert.equal(await page.locator('#modelArt [data-ten-rod]').count(),1);assert.equal(await page.locator('#modelArt [data-unit="ten"]').count(),10);assert.equal(await page.locator('#modelArt [data-unit="one"]').count(),0);
  await page.locator('#modelReset').click();assert.equal(await page.locator('#modelValue0').textContent(),'0');
+ assert.equal(await page.locator('#modelArt [data-ten-rod]').count(),0);
  await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();assert.ok(await page.locator('#modelCheck').isDisabled());await page.locator('#studyNext').click();assert.equal(await page.locator('#studyModel').isVisible(),false);
  await page.keyboard.press('Escape');await page.locator('#homeLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
@@ -119,6 +137,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('[data-seed="4"]').click();await page.locator('#seedYes').click();assert.ok((await page.locator('#seedFeedback').textContent()).includes('может прорасти без света'));await page.locator('#worldNext').click();assert.equal(await page.locator('#seedExperiment').isVisible(),false);
  await page.keyboard.press('Escape');await page.locator('#readingEntry').click();
  await page.locator('[data-story]').first().click();await page.locator('#readingNumber').waitFor({state:'visible'});
+ assert.equal(await page.locator('#readingBack').getAttribute('aria-label'),'Вернуться к списку книг');
  await page.waitForFunction(()=>document.getElementById('readingNumber')?.textContent.includes('/'));
  for(let i=0;i<3;i++){
  const dims=await page.locator('#readingText').evaluate(el=>({client:el.clientHeight,scroll:el.scrollHeight}));
@@ -151,13 +170,44 @@ const server=http.createServer((req,res)=>{
  await page.keyboard.press('Escape');
  await page.evaluate(()=>artRoom());
  await page.locator('#drawingCanvas').waitFor({state:'visible'});
+ assert.equal(await page.locator('#lessonSubject option').count(),6);
+ // P0/P1: all three real workshop modes, final lesson step and history.
+ await page.locator('[data-art-mode="color"]').click();
+ await page.locator('[data-art-mode="color"]').click();
+ assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice:visible').count(),12);
+ await page.locator('#storyColoringGallery .story-coloring-choice').first().click();
+ assert.equal(await page.locator('[data-tool="fill"]').getAttribute('aria-pressed'),'true');
+ const pixelState=()=>page.locator('#drawingCanvas').evaluate(c=>c.toDataURL());
+ const template=await pixelState();
+ await page.locator('#drawingColors button[data-color="#bd3948"]').click();
+ await page.locator('#drawingCanvas').click({position:{x:12,y:12}});
+ const colored=await pixelState();assert.notEqual(colored,template,'fill must change pixels');
+ await page.locator('#drawingUndo').click();assert.equal(await pixelState(),template);
+ await page.locator('#drawingRedo').click();assert.equal(await pixelState(),colored);
+ await page.locator('[data-art-mode="lesson"]').click();
+ assert.ok(await page.locator('#studioLessonPane').isVisible());
+ await page.locator('#lessonSubject').selectOption('fox');
+ for(let step=0;step<3;step++)await page.locator('#lessonNext').click();
+ assert.equal(await page.locator('#lessonNext').isEnabled(),false);
+ await page.locator('#lessonPrev').click();assert.ok(await page.locator('#lessonNext').isEnabled());
+ assert.equal(await pixelState(),colored,'lesson navigation must not modify child drawing');
+ await page.locator('[data-art-mode="free"]').click();
+ assert.equal(await page.locator('[data-tool="brush"]').getAttribute('aria-pressed'),'true');
+ assert.equal(await pixelState(),colored,'switching modes must keep image');
  assert.equal(await page.locator('#drawingColors button:visible').count(),12);
  assert.equal(await page.locator('#studioEffects').isVisible(),false);
  await page.locator('#paletteMore').click();assert.equal(await page.locator('#drawingColors button:visible').count(),32);await page.locator('#paletteMore').click();
  await page.locator('#studioMore summary').click();assert.ok(await page.locator('#studioEffects').isVisible());await page.locator('#studioEffects').click();assert.ok(await page.locator('#studioExtraTitle').isVisible());await page.locator('#studioExtraClose').click();
  const sheet=await page.locator('#drawingCanvas').boundingBox();assert.ok(sheet.width>220&&sheet.height>140,'canvas size');
  await page.mouse.move(sheet.x+sheet.width/3,sheet.y+sheet.height/3);await page.mouse.down();await page.mouse.move(sheet.x+sheet.width/2,sheet.y+sheet.height/2,{steps:5});await page.mouse.up();
- assert.ok(await page.locator('#drawingSave').isEnabled());await page.locator('#drawingSave').click();
+ assert.ok(await page.locator('#drawingSave').isEnabled());
+ const draft=await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1'));assert.ok(draft?.startsWith('data:image/jpeg;base64,'));
+ await page.keyboard.press('Escape');await page.reload();await page.evaluate(()=>artRoom());
+ await page.waitForFunction(()=>document.getElementById('drawingStatus')?.textContent.includes('Продолжай свой сохранённый рисунок'));
+ assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1')),draft);
+ await page.locator('#drawingSave').click();
+ await page.locator('#galleryGrid [data-view]').first().click();assert.ok(await page.locator('.gallery-large').isVisible());
+ await page.locator('#galleryReturn').click();assert.ok(await page.locator('#galleryGrid').isVisible());
  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length>0),'drawing stored');
  await page.keyboard.press('Escape');
  const archiveFixture=await page.evaluate(()=>{
