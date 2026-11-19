@@ -1,7 +1,7 @@
 /* Network-first offline shell. Never delete user library data. */
 'use strict';
 const CACHE='skazki-shell-v2';
-const ROOT=new URL('./',self.registration.scope).href,INDEX=new URL('index.html',ROOT).href,CLASSIC_ART=[new URL('classic-art-153.js',ROOT).href,new URL('classic-art-155.js',ROOT).href];
+const ROOT=new URL('./',self.registration.scope).href,INDEX=new URL('index.html',ROOT).href,CLASSIC_ART=[new URL('classic-art-153.js',ROOT).href,new URL('classic-art-155.js',ROOT).href,new URL('andersen-art-156.js',ROOT).href];
 async function fresh(url){return fetch(url,{cache:'no-store',credentials:'same-origin'})}
 async function remember(response){if(response.ok&&/text\/html/i.test(response.headers.get('content-type')||'')){try{const cache=await caches.open(CACHE);await cache.put(INDEX,response.clone())}catch(e){}}}
 self.addEventListener('install',event=>event.waitUntil((async()=>{
