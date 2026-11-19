@@ -145,3 +145,8 @@ Reworked the base-ten model into two equal illustrated panels with centered grou
 ## Candidate 1.5.51 — reader return and accessible mathematical controls
 
 Reading view now uses a clear arrow-labeled shelf return with a descriptive accessible name. Base-ten controls expose independent named groups and maintain at least 44px targets in narrow layouts; book paging and the save action retain prominent touch targets. Added regression assertions for group names and a browser assertion for the reader return. Dependency-free regression and browser syntax passed in JS; actual iPad/browser execution and visual comparison are still outstanding. This is an unmerged candidate.
+
+
+## Candidate 1.5.52 — visible art-mode entry
+
+Standalone drawing now exposes three large named mode cards for free drawing, coloring and lessons, wired to the existing canvas, template picker and lesson pane. Existing storage keys remain unchanged. Dependency-free regression passed; browser/iPad testing and professional illustration expansion remain pending. Unpublished candidate.
