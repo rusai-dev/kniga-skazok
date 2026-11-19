@@ -952,8 +952,8 @@ function initDrawing(form,insertPicture){
  function sync(){form.dataset.drawingDirty=dirty&&!stored?'yes':'no';$('drawingUndo').disabled=restoring||!undo.length;$('drawingRedo').disabled=restoring||!redo.length;$('drawingSave').disabled=restoring||!dirty}
  function persist(){if(restoring)return;if(!dirty){fdel(DRAWING_DRAFT);stored=false;sync();return}try{stored=fput(DRAWING_DRAFT,drawingJPEG(canvas))}catch(e){stored=false}$('drawingStatus').textContent=stored?'Черновик рисунка сохранён на этом устройстве.':'Не удалось сохранить черновик. Сохрани рисунок перед выходом.';sync()}
  function changed(){stored=false;sync();persist()}
- function lesson(){const item=drawingLesson($('lessonSubject').value,lessonStep);$('lessonPicture').innerHTML=item.svg;$('lessonInstruction').textContent=item.instruction;$('lessonPrev').disabled=lessonStep===0;$('lessonNext').textContent=lessonStep===item.total-1?'Начать сначала':'Следующий шаг'}
- $('lessonSubject').onchange=()=>{lessonStep=0;lesson()};$('lessonPrev').onclick=()=>{lessonStep=Math.max(0,lessonStep-1);lesson()};$('lessonNext').onclick=()=>{lessonStep=(lessonStep+1)%drawingLesson($('lessonSubject').value,lessonStep).total;lesson()};lesson();
+ function lesson(){const item=drawingLesson($('lessonSubject').value,lessonStep);$('lessonPicture').innerHTML=item.svg;$('lessonInstruction').textContent=item.instruction;$('lessonPrev').disabled=lessonStep===0;$('lessonNext').disabled=lessonStep===item.total-1;$('lessonNext').textContent=lessonStep===item.total-1?'Урок завершён':'Следующий шаг';$('lessonPicture').setAttribute('aria-label','Образец: шаг '+(lessonStep+1)+' из '+item.total)}
+ $('lessonSubject').onchange=()=>{lessonStep=0;lesson()};$('lessonPrev').onclick=()=>{lessonStep=Math.max(0,lessonStep-1);lesson()};$('lessonNext').onclick=()=>{const total=drawingLesson($('lessonSubject').value,lessonStep).total;lessonStep=Math.min(total-1,lessonStep+1);lesson()};lesson();
  function capture(){return {pixels:ctx.getImageData(0,0,canvas.width,canvas.height),dirty}}
  function remember(){undo.push(capture());if(undo.length>12)undo.shift();redo=[]}
  function point(e){const r=canvas.getBoundingClientRect();if(!r.width||!r.height)return {x:0,y:0};return {x:Math.max(0,Math.min(canvas.width,(e.clientX-r.left)*canvas.width/r.width)),y:Math.max(0,Math.min(canvas.height,(e.clientY-r.top)*canvas.height/r.height))}}
@@ -2582,7 +2582,7 @@ async function checkRelease(manual=false){
  }catch(e){if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
  finally{releaseChecking=false}
 }
-const APP_RELEASE='1.5.58';let releaseChecking=false;
+const APP_RELEASE='1.5.59';let releaseChecking=false;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
  $('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);
  window.addEventListener('focus',()=>checkRelease());
