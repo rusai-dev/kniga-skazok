@@ -173,6 +173,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#lessonSubject option').count(),6);
  // P0/P1: all three real workshop modes, final lesson step and history.
  await page.locator('[data-art-mode="color"]').click();
+ await page.locator('[data-art-mode="color"]').click();
  assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice:visible').count(),12);
  await page.locator('#storyColoringGallery .story-coloring-choice').first().click();
  assert.equal(await page.locator('[data-tool="fill"]').getAttribute('aria-pressed'),'true');
@@ -191,7 +192,8 @@ const server=http.createServer((req,res)=>{
  await page.locator('#lessonPrev').click();assert.ok(await page.locator('#lessonNext').isEnabled());
  assert.equal(await pixelState(),colored,'lesson navigation must not modify child drawing');
  await page.locator('[data-art-mode="free"]').click();
- await page.locator('[data-tool="brush"]').click();
+ assert.equal(await page.locator('[data-tool="brush"]').getAttribute('aria-pressed'),'true');
+ assert.equal(await pixelState(),colored,'switching modes must keep image');
  assert.equal(await page.locator('#drawingColors button:visible').count(),12);
  assert.equal(await page.locator('#studioEffects').isVisible(),false);
  await page.locator('#paletteMore').click();assert.equal(await page.locator('#drawingColors button:visible').count(),32);await page.locator('#paletteMore').click();
