@@ -1082,7 +1082,7 @@ const worldAreas=[
  ['Здоровье и забота',['teeth','heart','recycle']]
 ];
 function dayModelMarkup(turn=0){
- const angle=(turn%4)*Math.PI/2,markerX=205-52*Math.cos(angle),markerY=95-52*Math.sin(angle),day=turn%4===0,night=turn%4===2,label=day?'День в отмеченном месте':night?'Ночь в отмеченном месте':'Отмеченное место на границе дня и ночи';
+ const angle=(turn%4)*Math.PI/2,markerX=205-65*Math.cos(angle),markerY=95-65*Math.sin(angle),day=turn%4===0,night=turn%4===2,label=day?'День в отмеченном месте':night?'Ночь в отмеченном месте':'Отмеченное место на границе дня и ночи';
  return '<svg viewBox="0 0 320 190" role="img" aria-label="'+label+'"><rect width="320" height="190" rx="12" fill="#e9edf1"/><circle cx="55" cy="95" r="28" fill="#f0b749"/><path d="M88 72h37m-37 23h37m-37 23h37" stroke="#dba54d" stroke-width="3"/><circle cx="205" cy="95" r="65" fill="#8cb7c9"/><path d="M205 30a65 65 0 0 1 0 130z" fill="#314b6b"/><circle cx="'+markerX+'" cy="'+markerY+'" r="8" fill="#db775a" stroke="#fff" stroke-width="3"/><path d="M168 17q37-11 74 0" fill="none" stroke="#52756e" stroke-width="3"/></svg><p class="day-model-label">'+label+'</p>';
 }
 let worldSelected=0;
@@ -1185,7 +1185,7 @@ function languageQuestion(skill,n,l){
 }
 function languageEqual(a,b){return String(a).trim().toLocaleLowerCase('ru').normalize('NFC')===String(b).trim().toLocaleLowerCase('ru').normalize('NFC')}
 function languageRoom(){
- openModal('Слова и предложения','<div class="explore-page"><div class="explore-heading"><button type="button" id="languageBack" class="learn-back">← К занятиям</button><p>Играй со словами, читай и пиши.</p></div><div class="skill-grid">'+languageSkills.map(([k,t,sign],i)=>skillTile(k,t,'data-language',studyState('language-'+k),['Замечай буквы','Разбирай слова','Составляй предложения'][i],sign)).join('')+'</div></div>','practice');
+ openModal('Слова и предложения','<div class="explore-page"><div class="explore-heading"><button type="button" id="languageBack" class="learn-back">← К занятиям</button><p>Играй со словами, читай и пиши.</p></div><div class="skill-grid">'+languageSkills.map(([k,t,sign],i)=>skillTile(k,t,'data-language',studyState('language-'+k),['Замечай буквы','Составляй предложения','Разбирай значения слов'][i],sign)).join('')+'</div></div>','practice');
  $('modalBody').querySelectorAll('[data-language]').forEach(b=>b.onclick=()=>studyOpen('language',b.dataset.language));$('languageBack').onclick=learningRoom;
 }
 
