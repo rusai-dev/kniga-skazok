@@ -21,6 +21,13 @@ const server=http.createServer((req,res)=>{
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url);await page.locator('#childLearn').click();
+ await page.locator('#learnOutcomes').click();await page.locator('[data-outcome="story"]').click();
+ await page.locator('#outcomeNumber').fill('10');await page.locator('#outcomeSend').click();
+ assert.equal(await page.locator('#outcomeProgress').evaluate(e=>e.value),1);
+ await page.locator('#outcomeExit').click();await page.locator('[data-outcome="story"]').click();
+ assert.equal(await page.locator('#outcomeProgress').evaluate(e=>e.value),1);await page.locator('#outcomeSkip').click();
+ assert.equal(await page.locator('#outcomeProgress').evaluate(e=>e.value),2);
+ await page.locator('#outcomeExit').click();await page.locator('#outcomeBack').click();
  await page.locator('#learnMath').click();assert.equal(await page.locator('[data-academy]').count(),12);
  assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-menu-focus')),true);
  assert.equal(await page.locator('[data-academy] .fairy-art').count(),12);
