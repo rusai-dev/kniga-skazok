@@ -1228,12 +1228,17 @@ function spatialQuestion(n,l){
  const p=(s,min,max)=>academyPick(n,s,min,max);
  if(n%6===5){
   const cells=spatialRotate(spatialFigures[p(61,0,spatialFigures.length-1)],p(62,0,3)),turns=p(63,1,l===0?1:l===1?2:3),clockwise=l<2||p(64,0,1)===0,delta=clockwise?turns:(4-turns)%4;
-  return {...aq('Представь, что фигуру повернули '+turns+' '+(turns===1?'раз':'раза')+' на четверть оборота '+(clockwise?'вправо (по часовой стрелке)':'влево (против часовой стрелки)')+'. Собери её новое положение.','Повернутая фигура','Представь, куда переместится верх фигуры. Один поворот — четверть полного круга.','Фигура поворачивается целиком: её клетки не меняют форму и расположение друг относительно друга.'),spatial:{kind:'rotate',cells,delta,initial:[0],solution:[delta]}};
+  return {...aq('Представь, что фигуру повернули '+turns+' '+(turns===1?'раз':'раза')+' на четверть оборота '+(clockwise?'вправо (по часовой стрелке)':'влево (против часовой стрелки)')+'. Сначала представь результат, затем установи новое положение фигуры.','Повернутая фигура','Представь, куда переместится верх фигуры. Один поворот — четверть полного круга.','Фигура поворачивается целиком: её клетки не меняют форму и расположение друг относительно друга.'),spatial:{kind:'rotate',cells,delta,initial:[0],solution:[delta]}};
  }
  const side=l<2?4:5,start=p(65,0,3),startCell=[0,side-1,side*(side-1),side*side-1][start],goal=side*side-1-startCell;
  const m={kind:'maze',side,start:startCell,goal,walls:[],short:l>=2,initial:[startCell]};
- const candidates=academyShuffle(Array.from({length:side*side},(_,i)=>i).filter(i=>i!==m.start&&i!==m.goal),n+700);
- for(const cell of candidates){if(m.walls.length===[3,4,6,8][l])break;m.walls.push(cell);if(!spatialShortest(m))m.walls.pop()}
+ if(l===3){
+  const lower=p(66,3,4),upper=p(67,0,1),flipX=start%2===1,flipY=start>=2;
+  for(let y=0;y<5;y++)for(const x of [1,3])if(y!==(x===1?lower:upper))m.walls.push((flipY?4-y:y)*5+(flipX?4-x:x));
+ }else {
+  const candidates=academyShuffle(Array.from({length:side*side},(_,i)=>i).filter(i=>i!==m.start&&i!==m.goal),n+700);
+  for(const cell of candidates){if(m.walls.length===[3,4,6][l])break;m.walls.push(cell);if(!spatialShortest(m))m.walls.pop()}
+ }
  m.solution=spatialShortest(m);
  return {...aq('Проведи лисёнка к домику, не заходя на камни.'+(m.short?' Найди путь за наименьшее число шагов.':''),'Путь к домику','Посмотри на свободные клетки. Можно отменить шаг и попробовать другой путь.','До домика можно добраться за '+(m.solution.length-1)+' шагов — это один из кратчайших путей.'),spatial:m};
 }
@@ -1244,14 +1249,14 @@ function spatialValid(m,s){
 }
 function spatialMove(m,s,d){
  if(!Number.isInteger(d)||d<0||d>3)return s;
- if(m.kind==='rotate')return [(s[0]+(d===0?3:1))%4];
- const p=spatialNeighbors(m,s.at(-1)).find(p=>p.d===d);if(!p||s.includes(p.i)||s.at(-1)===m.goal)return s;return [...s,p.i];
+ if(m.kind==='rotate')return d>1?s:[(s[0]+(d===0?3:1))%4];
+ if(!Array.isArray(s)||!s.length)return s;const p=spatialNeighbors(m,s.at(-1)).find(p=>p.d===d);if(!p||s.includes(p.i)||s.at(-1)===m.goal)return s;return [...s,p.i];
 }
 function spatialArt(m,s){
  if(m.kind==='rotate'){
   const art=(cells,x,fill)=>cells.map(([a,b])=>'<rect x="'+(x+a*36)+'" y="'+(27+b*36)+'" width="34" height="34" rx="6" fill="'+fill+'" stroke="#526e61" stroke-width="1.4"/>').join('');
   const grid=x=>Array.from({length:9},(_,i)=>'<rect x="'+(x+i%3*36)+'" y="'+(27+Math.floor(i/3)*36)+'" width="34" height="34" rx="6" fill="#fffdf6" stroke="#ded6c4"/>').join('');
-  return '<svg viewBox="0 0 280 170" role="img" aria-label="Исходная фигура и её повёрнутое положение"><rect width="280" height="170" rx="14" fill="#f4ead6"/>'+grid(16)+grid(156)+art(m.cells,16,'#92b49e')+art(spatialRotate(m.cells,s[0]),156,'#d5a366')+'<g fill="#4d5748" text-anchor="middle" font-size="13"><text x="70" y="18">Было</text><text x="210" y="18">Твой поворот</text></g></svg>';
+  return '<svg viewBox="0 0 280 170" role="img" aria-label="Исходная фигура: '+m.cells.map(([x,y])=>(y+1)+':'+(x+1)).join(', ')+'. Твой поворот: '+spatialRotate(m.cells,s[0]).map(([x,y])=>(y+1)+':'+(x+1)).join(', ')+' (строка:столбец)"><rect width="280" height="170" rx="14" fill="#f4ead6"/>'+grid(16)+grid(156)+art(m.cells,16,'#92b49e')+art(spatialRotate(m.cells,s[0]),156,'#d5a366')+'<g fill="#4d5748" text-anchor="middle" font-size="13"><text x="70" y="18">Было</text><text x="210" y="18">Твой поворот</text></g></svg>';
  }
  const size=48,offset=12,w=m.side*size+24,xy=i=>[offset+i%m.side*size+24,offset+Math.floor(i/m.side)*size+24];
  let a='';for(let i=0;i<m.side*m.side;i++){const [x,y]=xy(i),wall=m.walls.includes(i);
@@ -1260,7 +1265,7 @@ function spatialArt(m,s){
  }
  const path=s.map(i=>xy(i).join(',')).join(' '),[gx,gy]=xy(m.goal),[fx,fy]=xy(s.at(-1));
  a+='<polyline points="'+path+'" fill="none" stroke="#90b5a0" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><g transform="translate('+gx+' '+gy+')"><path d="M-15-3L0-19 15-3V15H-15Z" fill="#c89468" stroke="#80583e" stroke-width="2"/><path d="M-18-2L0-21 18-2" fill="none" stroke="#9c5e49" stroke-width="4"/><rect x="-4" y="4" width="8" height="11" rx="2" fill="#fff3dc"/></g><g transform="translate('+fx+' '+fy+')"><path d="M-17-17L-5-12H5L17-17 15 7 0 17-15 7Z" fill="#d48250" stroke="#9a6243" stroke-width="1.5"/><path d="M-13 3L0 15 13 3 0 7Z" fill="#ffefd1"/><circle cx="-6" cy="0" r="2" fill="#413930"/><circle cx="6" cy="0" r="2" fill="#413930"/><circle cy="8" r="2" fill="#413930"/></g>';
- return '<svg viewBox="0 0 '+w+' '+w+'" role="img" aria-label="Лабиринт. Строка '+(Math.floor(s.at(-1)/m.side)+1)+', столбец '+(s.at(-1)%m.side+1)+'">'+a+'</svg>';
+ return '<svg viewBox="0 0 '+w+' '+w+'" role="img" aria-label="Лабиринт '+m.side+' на '+m.side+'. Лисёнок: строка '+(Math.floor(s.at(-1)/m.side)+1)+', столбец '+(s.at(-1)%m.side+1)+'. Домик: строка '+(Math.floor(m.goal/m.side)+1)+', столбец '+(m.goal%m.side+1)+'. Камни: '+m.walls.map(i=>(Math.floor(i/m.side)+1)+':'+(i%m.side+1)).join(', ')+'">'+a+'</svg>';
 }
 function spatialControls(m){
  const b=(i,label,aria)=>'<button type="button" data-spatial="'+i+'" aria-label="'+aria+'">'+label+'</button>';
@@ -1383,7 +1388,7 @@ studyOpen=function(type,skill='patterns'){
   const m=q.spatial;if(!m)return;
   if(initial)$('spatialControls').innerHTML=spatialControls(m);
   $('spatialArt').innerHTML=spatialArt(m,spatialState);
-  $('spatialStatus').textContent=m.kind==='maze'?'Шагов: '+(spatialState.length-1):'Поворачивай фигуру кнопками.';
+  $('spatialStatus').textContent=m.kind==='maze'?'Шагов: '+(spatialState.length-1):'После поворота нажми «Проверить».';
   $('spatialControls').querySelectorAll('button').forEach(b=>{const d=Number(b.dataset.spatial);b.disabled=finished||spatialMove(m,spatialState,d)===spatialState;b.onclick=()=>{if(finished||!q.spatial)return;spatialState=spatialMove(m,spatialState,d);renderSpatial()}});
   $('spatialUndo').hidden=m.kind!=='maze';$('spatialUndo').disabled=finished||spatialState.length===1;
   $('spatialReset').disabled=finished||spatialState.join()===m.initial.join();$('spatialCheck').disabled=finished;
@@ -2223,7 +2228,7 @@ async function checkRelease(manual=false){
  }catch(e){if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
  finally{releaseChecking=false}
 }
-const APP_RELEASE='1.5.40';let releaseChecking=false;
+const APP_RELEASE='1.5.41';let releaseChecking=false;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
  $('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);
  window.addEventListener('focus',()=>checkRelease());

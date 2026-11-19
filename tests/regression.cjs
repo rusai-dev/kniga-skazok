@@ -150,8 +150,9 @@ function verify(html){
    const dist=Array(m.side*m.side).fill(Infinity);dist[m.start]=0;
    for(let j=0;j<dist.length;j++)for(let u=0;u<dist.length;u++)if(!m.walls.includes(u))for(let v=0;v<dist.length;v++)if(!m.walls.includes(v)&&Math.abs(u%m.side-v%m.side)+Math.abs(Math.floor(u/m.side)-Math.floor(v/m.side))===1)dist[v]=Math.min(dist[v],dist[u]+1);
    if(dist[m.goal]!==m.solution.length-1||m.walls.includes(m.start)||m.walls.includes(m.goal)||spatialValid(m,[m.start,m.goal]))throw Error("maze shortest");
+   if(l===3&&(dist[m.goal]<=8||m.walls.length!==8))throw Error("advanced maze has no detour");
    let s=m.initial;for(let i=1;i<m.solution.length;i++){const d=spatialNeighbors(m,s.at(-1)).find(p=>p.i===m.solution[i]).d;s=spatialMove(m,s,d)}if(!spatialValid(m,s))throw Error("move");mazes++;
-  }else {if(new Set([0,1,2,3].map(i=>JSON.stringify(spatialRotate(m.cells,i)))).size!==4||!spatialValid(m,[m.delta])||spatialValid(m,[(m.delta+1)%4]))throw Error("rotation symmetry");rotations++}
+  }else {if(new Set([0,1,2,3].map(i=>JSON.stringify(spatialRotate(m.cells,i)))).size!==4||!spatialValid(m,[m.delta])||spatialValid(m,[(m.delta+1)%4])||spatialMove(m,m.initial,2)!==m.initial)throw Error("rotation symmetry");rotations++}
   count++;
  }return {count,mazes,rotations};
  };
