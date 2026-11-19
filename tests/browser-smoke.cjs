@@ -25,8 +25,8 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('.home-map button').count(),4);
  assert.ok(await page.locator('.home-art').first().evaluate(e=>getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')));
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
- await page.locator('#homeMath').click();assert.equal(await page.locator('[data-academy]').count(),12);await page.locator('#close').click();
- await page.locator('#homeLogic').click();assert.equal(await page.locator('[data-academy]').count(),6);await page.locator('#close').click();
+ await page.locator('#homeMath').click();assert.equal(await page.locator('[data-academy]').count(),12);assert.equal(await page.locator('#close').isVisible(),false);await page.locator('#academyBack').click();
+ await page.locator('#homeLogic').click();assert.equal(await page.locator('[data-academy]').count(),6);await page.locator('#academyBack').click();
  await page.locator('#homeCreate').click();assert.ok(await page.locator('#creativeHome').isVisible());assert.equal(await page.locator('#storybookHome').isVisible(),false);
  await page.locator('#childBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());await page.locator('#home').click();
  await page.locator('#adultEntry').click();assert.ok(await page.locator('#adultHome').isVisible());assert.ok(await page.locator('#adultProgress .study-parent').isVisible());await page.locator('#home').click();
@@ -38,7 +38,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#outcomeProgress').evaluate(e=>e.value),1);await page.locator('#outcomeSkip').click();
  assert.equal(await page.locator('#outcomeProgress').evaluate(e=>e.value),2);
  await page.locator('#outcomeExit').click();await page.locator('#outcomeBack').click();
- await page.locator('#learnMath').click();assert.equal(await page.locator('[data-academy]').count(),12);
+ await page.keyboard.press('Escape');await page.locator('#homeMath').click();assert.equal(await page.locator('[data-academy]').count(),12);
  assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-menu-focus')),true);
  assert.equal(await page.locator('[data-academy] .fairy-art').count(),12);
  const artInfo=await page.locator('[data-academy] .fairy-art').first().evaluate(el=>{const style=getComputedStyle(el);return {image:style.backgroundImage.startsWith('url("data:image/webp;base64,'),width:el.getBoundingClientRect().width}});
@@ -55,14 +55,14 @@ const server=http.createServer((req,res)=>{
  await page.locator('[data-model-i="0"][data-model-d="1"]').click();assert.equal(await page.locator('#modelValue0').textContent(),'1');
  await page.locator('#modelReset').click();assert.equal(await page.locator('#modelValue0').textContent(),'0');
  await page.locator('#studySolution').click();assert.ok(await page.locator('#modelCheck').isDisabled());await page.locator('#studyNext').click();assert.equal(await page.locator('#studyModel').isVisible(),false);
- await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnLogic').click();
+ await page.keyboard.press('Escape');await page.locator('#homeLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
  assert.equal(await page.locator('[data-academy] .fairy-art').count(),6);
  assert.equal(await page.locator('[data-academy="evidence"]').isVisible(),true);
  await page.locator('[data-academy="evidence"]').click();
  await page.locator('#studyChoices button').first().click();
  await page.locator('#studyFeedback').waitFor({state:'visible'});
- await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnLogic').click();
+ await page.keyboard.press('Escape');await page.locator('#homeLogic').click();
  const planning=page.locator('[data-academy="planning"]');
  assert.equal(await planning.isVisible(),true);
  await planning.click();
@@ -75,14 +75,14 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#sequenceCheck').isDisabled(),true);
  await page.locator('#studyNext').click();
  assert.equal(await page.locator('#studySequence').isVisible(),false);
- await page.locator('#close').click();
+ await page.keyboard.press('Escape');
  await page.evaluate(()=>{let v=studyState("logic-order");v.n=3;v.level=2;studySave("logic-order",v);studyOpen("logic","order")});
  assert.ok(await page.locator('#studySpatial').isVisible());await page.locator('#spatialControls button:enabled').first().click();
  assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 1');
  await page.locator('#spatialUndo').click();assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 0');
  await page.locator('#studySolution').click();assert.ok(await page.locator('#spatialCheck').isDisabled());
  await page.locator('#studyNext').click();assert.equal(await page.locator('#studySpatial').isVisible(),false);
- await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnWorld').click();
+ await page.keyboard.press('Escape');await page.locator('#childWorld').click();
  assert.equal(await page.locator('[data-area]').count(),4);
  await page.locator('[data-area="1"]').click();
  assert.equal(await page.locator('.explore-grid [data-world]').count(),7);
@@ -103,7 +103,7 @@ const server=http.createServer((req,res)=>{
   assert.equal(await page.locator('[data-lab="2"]').getAttribute('aria-pressed'),'true');
   await page.locator('#worldNext').click();assert.equal(await page.locator('#worldLab').isVisible(),false);
  }
- await page.locator('#close').click();await page.locator('#readingEntry').click();
+ await page.keyboard.press('Escape');await page.locator('#readingEntry').click();
  await page.locator('[data-story]').first().click();await page.locator('#readingNumber').waitFor({state:'visible'});
  await page.waitForFunction(()=>document.getElementById('readingNumber')?.textContent.includes('/'));
  for(let i=0;i<3;i++){
@@ -133,7 +133,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#rqNext').click();
  }
  assert.ok((await page.locator('.reading-finish').textContent()).includes('0 из 3'));
- await page.locator('#close').click();
+ await page.keyboard.press('Escape');
  const archiveFixture=await page.evaluate(()=>{
  const book={id:'archive-test-book',title:'Тестовая книга',body:'Сохранённый текст.',theme:'Винни-Пух',author:OWN,icon:'📖'};
  if(!commitLibrary({...data,stories:[...data.stories,book]}))throw Error('fixture save');
