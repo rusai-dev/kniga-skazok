@@ -22,11 +22,18 @@ const server=http.createServer((req,res)=>{
  page.on('pageerror',e=>errors.push(e.message));
  await page.goto(url);await page.locator('#childLearn').click();
  await page.locator('#learnMath').click();assert.equal(await page.locator('[data-academy]').count(),12);
+ assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-menu-focus')),true);
+ assert.equal(await page.locator('[data-academy] .fairy-art').count(),12);
+ const artInfo=await page.locator('[data-academy] .fairy-art').first().evaluate(el=>{const style=getComputedStyle(el);return {image:style.backgroundImage.startsWith('url("data:image/webp;base64,'),width:el.getBoundingClientRect().width}});
+ assert.ok(artInfo.image&&artInfo.width>60,'illustration sprite did not render');
+
  await page.locator('[data-academy="add"]').click();
  await page.locator('#studyQuestion').waitFor({state:'visible'});
+ assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-menu-focus')),false);
  await page.locator('#studySolution').click();await page.locator('#studyNext').click();
  await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
+ assert.equal(await page.locator('[data-academy] .fairy-art').count(),6);
  assert.equal(await page.locator('[data-academy="evidence"]').isVisible(),true);
  await page.locator('[data-academy="evidence"]').click();
  await page.locator('#studyChoices button').first().click();
