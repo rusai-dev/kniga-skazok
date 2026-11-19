@@ -90,6 +90,36 @@ function verify(html){
  const labUI=new Function('fget','fput','childArt','esc','$','openModal','artRoom',source+
  'let tested=0;for(const id of ["shadow","magnet","float"]){worldOpen(id);if(!$("worldLab").hidden)throw Error("lab before answer");$("worldLabControls").children[2].onclick();if($("worldLabLabel").textContent)throw Error("pre-answer interaction");$("worldUnsure").onclick();if($("worldLab").hidden||$("worldLabControls").children[0]["aria-pressed"]!=="true")throw Error("lab not opened");$("worldLabControls").children[2].onclick();if($("worldLabLabel").textContent!==worldLabs[id].results[2]||$("worldLabControls").children[2]["aria-pressed"]!=="true"||$("worldLabControls").children[0]["aria-pressed"]!=="false")throw Error("lab control");$("worldNext").onclick();if(!$("worldLab").hidden)throw Error("lab not hidden next");$("worldLabControls").children[1].onclick();if($("worldLabLabel").textContent!==worldLabs[id].results[2])throw Error("hidden lab changed");tested++}return tested;')(k=>labStorage.get(k)||null,(k,v)=>{labStorage.set(k,v);return true},()=>'',s=>s,labNode,()=>labNodes.clear(),()=>{});
 
- return {labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+
+ const modelVerifyCode= function(){
+ let count=0,alternatives=0;
+ for(const k of ["add","sub","clock","place","money","geometry"])for(let l=0;l<4;l++)for(let n=0;n<200;n++){
+ const q=mathModelQuestion(k,n,l);if(!q){if(n%5===(k==="add"||k==="sub"?4:0))throw Error("missing model");continue}const m=q.model,s=m.solution;
+ if(mathModelValue(m,s)!==m.target||mathModelValue(m,m.initial)===m.target||mathModelValue(m,[])!==null||mathModelValue(m,s.map(()=>-1))!==null||mathModelArt(m,s).includes("NaN")||!mathModelArt(m,s).endsWith("</svg>"))throw Error("model "+k+" "+n);
+ const expected=k==="add"||k==="sub"?Number(numberQuestion(k,n,l).answer):k==="place"?10*s[0]+s[1]:k==="clock"?Number(q.answer.split(":")[0])%12*60+Number(q.answer.split(":")[1]):k==="money"?s[0]+2*s[1]+5*s[2]+10*s[3]:2*(s[0]+s[1]);if(expected!==m.target)throw Error("arithmetic");
+ if(["place","money","geometry"].includes(k)&&Number(q.q.match(/\d+/)[0])!==m.target)throw Error("prompt");
+ if(k==="money"&&s[3]>0&&s[2]<=8){const alt=[...s];alt[3]--;alt[2]+=2;if(mathModelValue(m,alt)!==m.target)throw Error("other coins");alternatives++}
+ if(k==="geometry"&&s[0]!==s[1]){if(mathModelValue(m,[s[1],s[0]])!==m.target)throw Error("rotated rectangle");alternatives++}
+ if(k==="clock"&&mathModelMove(m,[0,0],0,-1)[0]!==11)throw Error("clock wrap");count++;
+ }return {count,alternatives};
+ };
+ const models=new Function('fget','fput','childArt','esc',source+'\nreturn ('+modelVerifyCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
+ const modelStore=new Map(),modelNodes=new Map();
+ function modelNode(id){if(!modelNodes.has(id)){const x={id,hidden:false,disabled:false,textContent:'',value:'',dataset:{},children:[],querySelectorAll(){return this.children},setAttribute(){}};Object.defineProperty(x,'innerHTML',{set(v){this.markup=v;this.children=[...v.matchAll(/data-model-i="(\d+)" data-model-d="(-?\d+)"/g)].map(m=>({dataset:{modelI:m[1],modelD:m[2]}}))}});modelNodes.set(id,x)}return modelNodes.get(id)}
+ const modelUICode=function(){
+ let count=0;for(const key of ["place","money","clock","geometry","add","sub"]){
+ let v=studyState(key);v.n=key==="add"||key==="sub"?4:0;studySave(key,v);const q=mathModelQuestion(key,v.n,v.level),m=q.model;studyOpen("math",key);
+ if($("studyModel").hidden||!$("studyNumberForm").hidden)throw Error("model mode");$("studyNumber").value=q.answer;$("studyNumberForm").onsubmit({preventDefault(){}});if(!$("studyNext").hidden)throw Error("bypass");
+ const move=(i,d)=>$("modelControls").children.find(b=>+b.dataset.modelI===i&&+b.dataset.modelD===d).onclick();
+ move(0,1);$("modelReset").onclick();if($("modelValue0").textContent!==String(m.kind==="clock"?(m.initial[0]||12):m.initial[0]))throw Error("reset");
+ if(key==="money")$("modelCheck").onclick();
+ for(let i=0;i<m.initial.length;i++){let current=m.initial[i];while(current!==m.solution[i]){const d=current<m.solution[i]?1:-1;move(i,d);current+=d}}
+ $("modelCheck").onclick();const after=studyState(key);if(after.done!==1||after.independent!==(key==="money"?0:1)||$("studyNext").hidden||!$("modelCheck").disabled)throw Error("model result "+key);
+ $("modelCheck").onclick();if(studyState(key).done!==1)throw Error("double submit");$("studyNext").onclick();if(!$("studyModel").hidden)throw Error("return to ordinary question");count++;
+ }return count;
+ };
+ const modelUI=new Function('fget','fput','childArt','esc','$','openModal',source+'\nreturn ('+modelUICode.toString()+')();')(k=>modelStore.get(k)||null,(k,v)=>{modelStore.set(k,v);return true},()=>'',s=>s,modelNode,()=>modelNodes.clear());
+
+ return {models,modelUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}

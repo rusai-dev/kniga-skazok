@@ -33,6 +33,11 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-lesson-focus')),true);
  assert.ok(await page.locator('.lesson-workspace').isVisible());
  await page.locator('#studySolution').click();await page.locator('#studyNext').click();
+ await page.locator('#studyBack').click();await page.locator('[data-academy="place"]').click();
+ assert.equal(await page.locator('#studyModel').isVisible(),true);
+ await page.locator('[data-model-i="0"][data-model-d="1"]').click();assert.equal(await page.locator('#modelValue0').textContent(),'1');
+ await page.locator('#modelReset').click();assert.equal(await page.locator('#modelValue0').textContent(),'0');
+ await page.locator('#studySolution').click();assert.ok(await page.locator('#modelCheck').isDisabled());await page.locator('#studyNext').click();assert.equal(await page.locator('#studyModel').isVisible(),false);
  await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
  assert.equal(await page.locator('[data-academy] .fairy-art').count(),6);
