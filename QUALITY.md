@@ -165,3 +165,8 @@ Added fox and butterfly to the existing four drawing lessons, with four cumulati
 ## Candidate 1.5.55 — personal story search on iPad
 
 Search across all user-authored stories regardless of the selected author or topic, with ё/е normalization, case-insensitive multiword title/body matching, clear control, result count and actionable empty state. Input has 16px font, safe scroll margin, focus scroll and Enter-to-dismiss keyboard. No data migration. Dependency-free regression passed; physical iPad Safari and browser visual checks pending. Unpublished.
+
+
+## Candidate 1.5.58 — visual coloring catalog and workspace
+
+Added 12 named and individually previewed coloring choices, using combinations of the existing four scene settings and four character drawings. Each selection opens the actual canvas with outline mode and flood-fill selected. Enlarged the canvas layout on the standalone drawing screen. All previous drawing/gallery storage keys remain unchanged. Dependency-free regression passed (including 4,800 math variants, 19 books and 12 coloring entries). These 12 combinations are **not 12 independent professionally illustrated assets**; watercolor concept illustrations have been prepared separately but are not yet installed in the application. Browser/WebKit and iPad verification and publishing remain pending. Do not treat this candidate as meeting the PDF artwork acceptance gate.
