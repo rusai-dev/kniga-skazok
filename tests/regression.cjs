@@ -187,11 +187,13 @@ function verify(html){
  for(let i=0;i<4;i++){const q=outcomeBank[k].forms[0][i];if(q[1]!==expect[k][0][i]||outcomeBank[k].forms[1][i][1]!==expect[k][1][i])throw Error("form answers");
  if(outcomeSubmit(k,r,p,"",false,t))throw Error("empty answer");
  r=outcomeSubmit(k,r,p,q[1],i===2,t);count++}
- if(outcomeScore(r.pre)!==3||r.preDone!==20||r.preAt!==t)throw Error("baseline");
+ if(outcomeScore(r.pre)!==3||r.preDone!==20||r.preAt!==t||r.preInterrupted)throw Error("baseline");
  const end=t+outcomeDelay,p2={done:26,lastPractice:end-academyDay};
  if(outcomeGet(k,r,p2,end-1).stage!=="wait"||outcomeGet(k,r,{...p2,done:25},end).stage!=="wait"||outcomeGet(k,r,{...p2,lastPractice:end-1},end).stage!=="wait"||outcomeGet(k,r,p2,end).stage!=="post")throw Error("eligibility");
  for(let i=0;i<4;i++){r=outcomeSubmit(k,r,i===3?{...p2,done:27}:p2,outcomeBank[k].forms[1][i][1],false,end+i);count++}
+ if(outcomeReview(k,r).length!==0||outcomeReview(k,{...r,post:[0,1,1,1]})[0]?.correct!==expect[k][1][0]||outcomeReview(k,{...r,post:[0,1]}).length!==0)throw Error("review gating");
  if(outcomeScore(r.post)!==4||!r.interrupted||outcomeGet(k,r,p2,end+5).stage!=="done"||outcomeSubmit(k,r,p2,"1",false,end+5))throw Error("post");
+ let interrupted=outcomeSubmit(k,null,p,"1",false,t);interrupted=outcomeSubmit(k,interrupted,{...p,done:21},"1",false,t+1);if(!interrupted.preInterrupted)throw Error("baseline interruption");
  if(new Set(outcomeBank[k].forms.flat().map(x=>x[0])).size!==8)throw Error("duplicate prompt");
  }return count;
  };

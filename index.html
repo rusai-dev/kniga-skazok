@@ -443,7 +443,7 @@ dialog:not(.reading-focus):not(.drawing-focus){width:min(820px,calc(100% - 24px)
 .spatial-studio .model-actions{justify-content:center}
 @media(max-width:540px){#spatialControls button{min-width:54px;min-height:48px;font-size:20px;padding:8px 10px}}
 
-.outcome-list{display:grid;gap:10px}.outcome-topic{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:#fff8ea;border:1px solid #ded2b6;border-radius:16px}.outcome-topic small{display:block;color:#526548;margin-top:5px;font-size:14px}.outcome-topic strong{font-size:18px;color:#40543c}.outcome-topic button{min-height:48px;border-radius:12px;padding:10px 14px;flex-shrink:0}#outcomeProgress{width:100%}#outcomeStatus{min-height:1.4em}
+.outcome-list{display:grid;gap:10px}.outcome-topic{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:#fff8ea;border:1px solid #ded2b6;border-radius:16px}.outcome-topic small{display:block;color:#526548;margin-top:5px;font-size:14px}.outcome-topic strong{font-size:18px;color:#40543c}.outcome-topic button{min-height:48px;border-radius:12px;padding:10px 14px;flex-shrink:0}#outcomeProgress{width:100%}.outcome-review{margin:10px 0;text-align:left}.outcome-review strong{font-size:17px;line-height:1.55}.outcome-review p{margin:8px 0 0;color:#40543c}#outcomeStatus{min-height:1.4em}
 @media(max-width:480px){.outcome-topic{align-items:stretch;flex-direction:column}.outcome-topic button{width:100%}}
 </style><link rel="stylesheet" href="learning-art-1536.css"></head><body>
 <header><div class="top"><button class="brand" id="home"><span class="logo">📖</span><span><strong>Книга сказок</strong><small>Маленький мир больших историй</small></span></button><div class="top-actions"><button id="familyEnable" type="button">Семья</button><button id="backup" title="Сохранить или восстановить книги">⇩ Копия</button><button class="primary" id="write">✎ Написать</button></div></div></header>
@@ -1631,6 +1631,7 @@ function outcomeSubmit(k,r,p,raw,skip,now=Date.now()){
  const a=outcomeGet(k,r,p,now);
  if(!['pre','post'].includes(a.stage)||(!skip&&!/^\d{1,3}$/.test(String(raw).trim())))return null;
  const phase=a.stage,q=outcomeBank[k].forms[phase==='pre'?0:1][a.index],next={...(r||{pre:[],post:[]}),[phase]:[...(r?.[phase]||[]),skip?0:Number(raw)===q[1]?1:0]};
+ if(phase==='pre'&&a.index===0){next.preStartDone=p.done;next.preInterrupted=false}if(phase==='pre'&&next.preStartDone!==undefined&&next.preStartDone!==p.done)next.preInterrupted=true;
  if(phase==='pre'&&next.pre.length===4){next.preAt=now;next.preDone=p.done}
  if(phase==='post'&&a.index===0){next.postStarted=now;next.postPractice=p.done;next.interrupted=false}
  if(phase==='post'&&p.done!==next.postPractice)next.interrupted=true;
@@ -1638,20 +1639,35 @@ function outcomeSubmit(k,r,p,raw,skip,now=Date.now()){
  return next;
 }
 function outcomeScore(a){return (a||[]).reduce((s,v)=>s+v,0)}
+const outcomeExplanations={
+ story:['9 + 4 = 13 ромашек было. 13 − 2 = 11 осталось.','16 − 7 = 9 фотографий было в альбоме.','6 + 5 = 11 цветов во второй вазе. 6 + 11 = 17 цветов всего.','16 − 7 = 9 цветных карандашей.'],
+ money:['2 + 2 + 10 + 1 = 15 руб.','9 + 4 = 13 руб. стоят покупки. 19 − 13 = 6 руб. останется.','9 + 2 = 11 руб. уже есть. 17 − 11 = 6 руб. не хватает.','7 + 7 = 14 руб. за две закладки.'],
+ 'logic-patterns':['Каждый раз прибавляют 4. Следующее число: 14 + 4 = 18.','Каждый раз вычитают 4. Следующее число: 7 − 4 = 3.','Последняя прибавка — 2, значит дальше прибавляем 3: 13 + 3 = 16.','Прибавки: 2, 3, 4. Следующая — 5. 12 + 5 = 17.']
+};
+function outcomeReview(k,r){
+ if(!r||!Array.isArray(r.post)||r.post.length!==4||!outcomeBank[k])return [];
+ return outcomeBank[k].forms[1].map((q,i)=>({question:q[0],correct:q[1],why:outcomeExplanations[k][i],miss:r.post[i]===0})).filter(x=>x.miss);
+}
+function outcomeReviewOpen(k){
+ const r=outcomeRead()[k];if(outcomeGet(k,r,studyState(k)).stage!=='done'){outcomeRoom();return}
+ const rows=outcomeReview(k,r);
+ openModal('Разбираем задачи','<section class="study-card fairy-lesson"><div class="study-top"><button type="button" id="outcomeReviewBack">← К темам</button>'+fairyArt('fox')+'</div><h3>'+(rows.length?'Давай разберём задачи':'Все четыре ответа верны')+'</h3>'+rows.map(x=>'<div class="outcome-topic outcome-review"><div><strong>'+esc(x.question)+'</strong><p>'+esc(x.why)+'</p></div></div>').join('')+'<p>Можно вернуться к обычным заданиям, чтобы закрепить этот способ решения.</p><button type="button" class="primary" id="outcomeTrain">Потренироваться</button></section>','practice');
+ $('outcomeReviewBack').onclick=outcomeRoom;$('outcomeTrain').onclick=()=>studyOpen(k.startsWith('logic-')?'logic':'math',k.replace(/^logic-/,''));
+}
 function outcomeParent(){
  const records=outcomeRead();
- return '<section class="parent-domain parent-static"><strong>Проверка применения знаний</strong><p class="small-note">Два разных набора по четыре задания. Повторная проверка — не ранее чем через 7 дней, после минимум 6 завершённых тренировочных заданий по теме и суток без завершённых тренировок. Это не оценка интеллекта и не доказательство влияния сайта.</p>'+Object.entries(outcomeBank).map(([k,b])=>{
- const r=records[k],p=studyState(k),s=outcomeGet(k,r,p),line=s.stage==='pre'?'Первый набор: '+(r?.pre?.length||0)+' из 4':s.stage==='wait'?'Первый результат: '+outcomeScore(r.pre)+' из 4; повторная проверка ещё не доступна':s.stage==='post'?'Первый результат: '+outcomeScore(r.pre)+' из 4; второй набор: '+(r.post?.length||0)+' из 4':'Первый набор: '+outcomeScore(r.pre)+' из 4; второй: '+outcomeScore(r.post)+' из 4'+(r.interrupted?' (между ответами была тренировка; сравнение ненадёжно)':'');
+ return '<section class="parent-domain parent-static"><strong>Проверка применения знаний</strong><p class="small-note">Два разных набора по четыре задания. Повторная проверка — не ранее чем через 7 дней, после минимум 6 завершённых тренировочных заданий по теме и суток без завершённых тренировок. Не помогайте с ответами и не подсказывайте, верно ли решение. Сравнивайте только завершённые наборы; одна задача из четырёх сильно меняет результат. Это не оценка интеллекта и не доказательство влияния сайта.</p>'+Object.entries(outcomeBank).map(([k,b])=>{
+ const r=records[k],p=studyState(k),s=outcomeGet(k,r,p),line=s.stage==='pre'?'Первый набор: '+(r?.pre?.length||0)+' из 4':s.stage==='wait'?'Первый результат: '+outcomeScore(r.pre)+' из 4; повторная проверка ещё не доступна':s.stage==='post'?'Первый результат: '+outcomeScore(r.pre)+' из 4; второй набор: '+(r.post?.length||0)+' из 4':'Первый набор: '+outcomeScore(r.pre)+' из 4; второй: '+outcomeScore(r.post)+' из 4'+(r.interrupted||r.preInterrupted?' (между ответами была тренировка; сравнение ненадёжно)':'');
  return '<p><b>'+esc(b.title)+'</b><br>'+esc(line)+'</p>'}).join('')+'</section>';
 }
 function outcomeRoom(){
  const all=outcomeRead(),now=Date.now();
  openModal('Мои открытия','<section class="study-card fairy-lesson"><div class="study-top"><button type="button" id="outcomeBack">← К занятиям</button>'+fairyArt('fox')+'</div><h3>Попробуй решить новые задачи сама</h3><p>Четыре задачи без подсказок. Если не знаешь ответ, можно пропустить.</p><div class="outcome-list">'+Object.entries(outcomeBank).map(([k,b])=>{
- const r=all[k],s=outcomeGet(k,r,studyState(k),now),label=s.stage==='pre'?(s.index?'Продолжить':'Начать'):s.stage==='post'?'Новые задачи':s.stage==='wait'?(s.remaining?'Потренироваться':'Вернуться позже'):'Готово';
- return '<div class="outcome-topic"><div><strong>'+esc(b.title)+'</strong><small>'+esc(s.stage==='wait'?(s.remaining?'Ещё тренировочных заданий: '+s.remaining:'Следующая проверка не раньше '+new Date(s.at).toLocaleDateString('ru-RU')):s.stage==='done'?'Оба набора завершены':s.stage==='post'?'Второй набор':'Первый набор')+'</small></div><button type="button" data-outcome="'+k+'" '+(s.stage==='done'||s.stage==='wait'&&!s.remaining?'disabled':'')+'>'+label+'</button></div>'
+ const r=all[k],s=outcomeGet(k,r,studyState(k),now),label=s.stage==='pre'?(s.index?'Продолжить':'Начать'):s.stage==='post'?'Новые задачи':s.stage==='wait'?(s.remaining?'Потренироваться':'Вернуться позже'):'Разобрать';
+ return '<div class="outcome-topic"><div><strong>'+esc(b.title)+'</strong><small>'+esc(s.stage==='wait'?(s.remaining?'Ещё тренировочных заданий: '+s.remaining:'Следующая проверка не раньше '+new Date(s.at).toLocaleDateString('ru-RU')):s.stage==='done'?'Оба набора завершены':s.stage==='post'?'Второй набор':'Первый набор')+'</small></div><button type="button" data-outcome="'+k+'" '+(s.stage==='wait'&&!s.remaining?'disabled':'')+'>'+label+'</button></div>'
  }).join('')+'</div></section>','practice');
  $('outcomeBack').onclick=learningRoom;
- document.querySelectorAll('[data-outcome]').forEach(b=>b.onclick=()=>{const k=b.dataset.outcome,s=outcomeGet(k,outcomeRead()[k],studyState(k));if(s.stage==='wait'&&s.remaining)studyOpen(k.startsWith('logic-')?'logic':'math',k.replace(/^logic-/,''));else outcomeOpen(k)});
+ document.querySelectorAll('[data-outcome]').forEach(b=>b.onclick=()=>{const k=b.dataset.outcome,s=outcomeGet(k,outcomeRead()[k],studyState(k));if(s.stage==='done')outcomeReviewOpen(k);else if(s.stage==='wait'&&s.remaining)studyOpen(k.startsWith('logic-')?'logic':'math',k.replace(/^logic-/,''));else outcomeOpen(k)});
 }
 function outcomeOpen(k){
  const get=()=>outcomeRead()[k],state=()=>outcomeGet(k,get(),studyState(k));
@@ -2153,6 +2169,7 @@ function portableValid(key,raw){
   if(!['story','money','logic-patterns'].includes(k)||!record(x))return false;
   const scores=a=>Array.isArray(a)&&a.length<=4&&a.every(z=>z===0||z===1),stamp=x=>Number.isSafeInteger(x)&&x>0;
   if(!scores(x.pre)||!scores(x.post))return false;
+  if((x.preStartDone!==undefined||x.preInterrupted!==undefined)&&(!int(x.preStartDone)||typeof x.preInterrupted!=='boolean'))return false;
   if(x.pre.length<4)return x.post.length===0&&x.preAt===undefined&&x.preDone===undefined&&x.postStarted===undefined&&x.postAt===undefined;
   if(!stamp(x.preAt)||!int(x.preDone))return false;
   if(!x.post.length)return x.postAt===undefined&&x.postStarted===undefined;
@@ -2310,7 +2327,7 @@ async function checkRelease(manual=false){
  }catch(e){if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
  finally{releaseChecking=false}
 }
-const APP_RELEASE='1.5.42';let releaseChecking=false;
+const APP_RELEASE='1.5.43';let releaseChecking=false;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
  $('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);
  window.addEventListener('focus',()=>checkRelease());
