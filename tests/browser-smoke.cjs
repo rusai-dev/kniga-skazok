@@ -30,6 +30,8 @@ const server=http.createServer((req,res)=>{
  await page.locator('[data-academy="add"]').click();
  await page.locator('#studyQuestion').waitFor({state:'visible'});
  assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-menu-focus')),false);
+ assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-lesson-focus')),true);
+ assert.ok(await page.locator('.lesson-workspace').isVisible());
  await page.locator('#studySolution').click();await page.locator('#studyNext').click();
  await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
@@ -62,6 +64,16 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#dayExperiment').isVisible(),false);
  await page.locator('#worldUnsure').click();await page.locator('#dayRotate').click();await page.locator('#dayRotate').click();
  assert.ok((await page.locator('.day-model-label').textContent()).includes('Ночь'));
+ for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float']]){
+  await page.locator('#worldBack').click();await page.locator('[data-area="'+area+'"]').click();await page.locator('[data-world="'+id+'"]').click();
+  assert.equal(await page.locator('#worldLab').isVisible(),false);
+  await page.locator('#worldUnsure').click();assert.ok(await page.locator('#worldLab').isVisible());
+  const first=await page.locator('#worldLabLabel').textContent();
+  await page.locator('[data-lab="2"]').click();
+  assert.notEqual(await page.locator('#worldLabLabel').textContent(),first);
+  assert.equal(await page.locator('[data-lab="2"]').getAttribute('aria-pressed'),'true');
+  await page.locator('#worldNext').click();assert.equal(await page.locator('#worldLab').isVisible(),false);
+ }
  await page.locator('#close').click();await page.locator('#readingEntry').click();
  await page.locator('[data-story]').first().click();await page.locator('#readingNumber').waitFor({state:'visible'});
  await page.waitForFunction(()=>document.getElementById('readingNumber')?.textContent.includes('/'));
