@@ -424,6 +424,8 @@ dialog:not(.reading-focus):not(.drawing-focus){width:min(820px,calc(100% - 24px)
 #modelArt{background:#f8f5e9;border-radius:16px;padding:8px;min-width:0}
 #modelArt svg{display:block;width:min(100%,620px);max-height:190px;margin:auto}
 #modelControls{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:8px}
+.model-control[hidden]{display:none!important}.model-control output.model-audio-value{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;min-width:0}
+.model-control output.model-audio-value+button{margin-left:12px}
 .model-control{background:#f1f5e9;border:1px solid #d4dfc8;border-radius:14px;padding:8px;text-align:center;min-width:0}
 .model-control>span{display:block;font:650 15px/1.35 system-ui;color:#526548;margin-bottom:6px}
 .model-control>div{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:5px}
@@ -1079,12 +1081,16 @@ function mathModelQuestion(skill,n,l){
  }
  if(skill==='clock'){
   const h=p(53,1,12),unit=[60,30,15,5][l],steps=60/unit,min=p(54,0,steps-1)*unit,fmt=h+':'+String(min).padStart(2,'0');
-  return make('Установи на часах '+fmt+'.',fmt,'Длинная стрелка показывает минуты, короткая — часы.','На циферблате '+fmt+'. Минутная стрелка проходит полный круг за час.',{...m('clock',[h===12&&min===0?1:0,0],[11,steps-1],['Часы','Минуты'],(h%12)*60+min,[h%12,min/unit]),unit});
+  return make('Установи на часах '+fmt+'.',fmt,'Длинная стрелка показывает минуты, короткая — часы. Установи их кнопками под циферблатом.','На циферблате '+fmt+'. Минутная стрелка проходит полный круг за час.',{...m('clock',[h===12&&min===0?1:0,0],[11,steps-1],['Часы','Минуты'],(h%12)*60+min,[h%12,min/unit]),unit});
  }
  if(skill==='money'){
   const target=p(55,6,[12,20,40,80][l]),denoms=[1,2,5,10],sol=[0,0,0,0];let left=target;
   for(let i=3;i>=0;i--){sol[i]=Math.floor(left/denoms[i]);left%=denoms[i]}
   return make('Заплати ровно '+target+' руб. за книгу. Собери сумму монетами.',target+' руб.','Сложи достоинства всех выбранных монет. Можно использовать разные монеты.','Один из способов: '+sol.map((v,i)=>v?v+' × '+denoms[i]:null).filter(Boolean).join(' + ')+' = '+target+' руб.',{...m('money',[0,0,0,0],[10,10,10,10],['1 руб.','2 руб.','5 руб.','10 руб.'],target,sol),denoms});
+ }
+ if(l<2){
+  const w=p(56,2,l===0?4:7),h=p(57,2,l===0?4:7);
+  return make('Построй прямоугольник: ширина '+w+' см, высота '+h+' см.',w+' на '+h+' см','Ширина — это длина горизонтальной стороны, высота — вертикальной.','Ширина '+w+' см и высота '+h+' см. У прямоугольника противоположные стороны равны.',{...m('rectangle',[1,1],[9,9],['Ширина, см','Высота, см'],10*w+h,[w,h]),min:[1,1],sizeTarget:true});
  }
  const target=2*p(56,4,[6,9,13,17][l]),w=Math.min(9,target/2-1),h=target/2-w;
  return make('Построй прямоугольник с периметром '+target+' см.',target+' см','У прямоугольника две пары равных сторон. Периметр — сумма четырёх сторон.','Например, стороны '+w+' и '+h+' см: '+w+' + '+h+' + '+w+' + '+h+' = '+target+' см. Возможны и другие варианты.',{...m('rectangle',[1,1],[9,9],['Ширина, см','Высота, см'],target,[w,h]),min:[1,1]});
@@ -1095,14 +1101,15 @@ function mathModelValue(m,s){
  if(m.kind==='place')return 10*s[0]+s[1];
  if(m.kind==='clock')return 60*s[0]+m.unit*s[1];
  if(m.kind==='money')return s.reduce((sum,v,i)=>sum+v*m.denoms[i],0);
- if(m.kind==='rectangle')return 2*(s[0]+s[1]);
+ if(m.kind==='rectangle')return m.sizeTarget?10*s[0]+s[1]:2*(s[0]+s[1]);
  return null;
 }
 function mathModelMove(m,s,i,d){
  if(mathModelValue(m,s)===null||!Number.isInteger(i)||i<0||i>=s.length||![-10,-1,1,10].includes(d)||(Math.abs(d)===10&&(m.kind!=='line'||m.max[0]<=20)))return s;
  const out=[...s],min=m.min?.[i]||0;
  if(m.kind==='clock'){const period=m.max[i]+1;out[i]=(out[i]+d+period)%period}
- else out[i]=Math.min(m.max[i],Math.max(min,out[i]+d));
+ else if(out[i]+d<min||out[i]+d>m.max[i])return s;
+ else out[i]+=d;
  return out;
 }
 function mathModelCaption(m,s){
@@ -1139,7 +1146,7 @@ function mathModelArt(m,s){
 function mathModelControls(m){
  const button=(i,d,label,aria)=>'<button type="button" data-model-i="'+i+'" data-model-d="'+d+'" aria-label="'+esc(aria)+'">'+label+'</button>';
  return m.labels.map((label,i)=>{const amount=m.kind==='clock'&&i===1?m.unit:1;
- return '<div class="model-control"><span>'+esc(label)+'</span><div>'+ (m.kind==='line'&&m.max[0]>20?button(i,-10,'−10','На 10 влево'):'')+button(i,-1,'−'+amount,'Уменьшить: '+label)+ '<output id="modelValue'+i+'"></output>'+button(i,1,'+'+amount,'Увеличить: '+label)+(m.kind==='line'&&m.max[0]>20?button(i,10,'+10','На 10 вправо'):'')+'</div></div>'}).join('');
+ return '<div class="model-control"'+(m.kind==='clock'&&m.max[i]===0?' hidden':'')+'><span>'+esc(label)+'</span><div>'+ (m.kind==='line'&&m.max[0]>20?button(i,-10,'−10','На 10 влево'):'')+button(i,-1,'−'+amount,'Уменьшить: '+label)+ '<output id="modelValue'+i+'"'+(m.kind==='clock'?' class="model-audio-value"':'')+'></output>'+button(i,1,'+'+amount,'Увеличить: '+label)+(m.kind==='line'&&m.max[0]>20?button(i,10,'+10','На 10 вправо'):'')+'</div></div>'}).join('');
 }
 
 function academyPatternPicture(shapes){const colors={'круг':'#88ac9a','квадрат':'#d4a681','треугольник':'#9ca3ce','ромб':'#d4b86e'};return '<svg viewBox="0 0 '+((shapes.length+1)*40)+' 60" role="img" aria-label="'+esc(shapes.join(', '))+'"><g>'+shapes.map((s,i)=>{const x=20+i*40,c=colors[s];return s==='круг'?'<circle cx="'+x+'" cy="30" r="13" fill="'+c+'"/>':s==='квадрат'?'<rect x="'+(x-12)+'" y="18" width="24" height="24" rx="3" fill="'+c+'"/>':s==='треугольник'?'<path d="M'+x+' 15l14 28h-28Z" fill="'+c+'"/>':'<path d="M'+x+' 14l14 16-14 16-14-16Z" fill="'+c+'"/>'}).join('')+'<text x="'+(20+shapes.length*40)+'" y="38" text-anchor="middle" font-size="24" fill="#587164">?</text></g></svg>'}
@@ -1324,7 +1331,7 @@ studyOpen=function(type,skill='patterns'){
  $('sequenceReset').onclick=()=>{if(!finished&&q.sequence){selectedSequence=[];renderSequence()}};
  $('sequenceCheck').onclick=()=>{if(finished||!q.sequence||selectedSequence.length!==q.sequence.items.length)return;attempts++;if(sequenceValid(q.sequence,selectedSequence)){finish(!assisted&&attempts===1)}else{assisted=true;const rule=q.sequence.rules.find(r=>!sequenceValid({...q.sequence,rules:[r]},selectedSequence));$('studyFeedback').dataset.state='retry';$('studyFeedback').textContent='Проверь условие: '+(rule?sequenceRuleLabel(q.sequence,rule):q.hint)}};
  function summary(){openModal('Занятие закончено','<div class="study-card fairy-lesson"><h3>Ты завершила занятие из 6 заданий.</h3><div class="study-outcomes"><p><strong>'+correct+'</strong><span>Самостоятельно</span></p><p><strong>'+(6-correct-explained)+'</strong><span>После подсказки или повторной попытки</span></p><p><strong>'+explained+'</strong><span>Разобрали решение</span></p></div><p>'+(correct===6?'Все задачи решены самостоятельно.':'К задачам, которые пока трудны, можно вернуться позже.')+(saveFailed?' Не все результаты удалось сохранить на устройстве.':'')+'</p><p>Теперь можно отдохнуть, порисовать или почитать.</p><div class="study-actions"><button class="primary" id="academyDone">К темам</button><button id="academyAgain">Ещё 6 заданий</button></div></div>','practice');$('academyDone').onclick=back;$('academyAgain').onclick=()=>studyOpen(type,skill)}
- function finish(independent,shown=false){if(finished)return;finished=true;if(q.model){if(shown)modelState=[...q.model.solution];renderModel()}if(q.sequence){if(shown)selectedSequence=[...q.sequence.solution];renderSequence()}session++;if(independent)correct++;if(shown)explained++;v=studyAdvance(v,independent);if(!studySave(key,v))saveFailed=true;$('academyProgress').value=session;$('studyFeedback').dataset.state=shown?'worked':'correct';$('studyFeedback').textContent=q.sequence&&!shown?'Верно! Все условия выполнены. Твой порядок: '+sequenceLabel(q.sequence,selectedSequence)+'.':(shown?'Ответ: '+q.answer+'. ':'Верно! ')+(q.model&&!shown&&(q.model.kind==='money'||q.model.kind==='rectangle')?(q.model.kind==='money'?modelState.map((v,i)=>v?v+' × '+q.model.denoms[i]:null).filter(Boolean).join(' + ')+' = '+q.model.target+' руб.':modelState[0]+' + '+modelState[1]+' + '+modelState[0]+' + '+modelState[1]+' = '+q.model.target+' см.'):q.why);$('studyHintPicture').innerHTML=q.visual||'';$('studyNext').textContent=session===6?'Итог занятия':'Дальше';$('studyNext').hidden=false;$('studyHint').hidden=true;$('studySolution').hidden=true;$('studyNumber').disabled=true;$('studyCheck').disabled=true;$('studyChoices').querySelectorAll('button').forEach(b=>b.disabled=true)}
+ function finish(independent,shown=false){if(finished)return;finished=true;if(q.model){if(shown)modelState=[...q.model.solution];renderModel()}if(q.sequence){if(shown)selectedSequence=[...q.sequence.solution];renderSequence()}session++;if(independent)correct++;if(shown)explained++;v=studyAdvance(v,independent);if(!studySave(key,v))saveFailed=true;$('academyProgress').value=session;$('studyFeedback').dataset.state=shown?'worked':'correct';$('studyFeedback').textContent=q.sequence&&!shown?'Верно! Все условия выполнены. Твой порядок: '+sequenceLabel(q.sequence,selectedSequence)+'.':(shown?'Ответ: '+q.answer+'. ':'Верно! ')+(q.model&&!shown&&(q.model.kind==='money'||(q.model.kind==='rectangle'&&!q.model.sizeTarget))?(q.model.kind==='money'?modelState.map((v,i)=>v?v+' × '+q.model.denoms[i]:null).filter(Boolean).join(' + ')+' = '+q.model.target+' руб.':modelState[0]+' + '+modelState[1]+' + '+modelState[0]+' + '+modelState[1]+' = '+q.model.target+' см.'):q.why);$('studyHintPicture').innerHTML=q.visual||'';$('studyNext').textContent=session===6?'Итог занятия':'Дальше';$('studyNext').hidden=false;$('studyHint').hidden=true;$('studySolution').hidden=true;$('studyNumber').disabled=true;$('studyCheck').disabled=true;$('studyChoices').querySelectorAll('button').forEach(b=>b.disabled=true)}
  function answer(raw){if(finished||q.sequence||q.model)return;const value=String(raw).trim();if(!value)return;if(!q.opts&&!q.language&&!/^\d{1,3}$/.test(value)){$('studyFeedback').textContent='Запиши ответ цифрами.';return}attempts++;if(value===q.answer||(!q.opts&&(q.language?languageEqual(value,q.answer):Number(value)===Number(q.answer)))){finish(!assisted&&attempts===1);return}assisted=true;$('studyFeedback').dataset.state='retry';$('studyFeedback').textContent='Попробуй иначе. '+q.hint;$('studyHintPicture').innerHTML=q.visual||''}
  $('studyNumberForm').onsubmit=e=>{e.preventDefault();answer($('studyNumber').value)};$('studyHint').onclick=()=>{if(!finished){assisted=true;$('studyFeedback').dataset.state='hint';$('studyFeedback').textContent=q.hint;$('studyHintPicture').innerHTML=q.visual||''}};$('studySolution').onclick=()=>finish(false,true);$('studyNext').onclick=()=>{if(finished){if(session===6)summary();else show()}};$('studyBack').onclick=back;show();
 };
@@ -2134,7 +2141,7 @@ async function checkRelease(manual=false){
  }catch(e){if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
  finally{releaseChecking=false}
 }
-const APP_RELEASE='1.5.38';let releaseChecking=false;
+const APP_RELEASE='1.5.39';let releaseChecking=false;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
  $('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);
  window.addEventListener('focus',()=>checkRelease());

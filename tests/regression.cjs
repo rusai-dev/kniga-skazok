@@ -96,11 +96,13 @@ function verify(html){
  for(const k of ["add","sub","clock","place","money","geometry"])for(let l=0;l<4;l++)for(let n=0;n<200;n++){
  const q=mathModelQuestion(k,n,l);if(!q){if(n%5===(k==="add"||k==="sub"?4:0))throw Error("missing model");continue}const m=q.model,s=m.solution;
  if(mathModelValue(m,s)!==m.target||mathModelValue(m,m.initial)===m.target||mathModelValue(m,[])!==null||mathModelValue(m,s.map(()=>-1))!==null||mathModelArt(m,s).includes("NaN")||!mathModelArt(m,s).endsWith("</svg>"))throw Error("model "+k+" "+n);
- const expected=k==="add"||k==="sub"?Number(numberQuestion(k,n,l).answer):k==="place"?10*s[0]+s[1]:k==="clock"?Number(q.answer.split(":")[0])%12*60+Number(q.answer.split(":")[1]):k==="money"?s[0]+2*s[1]+5*s[2]+10*s[3]:2*(s[0]+s[1]);if(expected!==m.target)throw Error("arithmetic");
- if(["place","money","geometry"].includes(k)&&Number(q.q.match(/\d+/)[0])!==m.target)throw Error("prompt");
+ const expected=k==="add"||k==="sub"?Number(numberQuestion(k,n,l).answer):k==="place"?10*s[0]+s[1]:k==="clock"?Number(q.answer.split(":")[0])%12*60+Number(q.answer.split(":")[1]):k==="money"?s[0]+2*s[1]+5*s[2]+10*s[3]:m.sizeTarget?10*s[0]+s[1]:2*(s[0]+s[1]);if(expected!==m.target)throw Error("arithmetic");
+ if((["place","money"].includes(k)||k==="geometry"&&!m.sizeTarget)&&Number(q.q.match(/\d+/)[0])!==m.target)throw Error("prompt");
+ if(k==="geometry"&&m.sizeTarget){const [w,h]=q.q.match(/\d+/g).map(Number);if(10*w+h!==m.target||w!==s[0]||h!==s[1])throw Error("dimension prompt")}
  if(k==="money"&&s[3]>0&&s[2]<=8){const alt=[...s];alt[3]--;alt[2]+=2;if(mathModelValue(m,alt)!==m.target)throw Error("other coins");alternatives++}
- if(k==="geometry"&&s[0]!==s[1]){if(mathModelValue(m,[s[1],s[0]])!==m.target)throw Error("rotated rectangle");alternatives++}
- if(k==="clock"&&mathModelMove(m,[0,0],0,-1)[0]!==11)throw Error("clock wrap");count++;
+ if(k==="geometry"&&!m.sizeTarget&&s[0]!==s[1]){if(mathModelValue(m,[s[1],s[0]])!==m.target)throw Error("rotated rectangle");alternatives++}
+ if(k==="clock"&&(mathModelMove(m,[0,0],0,-1)[0]!==11||!mathModelControls(m).includes("model-audio-value")))throw Error("clock wrap/hide");
+ if(m.kind==="line"&&m.max[0]>20&&mathModelMove(m,[m.max[0]-1],0,10)[0]!==m.max[0]-1)throw Error("invalid ten-step");count++;
  }return {count,alternatives};
  };
  const models=new Function('fget','fput','childArt','esc',source+'\nreturn ('+modelVerifyCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
@@ -120,6 +122,24 @@ function verify(html){
  };
  const modelUI=new Function('fget','fput','childArt','esc','$','openModal',source+'\nreturn ('+modelUICode.toString()+')();')(k=>modelStore.get(k)||null,(k,v)=>{modelStore.set(k,v);return true},()=>'',s=>s,modelNode,()=>modelNodes.clear());
 
- return {models,modelUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+
+ const alternativeUICode=function(){
+  let count=0;
+  for(const key of ["money","geometry"]){
+   let v=studyState(key);v.level=3;v.n=0;studySave(key,v);let q=mathModelQuestion(key,v.n,v.level),m=q.model;
+   while(key==="money"&&m.solution[3]===0||key==="geometry"&&m.solution[0]===m.solution[1]){v.n+=5;studySave(key,v);q=mathModelQuestion(key,v.n,v.level);m=q.model}
+   studyOpen("math",key);const alt=[...m.solution];
+   if(key==="money"){alt[3]--;alt[2]+=2}else alt.reverse();
+   const move=(i,d)=>$("modelControls").children.find(b=>+b.dataset.modelI===i&&+b.dataset.modelD===d).onclick();
+   for(let i=0;i<alt.length;i++)for(let v=m.initial[i];v!==alt[i];){const d=v<alt[i]?1:-1;move(i,d);v+=d}
+   $("modelCheck").onclick();if($("studyNext").hidden||!$("studyFeedback").textContent.startsWith("Верно!"))throw Error("alternative UI");count++;
+  }
+  let v=studyState("clock");v.n=0;studySave("clock",v);studyOpen("math","clock");$("studySolution").onclick();
+  const q=mathModelQuestion("clock",0,v.level);if($("studyNext").hidden||!$("studyFeedback").textContent.startsWith("Ответ: "+q.answer)||studyState("clock").independent!==v.independent)throw Error("worked clock");
+  return count+1;
+ };
+ const modelAlternativesUI=new Function('fget','fput','childArt','esc','$','openModal',source+'\nreturn ('+alternativeUICode.toString()+')();')(k=>modelStore.get(k)||null,(k,v)=>{modelStore.set(k,v);return true},()=>'',s=>s,modelNode,()=>modelNodes.clear());
+
+ return {models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}
