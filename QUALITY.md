@@ -51,3 +51,4 @@ Grouped mathematics (12 skills) and logic (6 skills) into 3 and 2 topic areas; d
 ## Release 1.5.30
 
 Expanded mathematical word problems to eight problem structures at each difficulty level (including inverse, comparison, and two-step problems); money practice now includes four or six contexts by level, with budget, missing amount, price difference and combined expenses. Worked answers are explicitly displayed; session summary separates first-attempt independent answers, assisted/retried answers and viewed solutions. No storage schema changes or original story edits. Added 1,536 independent arithmetic checks of generated story and money task templates. Actual child learning outcomes and tablet rendering remain unverified.
+Mocked session checks additionally verify all three outcome categories (3 independent, 2 assisted/retried, 1 worked solution) and explicit answer display.
