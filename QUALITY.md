@@ -31,3 +31,7 @@ Mixed six-question mathematics/logic sessions with per-skill persistence, review
 ## Release 1.5.25
 
 Three structured Russian-language skills with 36 reviewed prompts, adaptive levels, typed spelling answers, separate progress, and integration into the review queue. Existing writer practice remains available. Tests cover question variety, options, typed answer normalization and routing.
+
+## Release 1.5.26
+
+Parent dashboard reorganized into four skill groups, science practice and reading completion; separate completed, independent and recent counts; due-topic summaries; no cross-domain ranking. Existing history and storage keys unchanged. Regression suite checks aggregate totals.
