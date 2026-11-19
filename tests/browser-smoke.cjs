@@ -154,6 +154,7 @@ const server=http.createServer((req,res)=>{
  await page.keyboard.press('Escape');
  await page.evaluate(()=>artRoom());
  await page.locator('#drawingCanvas').waitFor({state:'visible'});
+ assert.equal(await page.locator('#lessonSubject option').count(),6);
  assert.equal(await page.locator('#drawingColors button:visible').count(),12);
  assert.equal(await page.locator('#studioEffects').isVisible(),false);
  await page.locator('#paletteMore').click();assert.equal(await page.locator('#drawingColors button:visible').count(),32);await page.locator('#paletteMore').click();
