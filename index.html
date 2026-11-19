@@ -1748,27 +1748,29 @@ function backup(){
  $('restore').onclick=()=>$('importFile').click();$('localRestore').onclick=restorePreviousLocal;$('undoRestore').onclick=restoreBeforeImport;
 }
 async function saveBeforeRestore(){
- const raw=JSON.stringify(data),checkpoint=archiveCheckpoint(raw,k=>localStorage.getItem(k));
+ const raw=JSON.stringify(data),stored=localStorage.getItem(KEY),checkpoint=archiveCheckpoint(raw,k=>localStorage.getItem(k));
+ if(stored!==null){const persisted=archiveLibrary(JSON.parse(stored));if(!window.__nativeMode&&JSON.stringify({...fresh(),...persisted})!==raw)throw Error('library mismatch')}
  if(!window.indexedDB)throw Error('no recovery');
  await writeRestoreCheckpoint(checkpoint);
- if(JSON.stringify(data)!==raw||checkpoint.entries.some(([k,v])=>localStorage.getItem(k)!==v))throw Error('changed during backup');
+ if(JSON.stringify(data)!==raw||localStorage.getItem(KEY)!==stored||checkpoint.entries.some(([k,v])=>localStorage.getItem(k)!==v))throw Error('changed during backup');
  return checkpoint;
 }
 async function applyArchiveRestore(parsed){
- if(restoreBusy)return;restoreBusy=true;
+ if(restoreBusy)return;restoreBusy=true;const origin=activeDialog,button=$('confirmRestore');if(button)button.disabled=true;
  try{
  await saveBeforeRestore();
+ if(activeDialog!==origin||!$('modal').hasAttribute('open')){toast('Восстановление отменено.');return}
  if(!portableCommit({...fresh(),...parsed.library},parsed.entries)){toast('Не удалось восстановить копию. Точка возврата сохранена. Проверь свободное место.');return}
  closeModal();chooseAuthor(OWN);toast('Данные восстановлены. Точка возврата сохранена.');
  }catch(e){toast(e.message==='rollback'?'Не все записи удалось вернуть. Используй точку возврата в разделе резервной копии.':'Восстановление остановлено: не удалось создать безопасную точку возврата или данные изменились.')}
- finally{restoreBusy=false}
+ finally{restoreBusy=false;if(button)button.disabled=false}
 }
 $('importFile').onchange=async e=>{
  const file=e.target.files[0];e.target.value='';if(!file||restoreBusy)return;
  try{
  if(file.size>40000000)throw Error('size');
  const parsed=archiveParse(await readText(file)),c=archiveCounts(parsed.library,parsed.entries);
- openModal('Проверка резервной копии','<section class="archive-summary"><h3>В файле найдено</h3><p>'+esc(archiveDescribe(c))+'</p><p>Текущие книги, черновики и данные, включённые в файл, будут заменены. Данные, которых в файле нет, останутся на устройстве.</p><p>Перед заменой будет сохранена отдельная точка возврата на этом устройстве.</p><button type="button" class="primary" id="confirmRestore">Восстановить из этой копии</button><button type="button" id="cancelRestore">Отмена</button></section>','backup-preview');
+ openModal('Проверка резервной копии','<section class="archive-summary"><h3>В файле найдено</h3><p>'+esc(archiveDescribe(c))+'</p><p>Текущая библиотека (включая книги и черновики) будет заменена целиком. Дополнительные данные — рисунки, учебный прогресс и закладки — будут заменены только в тех разделах, которые есть в файле.</p><p>Перед заменой будет сохранена отдельная точка возврата на этом устройстве.</p><button type="button" class="primary" id="confirmRestore">Восстановить из этой копии</button><button type="button" id="cancelRestore">Отмена</button></section>','backup-preview');
  $('cancelRestore').onclick=backup;$('confirmRestore').onclick=()=>applyArchiveRestore(parsed);
  }catch(err){toast('Копия не прошла проверку. Ничего не изменено. Проверь исходный файл.')}
 };
