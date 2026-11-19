@@ -1,6 +1,8 @@
 name: Quality checks
 on:
   push:
+    branches: [main, pdf-reference-1.5.50]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 permissions:
