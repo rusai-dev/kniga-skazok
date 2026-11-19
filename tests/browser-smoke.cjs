@@ -27,13 +27,13 @@ const server=http.createServer((req,res)=>{
  await page.locator('#studySolution').click();await page.locator('#studyNext').click();
  await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
- await page.locator('.academy-topic-group').nth(1).locator('summary').click();
+ assert.equal(await page.locator('[data-academy="evidence"]').isVisible(),true);
  await page.locator('[data-academy="evidence"]').click();
  await page.locator('#studyChoices button').first().click();
  await page.locator('#studyFeedback').waitFor({state:'visible'});
  await page.locator('#close').click();await page.locator('#childLearn').click();await page.locator('#learnLogic').click();
  const planning=page.locator('[data-academy="planning"]');
- if(!(await planning.isVisible()))await page.locator('details.academy-topic-group').filter({has:planning}).locator('summary').click();
+ assert.equal(await planning.isVisible(),true);
  await planning.click();
  await page.locator('#studySequence').waitFor({state:'visible'});
  assert.equal(await page.locator('#sequenceCheck').isDisabled(),true);
