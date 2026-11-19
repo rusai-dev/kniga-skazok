@@ -177,12 +177,18 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice:visible').count(),12);
  // Verify the actual renderer in both browser engines and the flood-fill barriers.
  const originals=await page.evaluate(()=>{
-  const scenes=[['hedgehog-garden',612,81],['fox-owl-stream',365,62],['bear-library',595,91],['kitten-balloon',360,135]];
+  const scenes=[['hedgehog-garden',612,81],['fox-owl-stream',365,62],['bear-library',595,91],['kitten-balloon',360,135],['undersea-palace',86,78],['winter-village',611,65],['forest-picnic',613,74],['dragon-clouds',615,202],['rabbit-workshop',100,90],['squirrel-autumn',606,74],['owl-observatory',607,76],['forest-train',616,68]];
   const output=[];
   for(const [key,x,y] of scenes){const c=document.createElement('canvas');c.width=720;c.height=480;const cx=c.getContext('2d');if(!originalColoring(cx,key))throw Error(key);const before=c.toDataURL();const img=cx.getImageData(0,0,720,480),pixel=(px,py)=>Array.from(img.data.slice((py*720+px)*4,(py*720+px)*4+4));const outside=pixel(12,12),color=[217,33,91,255];if(!artFill(img.data,720,480,x,y,color))throw Error('fill '+key);if(pixel(x,y).join()!==color.join()||pixel(12,12).join()!==outside.join())throw Error('leaking fill '+key);output.push(before)}
+  // Five independent regions in one scene; preserve every earlier fill and the exterior.
+  const c=document.createElement('canvas');c.width=720;c.height=480;const cx=c.getContext('2d');originalColoring(cx,'undersea-palace');
+  const img=cx.getImageData(0,0,720,480),read=(x,y)=>Array.from(img.data.slice((720*y+x)*4,(720*y+x)*4+4)).join();
+  const outside=read(12,12),chosen=[[86,78],[112,40],[632,125],[671,80],[350,229]];
+  const colors=chosen.map((_,i)=>[35+i*40,80,210-i*30,255]);
+  for(let i=0;i<chosen.length;i++){const [x,y]=chosen[i];if(!artFill(img.data,720,480,x,y,colors[i]))throw Error('multi-region fill');for(let j=0;j<=i;j++)if(read(...chosen[j])!==colors[j].join())throw Error('previous fill changed');if(read(12,12)!==outside)throw Error('exterior changed')}
   return new Set(output).size;
  });
- assert.equal(originals,4,'independent original compositions');
+ assert.equal(originals,12,'independent original compositions');
  await page.locator('#storyColoringGallery .story-coloring-choice').first().click();
  assert.equal(await page.locator('[data-tool="fill"]').getAttribute('aria-pressed'),'true');
  const pixelState=()=>page.locator('#drawingCanvas').evaluate(c=>c.toDataURL());
