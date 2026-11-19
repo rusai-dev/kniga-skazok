@@ -200,10 +200,15 @@ const server=http.createServer((req,res)=>{
  await page.locator('#drawingRedo').click();assert.equal(await pixelState(),colored);
  await page.locator('[data-art-mode="lesson"]').click();
  assert.ok(await page.locator('#studioLessonPane').isVisible());
- await page.locator('#lessonSubject').selectOption('fox');
- for(let step=0;step<3;step++)await page.locator('#lessonNext').click();
- assert.equal(await page.locator('#lessonNext').isEnabled(),false);
- await page.locator('#lessonPrev').click();assert.ok(await page.locator('#lessonNext').isEnabled());
+ await page.waitForFunction(()=>{const a=document.getElementById('studioSheet').getBoundingClientRect(),b=document.getElementById('studioExtras').getBoundingClientRect(),c=document.getElementById('drawingCanvas').getBoundingClientRect();return a.width>200&&a.height>130&&c.width>200&&c.height>130&&(a.right<=b.left+1||b.bottom<=a.top+1)});
+ for(const subject of ['rabbit','cat','flower','house','fox','butterfly']){
+  await page.locator('#lessonSubject').selectOption(subject);
+  for(let step=0;step<6;step++){assert.equal(await page.locator('#lessonPicture [data-lesson-stage]').count(),step+1);assert.ok((await page.locator('#lessonInstruction').textContent()).includes('Шаг '+(step+1)+' из 6'));if(step<5)await page.locator('#lessonNext').click();}
+  assert.equal(await page.locator('#lessonNext').isEnabled(),false);
+  await page.locator('#lessonPrev').click();assert.ok(await page.locator('#lessonNext').isEnabled());
+  assert.equal(await pixelState(),colored,'lesson must not alter the child canvas');
+ }
+
  assert.equal(await pixelState(),colored,'lesson navigation must not modify child drawing');
  await page.locator('[data-art-mode="free"]').click();
  assert.equal(await page.locator('[data-tool="brush"]').getAttribute('aria-pressed'),'true');
