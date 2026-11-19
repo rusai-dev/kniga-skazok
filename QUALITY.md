@@ -150,3 +150,8 @@ Reading view now uses a clear arrow-labeled shelf return with a descriptive acce
 ## Candidate 1.5.52 — visible art-mode entry
 
 Standalone drawing now exposes three large named mode cards for free drawing, coloring and lessons, wired to the existing canvas, template picker and lesson pane. Existing storage keys remain unchanged. Dependency-free regression passed; browser/iPad testing and professional illustration expansion remain pending. Unpublished candidate.
+
+
+## Candidate 1.5.53 — four-step drawing lessons
+
+Four existing lesson subjects expanded from 3 to 4 stages, with previous-step navigation and dynamic step counts. Existing draft and gallery storage remain unchanged. Dependency-free regression passed; browser and iPad testing outstanding. Six professional lessons and full visual reference matching remain incomplete. Unpublished.
