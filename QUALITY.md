@@ -66,3 +66,4 @@ Second pass: per-session cache of up to three measured layouts, avoid bookmark w
 ## Release 1.5.33
 
 Constructed-response exercises integrated in ordering, deduction and planning skills (alternating with original questions). Three to five cards by level, constraints explicitly listed; planning accepts both valid preparatory orders. Tap to build, undo/reset and submit complete order; only first unaided correct submission counts as independent. Existing progress, mixed sessions and review mechanism unchanged. Exhaustive permutation checks and simulated UI confirm acceptance of alternatives, rejection of invalid sequences, undo, retry and persistence. Browser/iPad testing outstanding.
+Second pass: retain card DOM nodes while filling slots; show the actual accepted order, including alternative valid paths; point to the first violated constraint after an incorrect submission. Added mocked assertions and a browser smoke scenario (syntax checked only).
