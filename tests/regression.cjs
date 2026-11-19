@@ -101,6 +101,8 @@ function verify(html){
  if(k==="geometry"&&m.sizeTarget){const [w,h]=q.q.match(/\d+/g).map(Number);if(10*w+h!==m.target||w!==s[0]||h!==s[1])throw Error("dimension prompt")}
  if(k==="money"&&s[3]>0&&s[2]<=8){const alt=[...s];alt[3]--;alt[2]+=2;if(mathModelValue(m,alt)!==m.target)throw Error("other coins");alternatives++}
  if(k==="geometry"&&!m.sizeTarget&&s[0]!==s[1]){if(mathModelValue(m,[s[1],s[0]])!==m.target)throw Error("rotated rectangle");alternatives++}
+ if(k==="place"){const a=mathModelArt(m,s);if((a.match(/data-unit="ten"/g)||[]).length!==s[0]*10||(a.match(/data-unit="one"/g)||[]).length!==s[1])throw Error("incorrect base ten art")}
+ if(k==="money"){const a=mathModelArt(m,s);for(let i=0;i<4;i++)if((a.match(new RegExp('data-coin="'+m.denoms[i]+'"','g'))||[]).length!==s[i])throw Error("coin art")}
  if(k==="clock"&&(mathModelMove(m,[0,0],0,-1)[0]!==11||!mathModelControls(m).includes("model-audio-value")))throw Error("clock wrap/hide");
  if(m.kind==="line"&&m.max[0]>20&&mathModelMove(m,[m.max[0]-1],0,10)[0]!==m.max[0]-1)throw Error("invalid ten-step");count++;
  }return {count,alternatives};

@@ -49,12 +49,12 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-menu-focus')),false);
  assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-lesson-focus')),true);
  assert.ok(await page.locator('.lesson-workspace').isVisible());
- await page.locator('#studySolution').click();await page.locator('#studyNext').click();
+ await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();await page.locator('#studyNext').click();
  await page.locator('#studyBack').click();await page.locator('[data-academy="place"]').click();
  assert.equal(await page.locator('#studyModel').isVisible(),true);
  await page.locator('[data-model-i="0"][data-model-d="1"]').click();assert.equal(await page.locator('#modelValue0').textContent(),'1');
  await page.locator('#modelReset').click();assert.equal(await page.locator('#modelValue0').textContent(),'0');
- await page.locator('#studySolution').click();assert.ok(await page.locator('#modelCheck').isDisabled());await page.locator('#studyNext').click();assert.equal(await page.locator('#studyModel').isVisible(),false);
+ await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();assert.ok(await page.locator('#modelCheck').isDisabled());await page.locator('#studyNext').click();assert.equal(await page.locator('#studyModel').isVisible(),false);
  await page.keyboard.press('Escape');await page.locator('#homeLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
  assert.equal(await page.locator('[data-academy] .fairy-art').count(),6);
@@ -71,7 +71,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#sequenceChoices button').first().click();
  await page.locator('#sequenceUndo').click();
  assert.equal(await page.locator('#sequenceCheck').isDisabled(),true);
- await page.locator('#studySolution').click();
+ await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();
  assert.equal(await page.locator('#sequenceCheck').isDisabled(),true);
  await page.locator('#studyNext').click();
  assert.equal(await page.locator('#studySequence').isVisible(),false);
@@ -80,7 +80,7 @@ const server=http.createServer((req,res)=>{
  assert.ok(await page.locator('#studySpatial').isVisible());await page.locator('#spatialControls button:enabled').first().click();
  assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 1');
  await page.locator('#spatialUndo').click();assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 0');
- await page.locator('#studySolution').click();assert.ok(await page.locator('#spatialCheck').isDisabled());
+ await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();assert.ok(await page.locator('#spatialCheck').isDisabled());
  await page.locator('#studyNext').click();assert.equal(await page.locator('#studySpatial').isVisible(),false);
  await page.keyboard.press('Escape');await page.locator('#childWorld').click();
  assert.equal(await page.locator('[data-area]').count(),4);
@@ -117,12 +117,13 @@ const server=http.createServer((req,res)=>{
  await page.waitForTimeout(150);
  const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-reading-offsets-v1')||'{}'));
  assert.deepEqual(after,before,'rotation must not move reading anchor');
+ assert.equal(await page.locator('#readingLarge').isVisible(),false);await page.locator('#readerOptions summary').click();
  for(const size of ['#readingLarge','#readingSmall']){
  const btn=page.locator(size);if(await btn.isEnabled())await btn.click();
  const dims=await page.locator('#readingText').evaluate(el=>({client:el.clientHeight,scroll:el.scrollHeight}));
  assert.ok(dims.client>0&&dims.scroll<=dims.client+2,'font resize overflow');
  }
- await page.locator('#readingBack').click();
+ await page.locator('#readerOptions summary').click();await page.locator('#readingBack').click();
  await page.locator('[data-story="lantern-friends"]').click();
  for(let j=0;j<50&&await page.locator('#readingNext').count();j++)await page.locator('#readingNext').click();
  await page.locator('#readingQuizStart').click();
@@ -133,6 +134,17 @@ const server=http.createServer((req,res)=>{
  await page.locator('#rqNext').click();
  }
  assert.ok((await page.locator('.reading-finish').textContent()).includes('0 из 3'));
+ await page.keyboard.press('Escape');
+ await page.evaluate(()=>artRoom());
+ await page.locator('#drawingCanvas').waitFor({state:'visible'});
+ assert.equal(await page.locator('#drawingColors button:visible').count(),12);
+ assert.equal(await page.locator('#studioEffects').isVisible(),false);
+ await page.locator('#paletteMore').click();assert.equal(await page.locator('#drawingColors button:visible').count(),32);await page.locator('#paletteMore').click();
+ await page.locator('#studioMore summary').click();assert.ok(await page.locator('#studioEffects').isVisible());await page.locator('#studioEffects').click();assert.ok(await page.locator('#studioExtraTitle').isVisible());await page.locator('#studioExtraClose').click();
+ const sheet=await page.locator('#drawingCanvas').boundingBox();assert.ok(sheet.width>220&&sheet.height>140,'canvas size');
+ await page.mouse.move(sheet.x+sheet.width/3,sheet.y+sheet.height/3);await page.mouse.down();await page.mouse.move(sheet.x+sheet.width/2,sheet.y+sheet.height/2,{steps:5});await page.mouse.up();
+ assert.ok(await page.locator('#drawingSave').isEnabled());await page.locator('#drawingSave').click();
+ assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length>0),'drawing stored');
  await page.keyboard.press('Escape');
  const archiveFixture=await page.evaluate(()=>{
  const book={id:'archive-test-book',title:'Тестовая книга',body:'Сохранённый текст.',theme:'Винни-Пух',author:OWN,icon:'📖'};
