@@ -15,6 +15,9 @@ function verify(html){
  'let quiz=0,terms=0;for(const b of books){const rows=readingComprehension[b.id];if(!rows||rows.length!==2||rows.some(x=>x.length!==5||new Set(x.slice(1,4)).size!==3))throw Error("quiz "+b.id);quiz+=rows.length;for(const [w,v] of readingGlossary[b.id]||[]){if(!b.pages.join(" ").toLowerCase().replace(/ё/g,"е").includes(w.toLowerCase().replace(/ё/g,"е"))||!v)throw Error("glossary "+w);terms++}}return {quiz,terms};')(books);
  const portable=new Function(between('const portableKeys=','function backup(){')+
  'if(portableEntries(undefined).length||portableValid("skazki-github-archive-token-v1","secret")||portableValid("skazki-study-skills-v2",\'{"__proto__":{"x":1}}\')||portableValid("skazki-reading-offsets-v1",\'{"cat":null}\')||!portableValid("skazki-reading-offsets-v1",\'{"cat":{"scene":1,"offset":20}}\'))throw Error("archive validation");return Object.keys(portableKeys).length;')();
- return {scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+
+ const review=new Function('fget','fput','childArt','esc',source+
+ 'const plan=academyMixedPlan(1000);if(plan.length!==6||new Set(plan).size!==6||plan.filter(k=>k.startsWith("logic-")).length!==2)throw Error("mixed plan");let w=academyWorldAdvance({},true,1000),same=academyWorldAdvance(w,true,1001);if(same.review!==w.review||same.due!==w.due)throw Error("early repeat");const later=academyWorldAdvance(same,true,w.due);if(later.review!==2||later.due!==w.due+3*academyDay)throw Error("scheduled review");const miss=academyWorldAdvance(later,false,w.due+1);if(miss.review!==0||miss.due!==w.due+1+academyDay)throw Error("world retry");return 4;')(()=>null,()=>true,()=>'',s=>s);
+ return {review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}
