@@ -20,7 +20,8 @@ const server=http.createServer((req,res)=>{
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- await page.goto(url);
+ await page.goto(url+'#author=own&theme=');
+ assert.equal(await page.evaluate(()=>location.hash),'','legacy shelf URL should be cleaned');
  assert.ok(await page.locator('#storybookHome').isVisible());assert.equal(await page.locator('#libraryHome').isVisible(),false);assert.equal(await page.locator('#adultHome').isVisible(),false);
  assert.equal(await page.locator('.home-map button').count(),4);
  assert.ok(await page.locator('.home-art').first().evaluate(e=>getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')));
@@ -28,7 +29,11 @@ const server=http.createServer((req,res)=>{
  await page.locator('#homeMath').click();assert.equal(await page.locator('[data-academy]').count(),12);assert.equal(await page.locator('#close').isVisible(),false);await page.locator('#academyBack').click();
  await page.locator('#homeLogic').click();assert.equal(await page.locator('[data-academy]').count(),6);await page.locator('#academyBack').click();
  await page.locator('#homeCreate').click();assert.ok(await page.locator('#creativeHome').isVisible());assert.equal(await page.locator('#storybookHome').isVisible(),false);
- await page.locator('#childBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());await page.locator('#home').click();
+ await page.locator('#childBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());assert.equal(await page.locator('#homeLabel').textContent(),'Главная');
+ await page.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));const homeRect=await page.locator('#home').boundingBox();assert.ok(homeRect.y>=0&&homeRect.y+homeRect.height<=viewport.height,'home button must stay in viewport');
+ await page.locator('#home').click();assert.ok(await page.locator('#storybookHome').isVisible());await page.goBack();assert.ok(await page.locator('#libraryHome').isVisible());
+ await page.reload();assert.ok(await page.locator('#storybookHome').isVisible());assert.equal(await page.evaluate(()=>location.hash),'');
+ assert.equal(await page.locator('#homeLabel').textContent(),'Книга сказок');
  await page.locator('#adultEntry').click();assert.ok(await page.locator('#adultHome').isVisible());assert.ok(await page.locator('#adultProgress .study-parent').isVisible());await page.locator('#home').click();
  await page.locator('#childLearn').click();assert.equal(await page.locator('#modal .study-parent').count(),0);
  await page.locator('#learnOutcomes').click();await page.locator('[data-outcome="story"]').click();
