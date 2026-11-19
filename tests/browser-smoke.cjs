@@ -175,6 +175,14 @@ const server=http.createServer((req,res)=>{
  await page.locator('[data-art-mode="color"]').click();
  await page.locator('[data-art-mode="color"]').click();
  assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice:visible').count(),12);
+ // Verify the actual renderer in both browser engines and the flood-fill barriers.
+ const originals=await page.evaluate(()=>{
+  const scenes=[['hedgehog-garden',612,81],['fox-owl-stream',365,62],['bear-library',595,91],['kitten-balloon',360,135]];
+  const output=[];
+  for(const [key,x,y] of scenes){const c=document.createElement('canvas');c.width=720;c.height=480;const cx=c.getContext('2d');if(!originalColoring(cx,key))throw Error(key);const before=c.toDataURL();const img=cx.getImageData(0,0,720,480),pixel=(px,py)=>Array.from(img.data.slice((py*720+px)*4,(py*720+px)*4+4));const outside=pixel(12,12),color=[217,33,91,255];if(!artFill(img.data,720,480,x,y,color))throw Error('fill '+key);if(pixel(x,y).join()!==color.join()||pixel(12,12).join()!==outside.join())throw Error('leaking fill '+key);output.push(before)}
+  return new Set(output).size;
+ });
+ assert.equal(originals,4,'independent original compositions');
  await page.locator('#storyColoringGallery .story-coloring-choice').first().click();
  assert.equal(await page.locator('[data-tool="fill"]').getAttribute('aria-pressed'),'true');
  const pixelState=()=>page.locator('#drawingCanvas').evaluate(c=>c.toDataURL());
