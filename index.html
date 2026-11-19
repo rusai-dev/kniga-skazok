@@ -925,9 +925,89 @@ function studioStroke(ctx,from,to,width,kind,color,hue=0){
 function studioEffectPreview(canvas,kind){const ctx=canvas.getContext('2d');if(!ctx)return;ctx.clearRect(0,0,canvas.width,canvas.height);if(stampEffects.has(kind)){for(let i=0;i<3;i++)studioStamp(ctx,20+i*30,20,10,kind,['#b879a0','#d4a350','#719eaa'][i])}else for(let i=0;i<13;i++)studioStroke(ctx,{x:7+i*6.5,y:22+Math.sin(i*.5)*6},{x:7+(i+1)*6.5,y:22+Math.sin((i+1)*.5)*6},9,kind,'#9b83b9',i*27)}
 function studioFitImage(w,h,iw,ih){const scale=Math.min(w/iw,h/ih),dw=iw*scale,dh=ih*scale;return {x:(w-dw)/2,y:(h-dh)/2,w:dw,h:dh}}
 
+
+/* Original, hand-authored vector story compositions, 720×480. No remote assets.
+   Closed white shapes are painted back-to-front to give a single, continuous ink boundary. */
+const ORIGINAL_COLORING_IDS=['hedgehog-garden','fox-owl-stream','bear-library','kitten-balloon'];
+function originalColoring(ctx,key){
+ if(!ORIGINAL_COLORING_IDS.includes(key))return false;
+ const paper='#fffdf7',ink='#40382f';
+ ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=paper;ctx.fillRect(0,0,720,480);ctx.lineJoin='round';ctx.lineCap='round';ctx.strokeStyle=ink;
+ function zone(d){const p=new Path2D(d);ctx.fillStyle=paper;ctx.fill(p);ctx.lineWidth=3;ctx.stroke(p)}
+ function detail(d){ctx.lineWidth=2;ctx.stroke(new Path2D(d))}
+ function oval(x,y,a,b,solid=false){ctx.beginPath();ctx.ellipse(x,y,a,b,0,0,Math.PI*2);ctx.fillStyle=solid?ink:paper;ctx.fill();ctx.lineWidth=2.7;ctx.stroke()}
+ function eye(x,y){oval(x,y,7,10,true);ctx.beginPath();ctx.arc(x-2,y-3,2.4,0,Math.PI*2);ctx.fillStyle=paper;ctx.fill()}
+ function flower(x,y,k){ctx.save();ctx.translate(x,y);ctx.scale(k,k);zone('M0 8 Q-15 55 -4 94 L5 94 Q-4 53 7 8Z');zone('M0 57 Q-38 20 -47 43 Q-39 66 0 69Z');zone('M4 75 Q38 36 48 56 Q37 80 4 85Z');for(let i=0;i<6;i++){ctx.save();ctx.rotate(i*Math.PI/3);oval(0,-21,12,19);ctx.restore()}oval(0,0,13,13);ctx.restore()}
+ function cloud(x,y,k){ctx.save();ctx.translate(x,y);ctx.scale(k,k);zone('M-41 13 C-60 6 -49 -15 -31 -13 C-31 -37 4 -42 15 -19 C38 -26 54 -7 46 10 Q39 25 17 20 L-28 20 Q-39 20 -41 13Z');ctx.restore()}
+ function leaf(x,y,k){ctx.save();ctx.translate(x,y);ctx.rotate(k);zone('M0 0 Q-22 -35 0 -42 Q22 -35 0 0Z');detail('M0 0 L0 -30');ctx.restore()}
+ if(key==='hedgehog-garden'){
+  cloud(138,70,1.15);cloud(484,60,.86);oval(612,81,34,34);for(let i=0;i<8;i++){const a=i*Math.PI/4;detail('M'+(612+43*Math.cos(a))+' '+(81+43*Math.sin(a))+' L'+(612+54*Math.cos(a))+' '+(81+54*Math.sin(a)))}
+  zone('M0 339 Q150 295 294 330 Q523 277 720 331 L720 480 L0 480Z');
+  zone('M44 420 Q55 381 67 338 Q89 365 91 404 Q112 373 134 384 L116 432Z');
+  flower(103,265,.95);flower(595,250,1.35);flower(664,324,.67);flower(161,359,.62);
+  zone('M217 354 Q176 348 187 319 L158 295 L194 290 L175 262 L209 261 L192 225 L229 230 L226 190 L259 205 L275 171 L297 193 L327 160 L345 193 L383 174 L389 207 L430 204 L421 236 Q449 244 446 282 Q428 348 381 370 Q286 402 217 354Z');
+  zone('M375 224 Q407 201 437 224 Q457 239 471 275 Q487 300 523 305 Q541 311 524 331 Q500 349 449 341 Q421 368 385 355 Q350 332 356 288 Q359 252 375 224Z');
+  oval(377,242,19,26);detail('M372 230 Q389 234 380 252');eye(447,281);oval(523,312,10,8,true);detail('M505 333 Q489 345 476 330');
+  zone('M252 357 Q244 376 255 388 Q282 396 298 380 L302 365Z');zone('M359 357 Q347 376 360 388 Q389 394 401 377 L396 356Z');
+  for(const d of ['M224 276 L249 251 L247 288','M264 229 L284 210 L282 242','M303 266 L326 240 L330 270','M205 315 L233 304 L223 332','M279 339 L304 312 L312 337','M353 206 L369 224','M341 293 L352 273'])detail(d);
+  zone('M316 83 Q274 57 278 112 Q289 132 321 125 Q290 171 334 148 L344 126 Q397 148 394 106 Q394 76 350 100 Q348 66 316 83Z');oval(339,113,7,23);detail('M336 92 Q324 77 315 78 M342 91 Q352 75 361 77');
+  detail('M14 450 Q32 439 50 449 M475 433 Q496 421 521 431 M548 458 Q565 440 582 452');
+ }
+ if(key==='fox-owl-stream'){
+  cloud(365,62,1.1);cloud(595,80,.75);
+  zone('M0 300 Q190 274 283 317 Q470 284 720 302 L720 480 L0 480Z');
+  zone('M368 304 Q271 357 347 397 Q409 432 314 480 L720 480 L720 420 Q549 407 537 366 Q525 326 615 304Z');
+  detail('M391 335 Q350 359 389 376 M456 414 Q483 421 511 416 M570 448 Q612 461 655 449');
+  zone('M0 0 L90 0 Q81 69 103 115 Q151 130 211 100 L224 115 Q164 159 109 146 Q125 219 99 326 L0 340Z');
+  detail('M36 10 Q54 133 35 280 M74 163 Q88 234 65 308');
+  for(const [x,y,r] of [[120,52,-.6],[170,80,1],[213,80,.7],[100,113,-.9],[68,65,-1.1]])leaf(x,y,r);
+  zone('M145 104 Q139 79 161 67 L168 49 L185 64 Q207 60 221 72 L239 58 L239 88 Q257 132 225 159 Q182 177 153 151 Q135 135 145 104Z');
+  oval(178,108,19,19);oval(216,107,19,19);eye(178,108);eye(216,107);zone('M189 128 L202 125 L197 140Z');zone('M164 135 Q147 118 150 152 Q167 166 180 155Z');detail('M180 151 Q190 145 200 151 M190 161 Q200 153 210 160');
+  zone('M190 357 Q99 321 83 369 Q57 430 151 440 Q207 440 254 411 Q276 377 249 349Z');
+  zone('M83 369 Q61 409 101 431 Q121 422 125 395 Q101 391 83 369Z');
+  zone('M249 299 Q270 276 306 298 Q334 331 320 392 Q309 433 254 430 Q224 424 229 390Z');
+  zone('M207 268 L176 205 Q170 185 193 192 L252 219 Q278 211 294 218 L347 182 Q365 178 359 205 L341 274 Q355 295 330 315 Q277 346 227 316 Q207 301 207 268Z');
+  zone('M193 210 L212 249 L236 232Z');zone('M339 202 L306 232 L337 249Z');
+  zone('M214 283 Q246 263 276 295 Q305 265 340 280 Q343 308 310 323 Q276 345 237 320 Q213 305 214 283Z');
+  eye(248,267);eye(309,264);oval(277,297,12,8,true);detail('M277 305 Q266 319 253 306 M277 305 Q290 317 301 305');
+  zone('M260 388 Q247 372 238 397 Q222 431 250 436 Q276 439 278 411Z');zone('M305 390 Q320 375 326 406 Q337 435 309 438 Q287 439 288 413Z');
+  zone('M555 355 Q586 338 603 355 Q614 369 593 379 Q568 385 551 371Z');oval(576,344,13,5);flower(650,277,.7);
+ }
+ if(key==='bear-library'){
+  zone('M20 29 H700 V364 H20Z');zone('M32 43 H337 V350 H32Z');
+  for(const y of [139,237,335])zone('M32 '+y+' H337 V'+(y+12)+' H32Z');
+  const books=[[49,65,31,74],[83,54,42,85],[129,79,27,60],[160,57,45,82],[210,73,35,66],[249,49,62,90],[49,155,42,82],[96,178,27,59],[129,161,54,76],[187,150,28,87],[220,172,49,65],[273,156,41,81],[48,251,53,84],[106,264,33,71],[144,257,49,78]];
+  for(const [x,y,w,h] of books){zone('M'+x+' '+y+' h'+w+' v'+h+' h-'+w+'Z');detail('M'+(x+6)+' '+(y+12)+' h'+(w-12)+' M'+(x+6)+' '+(y+h-12)+' h'+(w-12))}
+  zone('M514 50 H670 V209 H514Z');zone('M526 62 H658 V197 H526Z');detail('M592 62V197 M526 129H658');
+  zone('M0 364 H720 V480 H0Z');oval(452,435,227,34);
+  zone('M356 310 Q285 281 257 318 L257 390 Q257 420 292 427 L616 427 Q651 422 651 386 L651 322 Q633 292 584 310 L584 228 Q583 190 543 190 L399 190 Q356 190 356 235Z');
+  oval(386,228,32,35);oval(533,227,32,35);oval(386,228,15,17);oval(533,227,15,17);
+  zone('M391 293 Q360 331 382 385 Q416 409 505 405 Q550 399 551 348 Q549 310 521 293Z');
+  zone('M370 254 Q375 194 459 193 Q545 194 547 260 Q552 321 459 331 Q366 321 370 254Z');
+  oval(459,284,42,30);eye(423,257);eye(496,257);oval(459,277,13,9,true);detail('M459 286 V295 Q447 305 438 293 M459 295 Q471 305 481 293');
+  zone('M332 337 Q386 321 452 350 Q505 326 575 338 L561 408 Q506 398 452 426 Q399 398 344 409Z');detail('M452 350 V426 M352 354 Q400 344 444 365 M462 365 Q506 346 552 352 M353 373 Q401 363 442 386 M463 386 Q504 368 550 372');
+  oval(349,366,26,22);oval(559,365,26,22);oval(395,423,30,17);oval(518,423,30,17);
+  zone('M74 372 H175 V388 H74Z');zone('M86 388 H99 V452 H86Z');zone('M150 388 H163 V452 H150Z');zone('M115 310 H134 V369 H115Z');zone('M79 313 Q85 248 125 248 Q165 248 171 313Z');
+ }
+ if(key==='kitten-balloon'){
+  cloud(91,87,.95);cloud(609,74,1.3);cloud(605,264,.9);cloud(96,300,1.25);
+  zone('M0 446 Q138 388 259 440 Q430 390 573 437 Q649 408 720 438 L720 480 H0Z');
+  zone('M259 258 C228 231 185 168 199 101 C213 38 280 15 361 16 C441 16 514 49 525 109 C536 177 493 235 458 258Z');
+  zone('M259 258 C207 164 257 39 361 16 C297 75 294 182 321 258Z');
+  zone('M400 258 C430 184 431 77 361 16 C463 38 517 163 458 258Z');
+  zone('M321 258 C294 182 297 75 361 16 C431 77 430 184 400 258Z');
+  zone('M252 258 H465 L451 278 H267Z');zone('M270 278 L304 359 L316 359 L284 278Z');zone('M434 278 L404 359 H416 L448 278Z');
+  zone('M329 355 Q310 335 324 310 L313 279 Q309 264 325 272 L355 291 Q367 289 378 291 L408 271 Q424 268 419 284 L405 315 Q420 335 400 352 Q364 377 329 355Z');
+  zone('M324 282 L333 306 L345 294Z');zone('M407 283 L389 295 L400 305Z');eye(343,326);eye(390,326);zone('M359 338 Q366 334 373 338 L366 345Z');detail('M366 345 Q358 357 350 348 M366 345 Q375 357 383 348 M330 340 L308 336 M330 348 L309 353 M404 340 L427 335 M403 348 L427 354');
+  zone('M290 365 H432 L416 434 Q363 449 306 434Z');zone('M285 356 H437 V377 H285Z');detail('M300 392 H423 M303 409 H420 M327 378 V436 M361 378 V441 M395 378 V436');oval(333,365,14,10);oval(399,365,14,10);
+  for(const [x,y] of [[112,193],[576,174],[654,346]]){zone('M'+x+' '+(y-11)+' q-22 -11 -19 10 q3 17 19 14 q18 2 21 -14 q0 -20 -21 -10Z');detail('M'+x+' '+(y-11)+' q-4 -10 5 -15')}
+ }
+ ctx.restore();return true
+}
+
 const STORY_COLORING_SCENES=[
- ['Ёжик в цветочном саду','forest','rabbit'],['Лисёнок у ручья','sea','fox'],
- ['Медвежонок в библиотеке','castle','bear'],['Совёнок под звёздами','night','owl'],
+ ['Ёжик в цветочном саду','hedgehog-garden'],['Лисёнок и сова у ручья','fox-owl-stream'],
+ ['Медвежонок в библиотеке','bear-library'],['Котёнок на воздушном шаре','kitten-balloon'],
  ['Зайчик на лесной поляне','forest','rabbit'],['Лисёнок у замка','castle','fox'],
  ['Мишка у моря','sea','bear'],['Сова в волшебном лесу','forest','owl'],
  ['Зайчик под луной','night','rabbit'],['Лисёнок на берегу','sea','fox'],
@@ -947,7 +1027,7 @@ function initDrawing(form,insertPicture){
  function toolSync(){for(const b of panel.querySelectorAll('[data-effect]'))b.setAttribute('aria-pressed',String(!eraser&&!fillMode&&b.dataset.effect===effect));for(const b of controls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(!eraser&&b.dataset.color===color));for(const b of panel.querySelectorAll('[data-tool]'))b.setAttribute('aria-pressed',String(b.dataset.tool===(eraser?'eraser':fillMode?'fill':'brush')));for(const b of panel.querySelectorAll('[data-width]'))b.setAttribute('aria-pressed',String(Number(b.dataset.width)===width))}
  for(const b of panel.querySelectorAll('[data-tool]'))b.onclick=()=>{eraser=b.dataset.tool==='eraser';fillMode=b.dataset.tool==='fill';toolSync()};for(const b of panel.querySelectorAll('[data-width]'))b.onclick=()=>{width=Number(b.dataset.width);toolSync()};$('drawingCustom').oninput=()=>{const c=$('drawingCustom').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;eraser=false;toolSync()}};for(const b of panel.querySelectorAll('[data-effect]')){studioEffectPreview(b.querySelector('canvas'),b.dataset.effect);b.onclick=()=>{effect=b.dataset.effect;eraser=false;fillMode=false;toolSync();extra(null)}};toolSync();
  function extra(which){if(which)$('studioMore').open=false;$('studioExtras').hidden=!which;$('studioTemplatePane').hidden=which!=='templates';$('studioLessonPane').hidden=which!=='lessons';$('studioEffectPane').hidden=which!=='effects';$('studioExtraTitle').textContent=which==='lessons'?'Учусь рисовать':which==='effects'?'Волшебные кисти':'Раскраски';$('studioEffects').setAttribute('aria-expanded',String(which==='effects'));$('studioTemplates').setAttribute('aria-expanded',String(which==='templates'));$('studioLessons').setAttribute('aria-expanded',String(which==='lessons'))}
- $('studioTemplates').onclick=()=>extra(!$('studioExtras').hidden&&!$('studioTemplatePane').hidden?null:'templates');$('studioLessons').onclick=()=>extra(!$('studioExtras').hidden&&!$('studioLessonPane').hidden?null:'lessons');$('studioExtraClose').onclick=()=>extra(null);$('studioEffects').onclick=()=>extra(!$('studioExtras').hidden&&!$('studioEffectPane').hidden?null:'effects');const sceneGallery=$('storyColoringGallery');for(const [index,item] of STORY_COLORING_SCENES.entries()){const button=document.createElement('button');button.type='button';button.className='story-coloring-choice';button.setAttribute('aria-label','Раскрасить: '+item[0]);const thumb=document.createElement('canvas');thumb.width=240;thumb.height=160;thumb.setAttribute('aria-hidden','true');const preview=thumb.getContext('2d');if(preview){const source=document.createElement('canvas');source.width=720;source.height=480;const sourceCtx=source.getContext('2d');if(sourceCtx){artScene(sourceCtx,item[1],item[2],true,17+index);preview.drawImage(source,0,0,240,160)}}const label=document.createElement('strong');label.textContent=item[0];button.append(thumb,label);button.onclick=()=>{if(generate(item[1],item[2],true)){fillMode=true;eraser=false;effect='solid';toolSync();extra(null)}};sceneGallery.append(button)};$('premiumColoring').querySelector('img').src=premiumArt.coloring;$('premiumColoring').onclick=()=>loadPremiumColoring();for(const b of panel.querySelectorAll('[data-hero]'))b.onclick=()=>{if(generate('forest',b.dataset.hero,true))extra(null)};
+ $('studioTemplates').onclick=()=>extra(!$('studioExtras').hidden&&!$('studioTemplatePane').hidden?null:'templates');$('studioLessons').onclick=()=>extra(!$('studioExtras').hidden&&!$('studioLessonPane').hidden?null:'lessons');$('studioExtraClose').onclick=()=>extra(null);$('studioEffects').onclick=()=>extra(!$('studioExtras').hidden&&!$('studioEffectPane').hidden?null:'effects');const sceneGallery=$('storyColoringGallery');for(const [index,item] of STORY_COLORING_SCENES.entries()){const button=document.createElement('button');button.type='button';button.className='story-coloring-choice';button.setAttribute('aria-label','Раскрасить: '+item[0]);const thumb=document.createElement('canvas');thumb.width=240;thumb.height=160;thumb.setAttribute('aria-hidden','true');const preview=thumb.getContext('2d');if(preview){const source=document.createElement('canvas');source.width=720;source.height=480;const sourceCtx=source.getContext('2d');if(sourceCtx){if(!originalColoring(sourceCtx,item[1]))artScene(sourceCtx,item[1],item[2],true,17+index);preview.drawImage(source,0,0,240,160)}}const label=document.createElement('strong');label.textContent=item[0];button.append(thumb,label);button.onclick=()=>{if(generate(item[1],item[2],true)){fillMode=true;eraser=false;effect='solid';toolSync();extra(null)}};sceneGallery.append(button)};$('premiumColoring').querySelector('img').src=premiumArt.coloring;$('premiumColoring').onclick=()=>loadPremiumColoring();for(const b of panel.querySelectorAll('[data-hero]'))b.onclick=()=>{if(generate('forest',b.dataset.hero,true))extra(null)};
  function clearPaper(){ctx.fillStyle=paper;ctx.fillRect(0,0,canvas.width,canvas.height)}
  function sync(){form.dataset.drawingDirty=dirty&&!stored?'yes':'no';$('drawingUndo').disabled=restoring||!undo.length;$('drawingRedo').disabled=restoring||!redo.length;$('drawingSave').disabled=restoring||!dirty}
  function persist(){if(restoring)return;if(!dirty){fdel(DRAWING_DRAFT);stored=false;sync();return}try{stored=fput(DRAWING_DRAFT,drawingJPEG(canvas))}catch(e){stored=false}$('drawingStatus').textContent=stored?'Черновик рисунка сохранён на этом устройстве.':'Не удалось сохранить черновик. Сохрани рисунок перед выходом.';sync()}
@@ -965,7 +1045,7 @@ function initDrawing(form,insertPicture){
  $('drawingUndo').onclick=()=>{if(pointer!==null||!undo.length)return;redo.push(capture());const prev=undo.pop();ctx.putImageData(prev.pixels,0,0);dirty=prev.dirty;changed()};
  $('drawingRedo').onclick=()=>{if(pointer!==null||!redo.length)return;undo.push(capture());const next=redo.pop();ctx.putImageData(next.pixels,0,0);dirty=next.dirty;changed()};
  function loadPremiumColoring(){if(restoring||pointer!==null)return;if(dirty&&!confirm('Начать новую раскраску? Старую можно вернуть кнопкой отмены.'))return;restoring=true;sync();const img=new Image();img.onload=()=>{if($('drawingCanvas')!==canvas)return;remember();clearPaper();const f=studioFitImage(canvas.width,canvas.height,img.naturalWidth||img.width,img.naturalHeight||img.height);ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(img,f.x,f.y,f.w,f.h);ctx.restore();dirty=true;restoring=false;eraser=false;fillMode=true;effect='solid';toolSync();changed();extra(null)};img.onerror=()=>{restoring=false;sync();toast('Не удалось открыть раскраску.')};img.src=premiumArt.coloring}
- function generate(place,hero,outline){if(restoring||pointer!==null)return false;if(dirty&&!confirm('Начать новую картинку? Старую можно вернуть кнопкой отмены.'))return false;remember();artScene(ctx,place,hero,outline,++seed);dirty=true;changed();return true}
+ function generate(place,hero,outline){if(restoring||pointer!==null)return false;if(dirty&&!confirm('Начать новую картинку? Старую можно вернуть кнопкой отмены.'))return false;remember();if(!outline||!originalColoring(ctx,place))artScene(ctx,place,hero,outline,++seed);dirty=true;changed();return true}
  $('artGenerate').onclick=()=>{if(generate($('artPlace').value,$('artHero').value,$('artMode').value==='outline'))extra(null)};
  $('drawingClear').onclick=()=>{if(restoring||pointer!==null||!dirty||!confirm('Начать рисунок заново?'))return;remember();clearPaper();dirty=false;changed()};
  $('drawingCancel').onclick=()=>{if(restoring||pointer!==null)return;if(dirty){persist();if(!stored){toast('Рисунок не сохранён. Попробуй добавить его в сказку.');return}}extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing')closeModal()};
@@ -2582,7 +2662,7 @@ async function checkRelease(manual=false){
  }catch(e){if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
  finally{releaseChecking=false}
 }
-const APP_RELEASE='1.5.60';let releaseChecking=false;
+const APP_RELEASE='1.5.61';let releaseChecking=false;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
  $('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);
  window.addEventListener('focus',()=>checkRelease());
