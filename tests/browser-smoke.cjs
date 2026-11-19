@@ -174,7 +174,7 @@ const server=http.createServer((req,res)=>{
  // P0/P1: all three real workshop modes, final lesson step and history.
  await page.locator('[data-art-mode="color"]').click();
  await page.locator('[data-art-mode="color"]').click();
- assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice:visible').count(),12);
+ assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice:visible').count(),8);
  // Verify the actual renderer in both browser engines and the flood-fill barriers.
  const originals=await page.evaluate(()=>{
   const scenes=[['hedgehog-garden',612,81],['fox-owl-stream',365,62],['bear-library',595,91],['kitten-balloon',360,135],['undersea-palace',86,78],['winter-village',611,65],['forest-picnic',613,74],['dragon-clouds',615,202],['rabbit-workshop',100,90],['squirrel-autumn',606,74],['owl-observatory',607,76],['forest-train',616,68]];
@@ -189,6 +189,18 @@ const server=http.createServer((req,res)=>{
   return new Set(output).size;
  });
  assert.equal(originals,12,'independent original compositions');
+ // Catalog paging, filtering and favorites persist without rendering the entire library.
+ assert.ok((await page.locator('#coloringCount').textContent()).includes('из 40'));
+ await page.locator('#coloringMore').click();assert.ok((await page.locator('#coloringCount').textContent()).includes('9–16'));
+ assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice').count(),8);
+ await page.locator('#coloringPrev').click();
+ await page.locator('#coloringCategory').selectOption('Космос');
+ assert.ok((await page.locator('#coloringCount').textContent()).includes('из 4'));
+ await page.locator('#coloringSearch').fill('ракета');assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice').count(),1);
+ await page.locator('.coloring-like').click();await page.locator('#coloringCategory').selectOption('liked');assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice').count(),1);
+ await page.locator('#coloringSearch').fill('');await page.locator('#coloringCategory').selectOption('all');
+ const catalogRender=await page.evaluate(()=>{const seen=new Set();for(const key of ORIGINAL_COLORING_IDS){const c=document.createElement('canvas');c.width=720;c.height=480;const ctx=c.getContext('2d');if(!originalColoring(ctx,key))throw Error(key);seen.add(c.toDataURL());const image=ctx.getImageData(0,0,720,480);const data=image.data;let found=0;for(let y=20;y<460&&found<5;y+=16)for(let x=20;x<700&&found<5;x+=16){const p=(y*720+x)*4;if(data[p]!==255||data[p+1]!==253||data[p+2]!==247)continue;const color=[22+found*35,111,177,255];if(!artFill(data,720,480,x,y,color))continue;let n=0;for(let i=0;i<data.length;i+=4)if(data[i]===color[0]&&data[i+1]===111&&data[i+2]===177)n++;if(n>100)found++;else{for(let i=0;i<data.length;i+=4)if(data[i]===color[0]&&data[i+1]===111&&data[i+2]===177){data[i]=255;data[i+1]=253;data[i+2]=247}}}if(found<5)throw Error('insufficient color regions '+key+' '+found)}return seen.size});
+ assert.equal(catalogRender,40,'all distinct rendered catalog scenes');
  await page.locator('#storyColoringGallery .story-coloring-choice').first().click();
  assert.equal(await page.locator('[data-tool="fill"]').getAttribute('aria-pressed'),'true');
  const pixelState=()=>page.locator('#drawingCanvas').evaluate(c=>c.toDataURL());
@@ -198,6 +210,14 @@ const server=http.createServer((req,res)=>{
  const colored=await pixelState();assert.notEqual(colored,template,'fill must change pixels');
  await page.locator('#drawingUndo').click();assert.equal(await pixelState(),template);
  await page.locator('#drawingRedo').click();assert.equal(await pixelState(),colored);
+ await page.locator('[data-tool="pick"]').click();
+ await page.locator('#drawingCanvas').click({position:{x:12,y:12}});
+ assert.equal(await page.locator('#drawingCustom').inputValue(),'#bd3948');
+ assert.equal(await pixelState(),colored,'pipette does not change pixels');
+ assert.ok(await page.locator('#recentDrawingColors button').count());
+ const textures=await page.evaluate(()=>{const outputs=[];for(const effect of ['solid','soft','marker','crayon','water']){const c=document.createElement('canvas');c.width=100;c.height=50;const cx=c.getContext('2d');studioStroke(cx,{x:15,y:25},{x:85,y:25},12,effect,'#bd3948');outputs.push(c.toDataURL())}return new Set(outputs).size});
+ assert.equal(textures,5,'distinct brush strokes');
+
  await page.locator('[data-art-mode="lesson"]').click();
  assert.ok(await page.locator('#studioLessonPane').isVisible());
  await page.waitForFunction(()=>{const a=document.getElementById('studioSheet').getBoundingClientRect(),b=document.getElementById('studioExtras').getBoundingClientRect(),c=document.getElementById('drawingCanvas').getBoundingClientRect();return a.width>200&&a.height>130&&c.width>200&&c.height>130&&(a.right<=b.left+1||b.bottom<=a.top+1)});
@@ -213,9 +233,9 @@ const server=http.createServer((req,res)=>{
  await page.locator('[data-art-mode="free"]').click();
  assert.equal(await page.locator('[data-tool="brush"]').getAttribute('aria-pressed'),'true');
  assert.equal(await pixelState(),colored,'switching modes must keep image');
- assert.equal(await page.locator('#drawingColors button:visible').count(),12);
+ assert.equal(await page.locator('#drawingColors button:visible').count(),16);
  assert.equal(await page.locator('#studioEffects').isVisible(),false);
- await page.locator('#paletteMore').click();assert.equal(await page.locator('#drawingColors button:visible').count(),32);await page.locator('#paletteMore').click();
+ await page.locator('#paletteMore').click();assert.equal(await page.locator('#drawingColors button:visible').count(),72);await page.locator('#paletteMore').click();
  await page.locator('#studioMore summary').click();assert.ok(await page.locator('#studioEffects').isVisible());await page.locator('#studioEffects').click();assert.ok(await page.locator('#studioExtraTitle').isVisible());await page.locator('#studioExtraClose').click();
  const sheet=await page.locator('#drawingCanvas').boundingBox();assert.ok(sheet.width>220&&sheet.height>140,'canvas size');
  await page.mouse.move(sheet.x+sheet.width/3,sheet.y+sheet.height/3);await page.mouse.down();await page.mouse.move(sheet.x+sheet.width/2,sheet.y+sheet.height/2,{steps:5});await page.mouse.up();
