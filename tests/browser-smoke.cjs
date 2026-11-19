@@ -74,6 +74,31 @@ const server=http.createServer((req,res)=>{
  await page.locator('#rqNext').click();
  }
  assert.ok((await page.locator('.reading-finish').textContent()).includes('0 из 3'));
+ await page.locator('#close').click();
+ const archiveFixture=await page.evaluate(()=>{
+ const book={id:'archive-test-book',title:'Тестовая книга',body:'Сохранённый текст.',theme:'Винни-Пух',author:OWN,icon:'📖'};
+ if(!commitLibrary({...data,stories:[...data.stories,book]}))throw Error('fixture save');
+ localStorage.setItem('skazki-reading-size-v1','28');
+ localStorage.removeItem('skazki-art-gallery-v1');
+ const replacement={...fresh(),localExtras:{version:1,values:{'skazki-reading-size-v1':'32','skazki-art-gallery-v1':'[]'}}};
+ return JSON.stringify(replacement);
+ });
+ await page.evaluate(()=>backup());
+ await page.locator('#importFile').setInputFiles({name:'fixture.json',mimeType:'application/json',buffer:Buffer.from(archiveFixture)});
+ await page.locator('#confirmRestore').click();
+ await page.waitForFunction(()=>!document.getElementById('modal').hasAttribute('open'));
+ assert.equal(await page.evaluate(()=>data.stories.some(b=>b.id==='archive-test-book')),false);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'32');
+ const checkpoint=await page.evaluate(async()=>await readArchive('beforeRestore'));
+ assert.ok(checkpoint&&checkpoint.entries.length===14);
+ await page.evaluate(()=>backup());
+ await page.locator('.archive-recovery summary').click();
+ page.once('dialog',dialog=>dialog.accept());
+ await page.locator('#undoRestore').click();
+ await page.waitForFunction(()=>!document.getElementById('modal').hasAttribute('open'));
+ assert.equal(await page.evaluate(()=>data.stories.find(b=>b.id==='archive-test-book')?.body),'Сохранённый текст.');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-art-gallery-v1')),null);
  assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }
  }finally{if(browser)await browser.close();server.close()}
