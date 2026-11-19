@@ -155,3 +155,8 @@ Standalone drawing now exposes three large named mode cards for free drawing, co
 ## Candidate 1.5.53 — four-step drawing lessons
 
 Four existing lesson subjects expanded from 3 to 4 stages, with previous-step navigation and dynamic step counts. Existing draft and gallery storage remain unchanged. Dependency-free regression passed; browser and iPad testing outstanding. Six professional lessons and full visual reference matching remain incomplete. Unpublished.
+
+
+## Candidate 1.5.54 — six drawing lesson subjects
+
+Added fox and butterfly to the existing four drawing lessons, with four cumulative instructional steps each, making six four-step lessons. The regression suite evaluates every lesson stage. These are still simple vector instructional outlines, not the professional artwork required by the approved PDF. Browser and physical iPad testing are not yet complete. This is not a published release.
