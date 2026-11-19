@@ -35,3 +35,7 @@ Three structured Russian-language skills with 36 reviewed prompts, adaptive leve
 ## Release 1.5.26
 
 Parent dashboard reorganized into four skill groups, science practice and reading completion; separate completed, independent and recent counts; due-topic summaries; no cross-domain ranking. Existing history and storage keys unchanged. Regression suite checks aggregate totals.
+
+## Release 1.5.27
+
+Fixed text input mode and maximum length in the active study renderer. Added mocked UI regression covering six typed spelling answers, persistence, parent summary and restoration of numeric input mode. Real browser and iPad checks remain outstanding.
