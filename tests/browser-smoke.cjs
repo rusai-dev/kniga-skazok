@@ -40,6 +40,27 @@ const server=http.createServer((req,res)=>{
  if(await page.locator('#readingNext').textContent()==='Закончить')break;
  await page.locator('#readingNext').click();
  }
+ const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-reading-offsets-v1')||'{}'));
+ await page.setViewportSize({width:viewport.height,height:viewport.width});
+ await page.waitForTimeout(150);
+ const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-reading-offsets-v1')||'{}'));
+ assert.deepEqual(after,before,'rotation must not move reading anchor');
+ for(const size of ['#readingLarge','#readingSmall']){
+ const btn=page.locator(size);if(await btn.isEnabled())await btn.click();
+ const dims=await page.locator('#readingText').evaluate(el=>({client:el.clientHeight,scroll:el.scrollHeight}));
+ assert.ok(dims.client>0&&dims.scroll<=dims.client+2,'font resize overflow');
+ }
+ await page.locator('#readingBack').click();
+ await page.locator('[data-story="lantern-friends"]').click();
+ for(let j=0;j<50&&await page.locator('#readingNext').count();j++)await page.locator('#readingNext').click();
+ await page.locator('#readingQuizStart').click();
+ for(let j=0;j<3;j++){
+ assert.equal(await page.locator('#rqEvidence').isVisible(),false);
+ await page.locator('#rqUnsure').click();
+ if(j===2){await page.locator('#rqEvidence summary').click();assert.ok((await page.locator('#rqQuote').textContent()).length>0)}
+ await page.locator('#rqNext').click();
+ }
+ assert.ok((await page.locator('.reading-finish').textContent()).includes('0 из 3'));
  assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }
  }finally{if(browser)await browser.close();server.close()}
