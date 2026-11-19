@@ -20,7 +20,17 @@ const server=http.createServer((req,res)=>{
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
- await page.goto(url);await page.locator('#childLearn').click();
+ await page.goto(url);
+ assert.ok(await page.locator('#storybookHome').isVisible());assert.equal(await page.locator('#libraryHome').isVisible(),false);assert.equal(await page.locator('#adultHome').isVisible(),false);
+ assert.equal(await page.locator('.home-map button').count(),4);
+ assert.ok(await page.locator('.home-art').first().evaluate(e=>getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')));
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+ await page.locator('#homeMath').click();assert.equal(await page.locator('[data-academy]').count(),12);await page.locator('#close').click();
+ await page.locator('#homeLogic').click();assert.equal(await page.locator('[data-academy]').count(),6);await page.locator('#close').click();
+ await page.locator('#homeCreate').click();assert.ok(await page.locator('#creativeHome').isVisible());assert.equal(await page.locator('#storybookHome').isVisible(),false);
+ await page.locator('#childBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());await page.locator('#home').click();
+ await page.locator('#adultEntry').click();assert.ok(await page.locator('#adultHome').isVisible());assert.ok(await page.locator('#adultProgress .study-parent').isVisible());await page.locator('#home').click();
+ await page.locator('#childLearn').click();assert.equal(await page.locator('#modal .study-parent').count(),0);
  await page.locator('#learnOutcomes').click();await page.locator('[data-outcome="story"]').click();
  await page.locator('#outcomeNumber').fill('10');await page.locator('#outcomeSend').click();
  assert.equal(await page.locator('#outcomeProgress').evaluate(e=>e.value),1);
@@ -139,7 +149,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>data.stories.some(b=>b.id==='archive-test-book')),false);
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'32');
  const checkpoint=await page.evaluate(async()=>await readArchive('beforeRestore'));
- assert.ok(checkpoint&&checkpoint.entries.length===14);
+ assert.ok(checkpoint&&checkpoint.entries.length===15);
  await page.evaluate(()=>backup());
  await page.locator('.archive-recovery summary').click();
  page.once('dialog',dialog=>dialog.accept());
