@@ -140,3 +140,8 @@ Applied page 4 reference to the existing maze renderer with an original illustra
 ## Candidate 1.5.50 — PDF reference learning and creative interiors
 
 Reworked the base-ten model into two equal illustrated panels with centered groups, ten explicit unit blocks per rod, and explicit zero states. Added color-matched controls and distinct primary actions. Refined reading spread, page navigation and evening-mode surface without changing pagination, bookmarks or art assets. Refined real drawing sheet and palette, including three-column palette in wide landscape. Kept all existing storage keys and educational validators. Full dependency-free regression suite passed in JS runtime, including 100 additional base-ten states; browser test syntax checked, browser execution and physical iPad validation pending. No claim of pixel-exact visual equivalence or measured learning gain.
+
+
+## Candidate 1.5.51 — reader return and accessible mathematical controls
+
+Reading view now uses a clear arrow-labeled shelf return with a descriptive accessible name. Base-ten controls expose independent named groups and maintain at least 44px targets in narrow layouts; book paging and the save action retain prominent touch targets. Added regression assertions for group names and a browser assertion for the reader return. Dependency-free regression and browser syntax passed in JS; actual iPad/browser execution and visual comparison are still outstanding. This is an unmerged candidate.
