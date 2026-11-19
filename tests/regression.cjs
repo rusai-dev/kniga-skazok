@@ -18,6 +18,8 @@ function verify(html){
 
  const review=new Function('fget','fput','childArt','esc',source+
  'const plan=academyMixedPlan(1000);if(plan.length!==6||new Set(plan).size!==6||plan.filter(k=>k.startsWith("logic-")).length!==2)throw Error("mixed plan");let w=academyWorldAdvance({},true,1000),same=academyWorldAdvance(w,true,1001);if(same.review!==w.review||same.due!==w.due)throw Error("early repeat");const later=academyWorldAdvance(same,true,w.due);if(later.review!==2||later.due!==w.due+3*academyDay)throw Error("scheduled review");const miss=academyWorldAdvance(later,false,w.due+1);if(miss.review!==0||miss.due!==w.due+1+academyDay)throw Error("world retry");return 4;')(()=>null,()=>true,()=>'',s=>s);
- return {review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+ const language=new Function('fget','fput','childArt','esc',source+
+ 'let count=0,typed=0;for(const [k] of languageSkills)for(let l=0;l<4;l++){const seen=new Set();for(let n=0;n<24;n++){const q=languageQuestion(k,n,l);if(!q.q||!q.answer||!q.why||!q.hint||!q.language||(q.opts&&(!q.opts.includes(q.answer)||new Set(q.opts).size!==3)))throw Error("language "+k);seen.add(q.q);if(!q.opts){if(k!=="spelling"||l<2||!languageEqual(q.answer.toUpperCase(),q.answer))throw Error("typed answer");typed++}count++}if(seen.size<8)throw Error("variety")}if(academyKind("language-meaning")!=="language")throw Error("language kind");return {count,typed};')(()=>null,()=>true,()=>'',s=>s);
+ return {language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}
