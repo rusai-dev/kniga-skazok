@@ -175,3 +175,7 @@ Added 12 named and individually previewed coloring choices, using combinations o
 ## Candidate 1.5.59 — lesson completion behavior
 
 Drawing lessons now stop on their final step instead of wrapping unexpectedly to step one. The last button is disabled and reads 'Урок завершён'; the reference image has an accessible step label. No storage keys or gallery records changed. Dependency-free regression passed. The full 2.0 PDF is **not** implemented: 12 independent professional line-art assets, full browser/iPad checks and publication remain pending. Release remains on the working branch.
+
+## Candidate 1.5.61 — independent coloring artwork, batch 1
+
+Four original vector compositions, authored in code for this project on 2026-11-20: hedgehog-garden (hedgehog, flowers, butterfly), fox-owl-stream (fox, owl, tree and river), bear-library (bear, furniture and open book), kitten-balloon (cat in striped balloon basket). Source: index.html, originalColoring(), 720×480 design coordinates, scalable Path2D source; no external image source or third-party license. Catalog and working canvas use the same renderer. The other eight catalog items retain the old procedural combinations; this is not completion of the twelve-original-asset target. Existing storage keys, image format and gallery records are unchanged. Dependency-free regression passed; browser tests now render each original and check region-fill isolation, plus existing selection, history and draft recovery. Physical iPad, visual standard and professional art acceptance remain outstanding.
