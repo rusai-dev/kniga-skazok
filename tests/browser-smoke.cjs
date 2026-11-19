@@ -62,7 +62,9 @@ const server=http.createServer((req,res)=>{
  await page.locator('#studyBack').click();await page.locator('[data-academy="place"]').click();
  assert.equal(await page.locator('#studyModel').isVisible(),true);
  await page.locator('[data-model-i="0"][data-model-d="1"]').click();assert.equal(await page.locator('#modelValue0').textContent(),'1');
+ assert.equal(await page.locator('#studyModel').getAttribute('data-model-kind'),'place');assert.equal(await page.locator('#modelArt [data-ten-rod]').count(),1);assert.equal(await page.locator('#modelArt [data-unit="ten"]').count(),10);assert.equal(await page.locator('#modelArt [data-unit="one"]').count(),0);
  await page.locator('#modelReset').click();assert.equal(await page.locator('#modelValue0').textContent(),'0');
+ assert.equal(await page.locator('#modelArt [data-ten-rod]').count(),0);
  await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();assert.ok(await page.locator('#modelCheck').isDisabled());await page.locator('#studyNext').click();assert.equal(await page.locator('#studyModel').isVisible(),false);
  await page.keyboard.press('Escape');await page.locator('#homeLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
