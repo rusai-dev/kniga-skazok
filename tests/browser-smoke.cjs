@@ -184,6 +184,10 @@ const server=http.createServer((req,res)=>{
  for(const i of selected)await page.locator('[data-mem="'+i+'"]').click();
  await page.locator('#memNext').click();assert.ok((await page.locator('#memFeedback').textContent()).includes('Пропущено: 0'));
  assert.equal(await page.locator('#memBoard [data-result="correct"]').count(),selected.length);
+ await page.locator('#memNext').click();
+ const wrongCell=await page.evaluate(()=>{const v=studyState('memory-attention'),q=memoryCard('attention',v.n,v.level);return q.choices.find(i=>!q.answer.includes(i))});
+ await page.locator('[data-mem="'+wrongCell+'"]').click();await page.locator('#memNext').click();
+ assert.ok((await page.locator('#memFeedback').textContent()).includes('Лишних: 1'));
  await page.locator('#memBack').click();
  await page.evaluate(()=>{const v=studyState('geometry');v.n=1;v.level=3;studySave('geometry',v);studyOpen('math','geometry')});
  assert.equal(await page.locator('#studyPicture [data-geometry-rect]').count(),1);
