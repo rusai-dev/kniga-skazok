@@ -1,6 +1,6 @@
 /* Versioned offline shell; lazy artwork cache. Never modify user storage. */
 'use strict';
-const REV='1.5.101',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
+const REV='1.5.104',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
 const ROOT=new URL('./',self.registration.scope).href,INDEX=new URL('index.html',ROOT).href;
 const LEGACY_CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css'].map(name=>new URL(name,ROOT).href);
 const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1536.webp'].map(name=>new URL(name,ROOT).href);
@@ -19,12 +19,29 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
  await Promise.all([INDEX,...CORE].map((url,i)=>cache.put(url,responses[i])));
  await self.skipWaiting();
 })()));
-self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
+// Retain the current release and two nearest older releases; never delete an
+// unrelated cache, an artwork cache, legacy fallback, or an installing newer shell.
+function shellRevision(name){const match=/^skazki-shell-(\d+)\.(\d+)\.(\d+)$/.exec(name);return match?match.slice(1).map(Number):null}
+function compareRevision(a,b){for(let i=0;i<3;i++){if(a[i]!==b[i])return a[i]-b[i]}return 0}
+function obsoleteShells(names,current=CACHE){
+ const version=shellRevision(current);if(!version)return [];
+ return names.filter(name=>{const v=shellRevision(name);return v&&compareRevision(v,version)<0})
+ .sort((a,b)=>compareRevision(shellRevision(b),shellRevision(a))).slice(2);
+}
+async function pruneShells(){
+ try{await Promise.all((obsoleteShells(await caches.keys())).map(name=>caches.delete(name).catch(()=>false)))}catch(e){/* Storage cleanup is best effort. */}
+}
+self.addEventListener('activate',event=>event.waitUntil((async()=>{await self.clients.claim();await pruneShells()})()));
 self.addEventListener('fetch',event=>{
  const req=event.request,url=new URL(req.url),base=new URL(ROOT);
  if(req.method!=='GET'||url.origin!==base.origin)return;
  if(CORE.includes(url.href)){
   event.respondWith((async()=>{const cached=await find(CACHE,url.href);if(cached)return cached;const r=await fresh(url.href);if(r.ok)await save(CACHE,url.href,r);return r})());return;
+ }
+ // An older open page may still ask for a versioned core file after an update.
+ const previous=url.searchParams.get('v');
+ if(previous&&/^\d+\.\d+\.\d+$/.test(previous)&&url.search==='?v='+previous&&LEGACY_CORE.includes(url.origin+url.pathname)&&compareRevision(previous.split('.').map(Number),REV.split('.').map(Number))<0){
+  event.respondWith((async()=>{const cached=await find('skazki-shell-'+previous,url.href);return cached||await fresh(url.href)})());return;
  }
  if(LEGACY_CORE.includes(url.href)){
   // Old cached HTML uses bare URLs; retain its offline fallback during migration.

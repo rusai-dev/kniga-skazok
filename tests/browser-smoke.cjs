@@ -28,29 +28,37 @@ const server=http.createServer((req,res)=>{
  if(engine===chromium){
   const ctx=await browser.newContext({serviceWorkers:'allow'}),page=await ctx.newPage();
   try{
+   await page.goto(new URL('release.json',url).href);
+   const parts=release.split('.').map(Number),rev=offset=>[parts[0],parts[1],parts[2]+offset].join('.'),shell=offset=>'skazki-shell-'+rev(offset);
+   const obsolete=[-5,-4,-3].map(shell),keep=[-2,-1,0,1].map(shell).concat(['skazki-shell-v2','unrelated-cache']),previousCore='./classic-art-153.js?v='+rev(-1);
+   await page.evaluate(async({names,oldName,previousCore})=>{for(const name of names)await caches.open(name);const old=await caches.open(oldName);await old.put(new URL(previousCore,location.href).href,new Response('/* previous core */'));},{names:obsolete.concat(keep.filter(n=>n!==shell(0))),oldName:shell(-1),previousCore});
    await page.goto(url);
    await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});await navigator.serviceWorker.ready});
    await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
+   await page.waitForFunction(async obsolete=>{const keys=await caches.keys();return obsolete.every(k=>!keys.includes(k))},obsolete);
+   const retained=await page.evaluate(()=>caches.keys());for(const name of keep)assert.ok(retained.includes(name),'retained '+name);
    const artPath='./assets/books/andersen-pea-bed.webp';
    assert.equal(await page.evaluate(async()=>{const c=await caches.open('skazki-book-art-v1');return (await c.keys()).length}),0,'no book art is precached');
    await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();localStorage.setItem('skazki-reading-size-v1','28')},artPath);
    assert.equal(await page.evaluate(async path=>!!await (await caches.open('skazki-book-art-v1')).match(new URL(path,location.href).href),artPath),true,'viewed art cached');
-   await ctx.setOffline(true);await page.reload();
+   assert.equal(await page.evaluate(async({name,previousCore})=>!!await (await caches.open(name)).match(new URL(previousCore,location.href).href),{name:shell(-1),previousCore}),true,'previous version retained before offline');
+   await ctx.setOffline(true);assert.equal(await page.evaluate(async previousCore=>await (await fetch(previousCore)).text(),previousCore),'/* previous core */');await page.reload();
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.101')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
-   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.101');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   assert.equal(await page.evaluate(async name=>{const keys=await (await caches.open(name)).keys();return keys.length},shell(0)),7,'complete versioned core including both artwork sprites');
+   const uiSprites=await page.evaluate(async name=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open(name);return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))},shell(0));assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
- page.on('pageerror',e=>errors.push(e.message));
+ page.on('pageerror',e=>errors.push(e.stack||e.message));
  const initialBookRequests=[];const trackBooks=req=>{if(new URL(req.url()).pathname.includes('/assets/books/'))initialBookRequests.push(req.url())};page.on('request',trackBooks);
  await page.goto(url+'#author=own&theme=');
  assert.equal(await page.evaluate(()=>location.hash),'','legacy shelf URL should be cleaned');
  assert.equal(initialBookRequests.length,0,'book artwork must not load on home');page.off('request',trackBooks);
+ assert.deepEqual(await page.evaluate(()=>[readingComprehension.loaded(),readingGlossary.loaded(),readingInference.loaded()]),[false,false,false],'reading banks deferred on home');
  assert.ok(await page.locator('#storybookHome').isVisible());assert.equal(await page.locator('#libraryHome').isVisible(),false);assert.equal(await page.locator('#adultHome').isVisible(),false);
  assert.equal(await page.locator('.home-map button').count(),4);assert.equal(await page.locator('.home-paths button').count(),3);
  assert.ok(await page.locator('#homeFox img').evaluate(async e=>{await e.decode();return e.naturalWidth>180}));
@@ -63,6 +71,8 @@ const server=http.createServer((req,res)=>{
  await page.locator('#topics button').filter({hasText:'Путешествия'}).click();assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);assert.ok((await page.locator('#shelfTitle').textContent()).includes('Путешествия'));
  await page.locator('#libraryFilters summary').click();await page.locator('#moreThemes').click();assert.ok(await page.locator('#topics button.active').isVisible());
  await page.locator('#authors .author').filter({hasText:'Пушкин'}).click();assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);
+ assert.ok(await page.locator('#books .shelf-volume').count()>=2,'classic author shelf renders multiple volumes');
+ await page.locator('#books .shelf-volume').nth(1).click();assert.ok(await page.locator('#modal').isVisible(),'second classic author volume opens');await page.keyboard.press('Escape');
  await page.locator('#home').click();
  assert.ok(await page.locator('.home-art').first().evaluate(e=>getComputedStyle(e).backgroundImage.includes('/assets/ui/home-sprite-1548.webp')));
  const homePalette=await page.evaluate(()=>({bg:getComputedStyle(document.body).backgroundColor,writer:getComputedStyle($('homeWrite')).backgroundColor,ink:getComputedStyle($('homeWrite')).color}));assert.deepEqual(homePalette,{bg:'rgb(244, 251, 250)',writer:'rgb(230, 246, 244)',ink:'rgb(23, 60, 62)'},'turquoise home remains unchanged');assert.equal(await page.locator('#homeCreate').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(240, 233, 250)','creative entrance uses lavender');assert.equal(await page.locator('#homeDrafts').evaluate(e=>getComputedStyle(e).color),'rgb(90, 50, 138)','draft entry uses dark violet');
@@ -456,6 +466,24 @@ const server=http.createServer((req,res)=>{
   let requests=[];const fixtureFetch=async(input,options)=>{const url=String(input);if(url.startsWith('https://raw.githubusercontent.com/'+GH_REPO+'/')){requests.push('cdn');return {ok:true,status:200,text:async()=>raw}}if(url.startsWith(GH_API+'/contents/')){requests.push('api');return {ok:true,status:200,json:async()=>({type:'file',encoding:'base64',content:encoded})}}return original(input,options)};
   const received=await ghReadPublic(s,true,fixtureFetch);return {revision:received.revision,theme:received.books[1]?.theme,requests}
  });assert.deepEqual(synced,{revision:2,theme:'Море',requests:['cdn','api']},'encrypted archive refresh defeats stale CDN response');
+ const absence=await page.evaluate(async()=>{
+  const s={room:'skazki-'+'b'.repeat(64),ghAPICheck:0},requests=[];let apiStatus=503,rawStatus=404;
+  const fixture=async url=>{const raw=url.startsWith('https://raw.githubusercontent.com/');requests.push(raw?'raw':'api');const status=raw?rawStatus:apiStatus;return {status,ok:false}};
+  const outcome=async()=>{try{return await ghReadPublic(s,true,fixture)===null?'missing':'read'}catch{return 'unavailable'}};
+  const first=await outcome(),limited=await outcome();s.ghAPICheck=0;apiStatus=404;
+  const confirmed=await outcome(),cached=await outcome();s.ghAPICheck=0;apiStatus=403;
+  const failed=await outcome(),afterFail=await outcome();
+  return {first,limited,confirmed,cached,failed,afterFail,requests}
+ });assert.deepEqual(absence,{first:'unavailable',limited:'unavailable',confirmed:'missing',cached:'missing',failed:'unavailable',afterFail:'unavailable',requests:['raw','api','raw','raw','api','raw','raw','api','raw']},'only independently confirmed absence is reported; failures invalidate cached absence');
+ const failedShelf=await page.evaluate(async()=>{
+  const run=async books=>{
+   const shelf={textContent:books.length?'Сохранённая сказка':'В архиве пока нет опубликованных сказок.'},refresh={disabled:false},statuses=[];
+   const s={books,received:true,ghRevision:2,room:'synthetic'};
+   const source=ghViewerUnavailable.toString()+';'+ghViewerTick.toString()+';return ghViewerTick';
+   const tick=new Function('fam','$','readerRecovery','fstatus','ghReadPublic','ghReadMessage','fetch',source)(s,id=>id==='familyShelf'?shelf:refresh,k=>statuses.push(k),v=>statuses.push(v),async()=>{throw Error('offline')},()=> 'Библиотека временно недоступна.',()=>{});
+   await tick(s,true);return {shelf:shelf.textContent,status:statuses.at(-1),count:s.books.length,busy:s.ghBusy,disabled:refresh.disabled};
+  };return [await run([]),await run([{id:'synthetic'}])];
+ });assert.deepEqual(failedShelf,[{shelf:'Свежий список сказок пока не получен.',status:'Библиотека временно недоступна.',count:0,busy:false,disabled:false},{shelf:'Сохранённая сказка',status:'Свежая версия недоступна. Показаны ранее полученные сказки.',count:1,busy:false,disabled:false}],'failed refresh is explicit on both empty and populated shelves');
  const rollback=await page.evaluate(()=>{const cache='qa-family-revision-cache',secret='b'.repeat(64),books=[{id:'latest',title:'Свежая сказка',theme:'Лес',body:'Текст.',icon:'📖'}];const previousReader=fget(FAMILY_READER),previousConfirmed=fget(FAMILY_CONFIRMED);try{fdel(cache);fdel(cache+'-revision');const s={cache,secret,books:[],received:false};ghPublicCache(s,{revision:3,books});const reopened={cache,secret,books:JSON.parse(fget(cache)),ghRevision:ghCachedRevision({cache})};const stale=ghPublicCache(reopened,{revision:2,books:[]});const staleStatus=document.getElementById('familyViewStatus').textContent;const retry=ghPublicCache(reopened,{revision:3,books});return {revision:reopened.ghRevision,stale,count:JSON.parse(fget(cache)).length,status:staleStatus,retry,recovered:document.getElementById('familyViewStatus').textContent}}finally{fdel(cache);fdel(cache+'-revision');previousReader===null?fdel(FAMILY_READER):fput(FAMILY_READER,previousReader);previousConfirmed===null?fdel(FAMILY_CONFIRMED):fput(FAMILY_CONFIRMED,previousConfirmed)}});assert.equal(rollback.revision,3);assert.equal(rollback.stale,false);assert.equal(rollback.count,1);assert.ok(rollback.status.includes('не подтвердил свежую'));assert.equal(rollback.retry,true);assert.ok(rollback.recovered.includes('проверено и сохранено'));
  assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }

@@ -394,3 +394,30 @@ Eight original mini-stories with causal and chronological dependencies. At level
 ## Candidate 1.5.101 — expressive vocabulary for authors
 
 Optional, initially collapsed word workshop in existing author extras. Fourteen familiar words with 35 alternatives and contextual examples; explains shades of meaning and warns that substitutions depend on context. No automatic replacements, data writes, external requests or new storage keys. Full dependency-free regression passed, browser cases check switching words, clearing selection and unchanged draft/library. HTML 931883 → 938647 bytes. Browser, real device and educational acceptance pending.
+
+
+## Candidate 1.5.102 — bounded versioned shell storage
+
+Previously every installed release retained its own full versioned cache. Activation now keeps the current and two newest older versioned shells, preserving legacy caches, future installing versions, unrelated caches and lazily cached book artwork. Requests for older versioned core files consult the retained prior cache. Cleanup cannot block successful activation; no localStorage or IndexedDB access. Service-worker update requests are coalesced with a 60-second minimum interval across focus, visibility and online events. Full dependency-free regression and numeric revision pruning self-check passed; Chromium seeded cache cleanup and previous-version offline fetch assertions added. HTML 938647 → 938810 bytes. Actual storage usage and cold-start timing not measured on iPad; all materials retained.
+
+
+## Candidate 1.5.103 — deferred reading banks and shelf rendering
+
+Avoid creating three static reading question/glossary objects at initial script execution (24026 bytes of source data); create once on first use, retaining inline offline/file support. Cache validated immutable book catalog and use one history, progress and favorites snapshot per shelf update instead of repeated storage parsing per book. No book contents, art, user data, or network dependencies changed. Full regression passed including deferred/memoized bank assertions, 19 books, 38 quiz questions and 32 terms; browser assertion added for deferred banks at home. HTML 938810 → 939402 bytes. This optimizes allocation and repeated parsing, not network transfer. Device timings/memory remain unmeasured.
+
+
+## Candidate 1.5.104 — verified absence of family archive
+
+A raw CDN 404 is no longer sufficient to declare an archive absent. The independent anonymous API must also return 404; temporary errors invalidate the in-memory absence confirmation, without increasing polling frequency. A previously received shelf remains readable and shows a separate unavailable status. No changes to publication content, encryption, storage keys or actual family archives. Full dependency-free regression and six isolated status transitions passed; browser scenario covers throttling, two 404 responses and API failures. Cache test versions derived from release manifest rather than hardcoded. HTML 939402 → 939883 bytes. Browser CI, live family invitation and physical-device acceptance remain pending.
+
+### 1.5.104 follow-up — combined acceptance and truthful empty shelf
+
+Retargeted #62 to main to run the mandatory browser checks on the combined #60–62 candidate; original branch base and main have identical Git trees. On a failed refresh, the empty shelf explicitly says a fresh list has not been retrieved, and populated shelves keep cached books. Full dependency-free regression and six isolated viewer states passed; additional browser fixture tests empty/populated shelves. HTML 940247 bytes; no data key or format changes. No physical device or live family data tested. Merge only after green CI on this exact candidate.
+
+### 1.5.104 release blocker — classic author shelf
+
+CI 44719128356 passed regression but failed Chromium and WebKit with snapshot.favorites.has undefined. Array.map(bookShelfCard) implicitly supplied the array index as the new snapshot parameter. Both shelf routes now use a shared readingShelfSnapshot and explicitly pass it per book. Regression exercises the real author mapping expression with three books and verifies distinct reading states and favorites; browser smoke opens a second Pushkin book, with stack traces retained. Full dependency-free regression passed. HTML 940247 → 940363 bytes; no storage or archive changes. Browser rerun required before release.
+
+### 1.5.104 CI environment fix
+
+Run 44719882395 Chromium failed before browser launch: ubuntu-latest resolved to Ubuntu 26.04 and apt could not locate required fonts. Pin both jobs to Ubuntu 24.04 and refresh apt indexes before Playwright installs browser dependencies. Retain all regression and browser checks without reducing coverage. Browser rerun is mandatory; this change does not alter application resources or stored data.
