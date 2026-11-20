@@ -28,19 +28,23 @@ const server=http.createServer((req,res)=>{
  if(engine===chromium){
   const ctx=await browser.newContext({serviceWorkers:'allow'}),page=await ctx.newPage();
   try{
+   await page.goto(new URL('release.json',url).href);
+   await page.evaluate(async()=>{const names=['skazki-shell-1.5.98','skazki-shell-1.5.99','skazki-shell-1.5.100','skazki-shell-1.5.101','skazki-shell-1.5.103','skazki-shell-v2','unrelated-cache'];for(const name of names)await caches.open(name);const old=await caches.open('skazki-shell-1.5.101');await old.put(new URL('classic-art-153.js?v=1.5.101',location.href).href,new Response('/* previous core */'));});
    await page.goto(url);
    await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});await navigator.serviceWorker.ready});
    await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
+   await page.waitForFunction(async()=>!(await caches.keys()).includes('skazki-shell-1.5.98'));
+   const retained=await page.evaluate(()=>caches.keys());assert.ok(!retained.includes('skazki-shell-1.5.99'));for(const name of ['skazki-shell-1.5.100','skazki-shell-1.5.101','skazki-shell-1.5.102','skazki-shell-1.5.103','skazki-shell-v2','unrelated-cache'])assert.ok(retained.includes(name),'retained '+name);
    const artPath='./assets/books/andersen-pea-bed.webp';
    assert.equal(await page.evaluate(async()=>{const c=await caches.open('skazki-book-art-v1');return (await c.keys()).length}),0,'no book art is precached');
    await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();localStorage.setItem('skazki-reading-size-v1','28')},artPath);
    assert.equal(await page.evaluate(async path=>!!await (await caches.open('skazki-book-art-v1')).match(new URL(path,location.href).href),artPath),true,'viewed art cached');
-   await ctx.setOffline(true);await page.reload();
+   await ctx.setOffline(true);assert.equal(await page.evaluate(async()=>await (await fetch('./classic-art-153.js?v=1.5.101')).text()),'/* previous core */');await page.reload();
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.101')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
-   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.101');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.102')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
+   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.102');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
