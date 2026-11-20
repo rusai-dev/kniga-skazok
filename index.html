@@ -3479,7 +3479,7 @@ async function fstart(role,secret){
  try{Object.assign(s,await fcredentials(secret));if(fam!==s)return;
   if(role==='view'){s.cache='skazki-family-book-cache-'+s.room;try{s.books=fbooks(JSON.parse(fget(s.cache)||'[]'))}catch(e){}fdraw(s)}
   if(role==='host'&&ghToken()){ghWriterStart(s);return}
-  if(role==='view'){s.ghReader=true;fstatus('Загружаем сказки из постоянного архива…');s.tick=setInterval(()=>{if(!document.hidden)ghViewerTick(s)},GH_READ_INTERVAL);ghViewerTick(s,true);return}
+  if(role==='view'){s.ghReader=true;fstatus('Проверяем семейный архив…');s.tick=setInterval(()=>{if(!document.hidden)ghViewerTick(s)},GH_READ_INTERVAL);ghViewerTick(s,true);return}
   const cfg=await cloudConfig(secret);if(fam!==s)return;if(cfg){cloudStart(s,cfg);return}
   const Peer=await fload();if(fam!==s)return;
   const peer=role==='host'?new Peer(s.room,{debug:0}):new Peer({debug:0});s.peer=peer;
@@ -3715,7 +3715,7 @@ function readerRecovery(kind){
 }
 function ghReadMessage(room,kind){
  if(kind==='missing'&&room!==GH_CURRENT_ROOM)return 'Откройте актуальное семейное приглашение с iPad один раз.';
- if(kind==='missing')return 'Пока нет новых сказок. Проверяем библиотеку автоматически.';
+ if(kind==='missing')return 'Семейный архив ещё не настроен или не содержит опубликованных сказок. Попросите владельца проверить публикацию на iPad. Ссылка сама по себе не передаёт книги.';
  return 'Библиотека временно недоступна. Попробуйте снова.';
 }
 async function ghPublicAPI(s,fetcher=fetch){
