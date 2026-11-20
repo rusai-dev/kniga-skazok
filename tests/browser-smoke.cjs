@@ -11,6 +11,10 @@ console.log('INITIAL SOURCE BYTES',initialBytes);
 const release=JSON.parse(fs.readFileSync(path.join(root,'release.json'),'utf8')).version;
 assert.ok(fs.readFileSync(path.join(root,'index.html'),'utf8').includes('<footer>Книга сказок · версия '+release+'</footer>'),'manifest matches HTML');
 assert.ok(fs.readFileSync(path.join(root,'sw.js'),'utf8').includes("const REV='"+release+"'"),'manifest matches worker');
+const entry=fs.readFileSync(path.join(root,'index.html'),'utf8');
+assert.ok(entry.includes("const APP_RELEASE='"+release+"'"),'runtime release must match manifest');
+for(const asset of initialFiles.slice(1))assert.ok(entry.includes(asset+'?v='+release+'"'),'versioned core URL mismatched: '+asset);
+
 const server=http.createServer((req,res)=>{
  const name=new URL(req.url,'http://127.0.0.1').pathname;
  const file=path.resolve(root,'.'+(name==='/'?'/index.html':name));
