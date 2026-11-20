@@ -448,6 +448,29 @@ const server=http.createServer((req,res)=>{
  await page.keyboard.press('Escape');
  await page.evaluate(()=>artRoom());
  await page.locator('#drawingCanvas').waitFor({state:'visible'});
+ // Full-screen is a CSS-only view of the existing canvas; preserve pixels and undo.
+ const drawingView=page.locator('#drawingCanvas'),expand=page.locator('#drawingExpand');
+ const drawSnapshot=()=>drawingView.evaluate(c=>({pixels:c.toDataURL(),width:c.width,height:c.height}));
+ const blankDrawing=await drawSnapshot(),normalBox=await drawingView.boundingBox();
+ await expand.click();await page.waitForFunction(()=>document.getElementById('modal').classList.contains('canvas-full'));
+ await page.waitForFunction(area=>{const c=document.getElementById('drawingCanvas').getBoundingClientRect();return c.width*c.height>=area},normalBox.width*normalBox.height);
+ assert.equal(await expand.getAttribute('aria-pressed'),'true');assert.ok((await expand.textContent()).includes('Уменьшить'));
+ assert.deepEqual(await drawSnapshot(),blankDrawing,'expand must not reset or resample drawing');
+ assert.equal(await page.locator('#drawingFullColor').isVisible(),true);
+ await page.locator('[data-tool="brush"]').click();await drawingView.click({position:{x:70,y:70}});
+ const expandedDrawing=await drawSnapshot();assert.notEqual(expandedDrawing.pixels,blankDrawing.pixels);
+ const drawViewport=page.viewportSize();await page.setViewportSize({width:drawViewport.height,height:drawViewport.width});
+ assert.deepEqual(await drawSnapshot(),expandedDrawing,'rotation preserves original pixels');
+ await page.setViewportSize(drawViewport);
+ await expand.click();assert.equal(await expand.getAttribute('aria-pressed'),'false');assert.deepEqual(await drawSnapshot(),expandedDrawing);
+ assert.equal(await page.locator('#drawingSave').isVisible(),true);
+ await page.locator('#drawingUndo').click();assert.deepEqual(await drawSnapshot(),blankDrawing,'undo remains intact across resize');
+ await page.locator('#drawingRedo').click();assert.deepEqual(await drawSnapshot(),expandedDrawing);
+ await page.locator('#drawingUndo').click();await expand.click();await page.keyboard.press('Escape');
+ assert.equal(await expand.getAttribute('aria-pressed'),'false','Escape shrinks rather than closes drawing');
+ assert.ok(await drawingView.isVisible());
+ console.log('PASS full-screen drawing resize, pixels, rotation and undo');
+
  assert.equal(await page.locator('#lessonSubject option').count(),9);assert.equal(await page.locator('#lessonPicture svg').count(),0,'no lesson SVG in free drawing');
  assert.equal(await page.locator('#premiumColoring img').getAttribute('src'),null,'premium art must not be requested when drawing opens');
  // P0/P1: all three real workshop modes, final lesson step and history.
