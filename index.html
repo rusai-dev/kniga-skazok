@@ -991,6 +991,14 @@ function studioStamp(ctx,x,y,r,kind,color){
  else {circle(-r*.46,-r*.22,r*.29);circle(r*.42,r*.26,r*.35);circle(r*.18,-r*.66,r*.18)}
  ctx.restore();
 }
+// Repaint only the ink touched by a stroke. Integer source/destination rectangles preserve pixels.
+function studioInkRect(w,h,from,to,width){
+ const pad=Math.ceil(Math.max(8,width)*3+4),x=Math.max(0,Math.floor(Math.min(from.x,to.x)-pad)),y=Math.max(0,Math.floor(Math.min(from.y,to.y)-pad)),right=Math.min(w,Math.ceil(Math.max(from.x,to.x)+pad)),bottom=Math.min(h,Math.ceil(Math.max(from.y,to.y)+pad));return {x,y,w:Math.max(0,right-x),h:Math.max(0,bottom-y)};
+}
+function studioRestoreInk(ctx,layer,from,to,width){
+ if(!layer)return;if(!from||!to){ctx.drawImage(layer,0,0);return}
+ const r=studioInkRect(layer.width,layer.height,from,to,width);if(r.w&&r.h)ctx.drawImage(layer,r.x,r.y,r.w,r.h,r.x,r.y,r.w,r.h);
+}
 function studioStroke(ctx,from,to,width,kind,color,hue=0){
  const len=Math.hypot(to.x-from.x,to.y-from.y),line=(w,pigment,alpha=1)=>{ctx.globalAlpha=alpha;ctx.strokeStyle=pigment;ctx.fillStyle=pigment;ctx.lineWidth=w;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();if(len){ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);ctx.stroke()}else{ctx.arc(to.x,to.y,w/2,0,Math.PI*2);ctx.fill()}};
  ctx.save();if(kind==='water')line(width*1.55,color,.23);else if(kind==='pastel'){line(width*1.45,color,.32);line(width*.7,color,.35)}else if(kind==='soft'){line(width*1.7,color,.17);line(width*1.1,color,.35);line(width*.55,color,.75)}else if(kind==='crayon'){line(width,color,.52);const n=Math.max(1,Math.ceil(len/2));for(let i=0;i<n;i++){const t=(i+.5)/n,x=from.x+(to.x-from.x)*t,y=from.y+(to.y-from.y)*t;ctx.fillStyle=color;ctx.globalAlpha=.55;ctx.beginPath();ctx.arc(x+Math.sin(x*5+y)*width*.38,y+Math.cos(y*7+x)*width*.38,Math.max(.6,width*.08),0,Math.PI*2);ctx.fill()}}else if(kind==='marker')line(width*1.3,color,.72);else if(kind==='rainbow')line(width,'hsl('+hue+' 78% 54%)');else if(kind==='gold'||kind==='silver'){const metal=kind==='gold'?['#a4782b','#f2d07b','#fff1c5']:['#788899','#c9d8e0','#f6fbff'];line(width*1.2,metal[0]);line(width*.78,metal[1]);line(width*.24,metal[2],.85)}else if(kind==='neon'){line(width*2.1,color,.18);line(width*1.45,color,.48);line(width*.65,color);line(width*.19,'#fffdf7',.85)}else if(kind==='glitter'){line(width,color,.65);const step=Math.max(3,width*.35),n=Math.max(1,Math.ceil(len/step));for(let i=0;i<n;i++){const t=(i+.5)/n,px=from.x+(to.x-from.x)*t,py=from.y+(to.y-from.y)*t;ctx.globalAlpha=.9;ctx.fillStyle=i%2?'#fff8d6':'#e9c371';ctx.beginPath();ctx.arc(px+Math.sin(px*2+py)*width*.37,py+Math.cos(py*2+px)*width*.37,Math.max(1,width*.095),0,Math.PI*2);ctx.fill()}}else line(width,color);ctx.restore();
@@ -1305,7 +1313,7 @@ function initDrawing(form,insertPicture){
  const paper='#fffdf7';
  let outlineKey=null,outlineLayer=null,outlineBarrier=null;
  function setOutline(key){outlineKey=null;outlineLayer=null;outlineBarrier=null;if(!key||!ORIGINAL_COLORING_IDS.includes(key))return;const layer=document.createElement('canvas');layer.width=canvas.width;layer.height=canvas.height;const c=layer.getContext('2d');if(!c||!originalColoring(c,key))return;const img=c.getImageData(0,0,layer.width,layer.height),barrier=new Uint8Array(layer.width*layer.height);for(let i=0;i<barrier.length;i++){const p=i*4,ink=img.data[p]<225||img.data[p+1]<225||img.data[p+2]<215;barrier[i]=ink?1:0;img.data[p+3]=ink?255:0}c.putImageData(img,0,0);outlineKey=key;outlineLayer=layer;outlineBarrier=barrier}
- function protectOutline(){if(outlineLayer)ctx.drawImage(outlineLayer,0,0)}
+ function protectOutline(from,to){studioRestoreInk(ctx,outlineLayer,from,to,width)}
  const controls=$('drawingColors'),basicColors=new Set(['#25272a','#344b3d','#79564a','#fffdf7','#bd3948','#f18eaa','#e48641','#f1bc48','#609a58','#87bee7','#487ec3','#785098','#70bfbd','#a5c76f','#f8df71','#9b83b9']);
  const recentColorKey='skazki-recent-colors-v1';let recentColors=[];try{const a=JSON.parse(fget(recentColorKey)||'[]');if(Array.isArray(a))recentColors=a.filter(c=>/^#[0-9a-f]{6}$/i.test(c)).slice(0,4)}catch(e){}
  const recentHost=document.createElement('div');recentHost.id='recentDrawingColors';recentHost.setAttribute('role','group');recentHost.setAttribute('aria-label','Недавние цвета');controls.after(recentHost);
@@ -1339,7 +1347,7 @@ function initDrawing(form,insertPicture){
  function capture(){return {pixels:ctx.getImageData(0,0,canvas.width,canvas.height),dirty,outlineKey}}
  function remember(){undo.push(capture());if(undo.length>12)undo.shift();redo=[]}
  function point(e){const r=canvas.getBoundingClientRect();if(!r.width||!r.height)return {x:0,y:0};return {x:Math.max(0,Math.min(canvas.width,(e.clientX-r.left)*canvas.width/r.width)),y:Math.max(0,Math.min(canvas.height,(e.clientY-r.top)*canvas.height/r.height))}}
- function line(to){const kind=eraser?'solid':effect,dx=to.x-last.x,dy=to.y-last.y,len=Math.hypot(dx,dy);if(!eraser&&stampEffects.has(kind)){const spacing=Math.max(16,width*1.65);if(len===0){studioStamp(ctx,to.x,to.y,Math.max(8,width*.73),kind,color);distance=0}else{for(let t=spacing-distance;t<=len;t+=spacing)studioStamp(ctx,last.x+dx*t/len,last.y+dy*t/len,Math.max(8,width*.73),kind,color);distance=(distance+len)%spacing}}else{hue=(hue+Math.max(5,len*2))%360;studioStroke(ctx,last,to,width,kind,eraser?paper:color,hue)}protectOutline();last=to}
+ function line(to){const kind=eraser?'solid':effect,dx=to.x-last.x,dy=to.y-last.y,len=Math.hypot(dx,dy);if(!eraser&&stampEffects.has(kind)){const spacing=Math.max(16,width*1.65);if(len===0){studioStamp(ctx,to.x,to.y,Math.max(8,width*.73),kind,color);distance=0}else{for(let t=spacing-distance;t<=len;t+=spacing)studioStamp(ctx,last.x+dx*t/len,last.y+dy*t/len,Math.max(8,width*.73),kind,color);distance=(distance+len)%spacing}}else{hue=(hue+Math.max(5,len*2))%360;studioStroke(ctx,last,to,width,kind,eraser?paper:color,hue)}protectOutline(last,to);last=to}
  canvas.addEventListener('pointerdown',e=>{if(restoring||pointer!==null||e.button>0)return;e.preventDefault();if(picked){const p=point(e),v=ctx.getImageData(Math.min(canvas.width-1,Math.floor(p.x)),Math.min(canvas.height-1,Math.floor(p.y)),1,1).data;color='#'+Array.from(v.slice(0,3)).map(n=>n.toString(16).padStart(2,'0')).join('');$('drawingCustom').value=color;picked=false;eraser=false;fillMode=false;rememberColor(color);toolSync();return}if(fillMode){const p=point(e),image=ctx.getImageData(0,0,canvas.width,canvas.height),rgba=[parseInt(color.slice(1,3),16),parseInt(color.slice(3,5),16),parseInt(color.slice(5,7),16),255];if(artFill(image.data,canvas.width,canvas.height,Math.min(canvas.width-1,p.x),Math.min(canvas.height-1,p.y),rgba,outlineBarrier)){remember();ctx.putImageData(image,0,0);protectOutline();dirty=true;changed()}return}remember();distance=0;pointer=e.pointerId;last=point(e);try{canvas.setPointerCapture(pointer)}catch(err){}line(last);dirty=true;stored=false;sync()});
  canvas.addEventListener('pointermove',e=>{if(pointer!==e.pointerId)return;e.preventDefault();line(point(e))});
  function finish(e){if(pointer!==e.pointerId)return;pointer=null;last=null;persist()}
@@ -2964,7 +2972,7 @@ async function checkRelease(manual=false){
  }catch(e){if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
  finally{releaseChecking=false}
 }
-const APP_RELEASE='1.5.66';let releaseChecking=false;
+const APP_RELEASE='1.5.67';let releaseChecking=false;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
  $('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);
  window.addEventListener('focus',()=>checkRelease());
