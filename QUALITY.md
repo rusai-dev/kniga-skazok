@@ -235,3 +235,8 @@ Adds ice/temperature comparison and string vibration models to existing science 
 ## Candidate 1.5.73 — author-first experience
 
 Makes writing the top-level home action. Own-author draft picker lists separate existing draft themes and starts a new story only in an unused theme. Existing library and art/learning paths remain. Editor title and text precede optional cover/theme and formatting tools; larger writing field; prompts remain read-only. No migration, new dependencies or art. Regression passed with draft selection assertions. Browser checks cover opening writing directly, draft selection, blank new story and preservation of both original drafts. Startup 964019 bytes under 1 MB. Browser and physical iPad acceptance pending.
+
+
+## Candidate 1.5.74 — author continuity and safe editor exit
+
+Shows unfinished edits of the child's already saved books alongside new drafts, without changing originals or storage schema. Moves existing preview and save status beside text, adds quick save/close. Failed writes now protect generic Back/Escape; explicit save retries and can close without saving only after confirmation. Successful publication clears the failure flag. Browser regression scenarios inject a storage write error, verify the editor stays open, retry and check persistence, plus edited draft and preview checks. Static/functional regression passed. Startup 965825 bytes under 1 MB. Browser and real device checks pending.
