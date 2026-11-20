@@ -3954,9 +3954,9 @@ async function archiveSnapshot(raw){
  if(window.__nativeMode||!validSnapshot(raw))return false;
  const db=await openLocalArchive();
  return new Promise((resolve,reject)=>{
-  const tx=db.transaction('copies','readwrite'),store=tx.objectStore('copies'),get=store.get('latest');
-  get.onsuccess=()=>{if(localStorage.getItem(KEY)!==raw)return;const last=get.result;if(last&&last.raw===raw)return;if(last)store.put(last,'previous');store.put({raw,time:Date.now()},'latest')};
-  tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=tx.onabort=()=>{db.close();reject(tx.error)};
+  let current=false;const tx=db.transaction('copies','readwrite'),store=tx.objectStore('copies'),get=store.get('latest');
+  get.onsuccess=()=>{try{if(localStorage.getItem(KEY)!==raw)return;current=true}catch(e){tx.abort();return}const last=get.result;if(last&&last.raw===raw)return;if(last)store.put(last,'previous');store.put({raw,time:Date.now()},'latest')};
+  tx.oncomplete=()=>{db.close();resolve(current)};tx.onerror=tx.onabort=()=>{db.close();reject(tx.error)};
  });
 }
 async function writeRestoreCheckpoint(checkpoint){
