@@ -384,3 +384,8 @@ Two additional existing science lessons now include three-state labelled SVG mod
 ## Candidate 1.5.99 — flexible attention rules
 
 Five rule types replace the previous two, with color-only and form-only at the foundation, conjunction and exclusion at higher levels, and inclusive OR at the highest level. Explicit overlapping distractors and visible check marks distinguish features and results without color alone. Feedback reports correct selections, missed and extra cells, with existing untimed practice, scoring and progress storage unchanged. Full dependency-free regression passed including 4,000 attention cases and existing 1,200 memory tasks. Browser interaction added. HTML 924090 → 926010 bytes. Browser acceptance, physical iPad and learning outcomes pending.
+
+
+## Candidate 1.5.100 — construct a short story
+
+Eight original mini-stories with causal and chronological dependencies. At levels 2–3 the existing sentence practice alternates multiple choice and construction of a four- or five-sentence narrative. Reuses existing sequence controls, hides ordering rules until the learner tries, uses shuffled colored cards, and accepts only the original causal chain. Incorrect attempts provide a strategy hint; independent scoring and existing progress storage preserved. Full dependency-free regression passed, including 400 story order cases and adjacent swaps, browser scenario added. No new libraries, data keys, or changes to author text. HTML 925822 → 931883 bytes. Browser CI, physical iPad and educational outcomes remain separate acceptance gates.

@@ -39,8 +39,8 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.99')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
-   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.99');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.100')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
+   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.100');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -189,6 +189,15 @@ const server=http.createServer((req,res)=>{
  await page.locator('[data-mem="'+wrongCell+'"]').click();await page.locator('#memNext').click();
  assert.ok((await page.locator('#memFeedback').textContent()).includes('Лишних: 1'));
  await page.locator('#memBack').click();
+ await page.evaluate(()=>{const v=studyState('language-sentences');v.n=1;v.level=2;studySave('language-sentences',v);studyOpen('language','sentences')});
+ assert.ok(await page.locator('#studySequence').isVisible());assert.equal(await page.locator('#sequenceRules').isVisible(),false);
+ const storyCards=await page.locator('#sequenceChoices button').evaluateAll(nodes=>nodes.map(n=>({height:n.getBoundingClientRect().height,color:getComputedStyle(n).backgroundColor})));assert.ok(storyCards.every(s=>s.height>=44));assert.equal(new Set(storyCards.map(s=>s.color)).size,storyCards.length);
+ const storyOrder=await page.evaluate(()=>languageQuestion('sentences',1,2).sequence.solution);
+ for(const i of storyOrder.slice().reverse())await page.locator('#sequenceChoices [data-answer="'+i+'"]').click();
+ await page.locator('#sequenceCheck').click();assert.ok((await page.locator('#studyFeedback').textContent()).includes('Проверь ход событий'));
+ await page.locator('#sequenceReset').click();
+ for(const i of storyOrder)await page.locator('#sequenceChoices [data-answer="'+i+'"]').click();
+ await page.locator('#sequenceCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
  await page.evaluate(()=>{const v=studyState('geometry');v.n=1;v.level=3;studySave('geometry',v);studyOpen('math','geometry')});
  assert.equal(await page.locator('#studyPicture [data-geometry-rect]').count(),1);
  assert.equal(await page.locator('#studyPicture svg text').filter({hasText:/^\?$/}).count(),2);
