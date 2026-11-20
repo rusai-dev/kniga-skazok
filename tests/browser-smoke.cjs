@@ -57,6 +57,28 @@ const server=http.createServer((req,res)=>{
  let browser;
  try{
  browser=await engine.launch({headless:true});
+ // Isolated tabs: the stale author's unsaved work stays visible, the latest library survives.
+ {
+ const ctx=await browser.newContext({serviceWorkers:'block'}),a=await ctx.newPage(),b=await ctx.newPage();
+ try{
+ await a.goto(url);await b.goto(url);
+ await a.locator('#homeNewStory').click();await b.locator('#homeNewStory').click();
+ await a.locator('#storyBody').fill('Первая вкладка: новая сказка.');
+ const latest=await a.evaluate(()=>localStorage.getItem(KEY));
+ await b.locator('#storyBody').fill('Вторая вкладка: мой текст.');
+ assert.ok((await b.locator('#draftStatus').textContent()).includes('другой вкладке'));
+ assert.equal(await b.evaluate(()=>localStorage.getItem(KEY)),latest);
+ assert.equal(await b.evaluate(()=>publicationWritable()===null),true);
+ await b.locator('#saveStoryNow').click();assert.ok(await b.locator('#storyForm').isVisible());
+ assert.equal(await b.locator('#storyBody').inputValue(),'Вторая вкладка: мой текст.');
+ assert.ok(await b.locator('#rescueDraft').isVisible());
+ await a.locator('#saveStoryNow').click();await a.reload();await a.locator('#homeWrite').click();
+ assert.equal(await a.locator('#storyBody').inputValue(),'Первая вкладка: новая сказка.');
+ assert.equal(await b.evaluate(async()=>archiveSnapshot(JSON.stringify(data))),false,'stale archive skipped');
+ }finally{await ctx.close()}
+ console.log('PASS stale library and publication lock');
+ }
+
  // Chromium: verify real service-worker caching with an isolated profile.
  if(engine===chromium){
   const ctx=await browser.newContext({serviceWorkers:'allow'}),page=await ctx.newPage();
@@ -288,6 +310,9 @@ const server=http.createServer((req,res)=>{
  await page.locator('#storyTitle').fill('Лисёнок и друзья');await page.locator('#storyBody').fill('Жил маленький лисёнок.');
  await page.locator('#storyVersions summary').click();await page.locator('#versionSave').click();assert.equal(await page.locator('[data-version-use]').count(),1);await page.locator('#storyBody').fill('Лисёнок увидел звезду.');page.once('dialog',d=>d.accept());await page.locator('[data-version-use]').click();assert.equal(await page.locator('#storyBody').inputValue(),'Жил маленький лисёнок.');assert.ok((await page.locator('#versionList').textContent()).includes('Лисёнок увидел звезду.'));await page.locator('#storyVersions summary').click();
  await page.locator('#storyChapters summary').click();const beforeChapter=await page.evaluate(()=>localStorage.getItem(KEY));await page.locator('#newChapterTitle').fill('В лесу');assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),beforeChapter,'temporary title does not save');
+ await page.evaluate(()=>{window.__qaChapterSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return window.__qaChapterSet.call(this,k,v)}});
+ await page.locator('#appendChapter').click();assert.equal(await page.locator('#storyBody').inputValue(),'Жил маленький лисёнок.');assert.equal(await page.locator('#newChapterTitle').inputValue(),'В лесу');assert.ok((await page.locator('#chapterStatus').textContent()).includes('Не удалось'));assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),beforeChapter);
+ await page.evaluate(()=>Storage.prototype.setItem=window.__qaChapterSet);
  await page.locator('#appendChapter').click();assert.equal(await page.locator('#storyBody').inputValue(),'Жил маленький лисёнок.\n\n## В лесу\n');
  await page.locator('#storyBody').fill('Жил маленький лисёнок.\n\n## В лесу\nОн нашёл друга.');await page.locator('#newChapterTitle').fill('Возвращение');await page.locator('#newChapterTitle').press('Enter');assert.ok(await page.locator('#storyForm').isVisible());await page.locator('#storyBody').fill('Жил маленький лисёнок.\n\n## В лесу\nОн нашёл друга.\n\n## Возвращение\nОни вернулись домой.');
  assert.equal(await page.locator('[data-chapter-jump]').count(),3);await page.locator('[data-chapter-jump]').filter({hasText:'В лесу'}).click();assert.equal(await page.locator('#storyBody').evaluate(e=>e.selectionStart),await page.locator('#storyBody').evaluate(e=>e.value.indexOf('## В лесу')));
