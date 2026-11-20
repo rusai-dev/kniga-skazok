@@ -334,6 +334,19 @@ function verify(html){
  };
  const moneyVisualCases=new Function('fget','fput','childArt','esc',source+'\nreturn ('+moneyVisualCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);assert(moneyVisualCases===560,'money visual coverage');
 
+ const rulerCode=function(){
+  let count=0,compares=0;const colors=new Set();
+  for(let l=0;l<4;l++)for(let n=0;n<800;n++){
+   const q=numberQuestion('measure',n,l);if(n%4>=2){if(q.picture?.includes('data-ruler-ribbon'))throw Error('old tasks displaced');continue}
+   const rows=[...q.picture.matchAll(/data-ruler-ribbon="([АБ])" x1="(\d+)" x2="(\d+)" y1="(\d+)" y2="(\d+)" stroke="(#[0-9A-F]+)"/g)];
+   const lens=rows.map(([,label,x1,x2,y1,y2,c],i)=>{const a=(+x1-36)/24,b=(+x2-36)/24;colors.add(c);if(label!==['А','Б'][i]||!Number.isInteger(a)||!Number.isInteger(b)||a<0||b>12||b-a<2||y1!==y2||!q.picture.includes('Лента '+label+': от '+a+' до '+b)||l===0&&a!==0||l>0&&i===0&&a===0)throw Error('ruler coordinates/description');return b-a});
+   const compare=l>=2&&n%4===1;if(rows.length!==(compare?2:1)||Number(q.answer)!==(compare?Math.abs(lens[0]-lens[1]):lens[0])||compare&&lens[0]===lens[1])throw Error('ruler answer');
+   if(compare)compares++;count++;
+  }
+  if(colors.size!==5||count!==1600||compares!==400)throw Error('ruler variety');
+  return {count,compares};
+ };
+ const rulerCases=new Function('fget','fput','childArt','esc',source+'\nreturn ('+rulerCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
  const geometryCode=function(){
   let count=0,inverses=0;const fills=new Set(),variants=new Set();
   for(let l=0;l<4;l++)for(let n=0;n<400;n++){
@@ -373,6 +386,6 @@ function verify(html){
  let wordAlternatives=0;assert(wordWorkshop.storyWordBank.length===14&&new Set(wordWorkshop.storyWordBank.map(x=>x[0])).size===14,'word bank diversity');for(const [word,...rows] of wordWorkshop.storyWordBank){assert(rows.length>=2&&rows.length<=3&&rows.every(x=>x.length===3&&x.every(s=>typeof s==='string'&&s.length>2))&&new Set(rows.map(x=>x[0])).size===rows.length,'word examples');assert(wordWorkshop.storyWordChoices(word).length===rows.length&&wordWorkshop.storyWordMarkup(word).split('class="writer-word-card"').length-1===rows.length,'word cards');wordAlternatives+=rows.length}
  assert(wordWorkshop.storyWordChoices('missing').length===0&&wordWorkshop.storyWordMarkup('')===''&&wordWorkshop.storyWordMarkup('<script>')==='','unknown word safe');assert(html.includes('id="writerWords"')&&!html.includes('id="writerWords" open')&&html.includes("['ideaStage','writerWordSelect','newChapterTitle','bookPreviewChapter']"),'optional word choice excluded from draft');
  const lazyCheck=new Function(between('function lazyReadingBank(make){','const comprehensionKey=')+'return {readingComprehension,readingGlossary,readingInference,readingQuestions}')();assert(!lazyCheck.readingComprehension.loaded()&&!lazyCheck.readingGlossary.loaded()&&!lazyCheck.readingInference.loaded(),'reading banks deferred');const testQuestions=lazyCheck.readingQuestions({id:'lantern-friends'});assert(testQuestions.length===3&&lazyCheck.readingComprehension.loaded()&&lazyCheck.readingInference.loaded()&&!lazyCheck.readingGlossary.loaded(),'questions only loaded when needed');assert(lazyCheck.readingGlossary()===lazyCheck.readingGlossary(),'memoized glossary');
- return {wordAlternatives,storyLanguageCases,attentionRules,natureSpaceCases,newLabs,geometryCases,moneyVisualCases,chapterCases:16,planFields:6,ideaCount,stepwise,personalSearch,lessonSubjects,lessonNavigation,artModeNavigation,accessibility,placePanels,seedTest,directLibrary:true,landingCases:landingCases.length,homeCheck,outcomeCases,outcomeArchive,spatialTests,spatialUI,gap,gapArchive,models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+ return {rulerCases,wordAlternatives,storyLanguageCases,attentionRules,natureSpaceCases,newLabs,geometryCases,moneyVisualCases,chapterCases:16,planFields:6,ideaCount,stepwise,personalSearch,lessonSubjects,lessonNavigation,artModeNavigation,accessibility,placePanels,seedTest,directLibrary:true,landingCases:landingCases.length,homeCheck,outcomeCases,outcomeArchive,spatialTests,spatialUI,gap,gapArchive,models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}

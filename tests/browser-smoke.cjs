@@ -213,6 +213,11 @@ const server=http.createServer((req,res)=>{
  await page.locator('#sequenceReset').click();
  for(const i of storyOrder)await page.locator('#sequenceChoices [data-answer="'+i+'"]').click();
  await page.locator('#sequenceCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
+ await page.evaluate(()=>{const v=studyState('measure');v.n=1;v.level=3;studySave('measure',v);studyOpen('math','measure')});
+ assert.equal(await page.locator('#studyPicture [data-ruler-ribbon]').count(),2);
+ assert.ok(await page.locator('#studyPicture svg').isVisible());
+ const rulerAnswer=await page.evaluate(()=>numberQuestion('measure',1,3).answer);
+ await page.locator('#studyNumber').fill(rulerAnswer);await page.locator('#studyCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
  await page.evaluate(()=>{const v=studyState('geometry');v.n=1;v.level=3;studySave('geometry',v);studyOpen('math','geometry')});
  assert.equal(await page.locator('#studyPicture [data-geometry-rect]').count(),1);
  assert.equal(await page.locator('#studyPicture svg text').filter({hasText:/^\?$/}).count(),2);

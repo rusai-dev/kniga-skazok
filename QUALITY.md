@@ -421,3 +421,7 @@ CI 44719128356 passed regression but failed Chromium and WebKit with snapshot.fa
 ### 1.5.104 CI environment fix
 
 Run 44719882395 Chromium failed before browser launch: ubuntu-latest resolved to Ubuntu 26.04 and apt could not locate required fonts. Pin both jobs to Ubuntu 24.04 and refresh apt indexes before Playwright installs browser dependencies. Retain all regression and browser checks without reducing coverage. Browser rerun is mandatory; this change does not alter application resources or stored data.
+
+## Candidate 1.5.105 — measuring lengths on a ruler
+
+Existing measurement practice alternates numerical word problems and original multicolor centimetre-scale diagrams. Level 0 reads from zero; level 1 begins at a nonzero mark; levels 2–3 also compare two independently placed ribbons labelled A/B, with no answer printed. Accessible descriptions give endpoints rather than results, and diagrams explicitly note they are schematic. Existing typed-answer flow, skill identifiers, spaced review and scoring unchanged. Full regression passed with 1,600 independent SVG checks including 400 comparisons; browser interaction added. HTML 940363 → 943247 bytes; no assets or dependencies. Physical device and learning outcomes remain unverified. Suggested off-screen transfer: measure a pencil from zero and then from another mark, compare both results.
