@@ -1,0 +1,14 @@
+{
+  "id": "ART-04",
+  "path": "assets/ui/writer-fox-144-v1.webp",
+  "width": 144,
+  "height": 144,
+  "bytes": 5460,
+  "sha256": "26f1a5e44f0a2039ad4f2d47d760086009c0f9eaf063f12f649d0bc9dc023e2a",
+  "source_sha256": "7fae710b3544ab62a202abf363aa99911500c47f69f4ac7f5f5dac52a15d2454",
+  "git_sha": "95ba6a6345a1abea8ca920622b72de399e3d2d1d",
+  "source": "User-supplied PDF, page 32, embedded original AI reference",
+  "role": "Decorative author entry artwork; no effect on draft or publication",
+  "status": "integrated; CI pending",
+  "alt": ""
+}
