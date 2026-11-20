@@ -306,10 +306,13 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#studyChoices button').count(),4);assert.ok(await page.locator('#studyPicture svg').isVisible());assert.equal((await page.locator('#studyQuestion').textContent()).match(/вправо|влево|вверх|вниз/g).length,4);
  const coordinateAnswer=await page.evaluate(()=>academySpatial(7,3).answer);await page.locator('#studyChoices').getByRole('button',{name:coordinateAnswer,exact:true}).click();assert.ok(await page.locator('#studyNext').isVisible());assert.ok((await page.locator('#studyFeedback').textContent()).includes('Маршрут:'));
  await page.keyboard.press('Escape');await page.locator('#childWorld').click();
- assert.equal(await page.locator('[data-area]').count(),5);
+ assert.equal(await page.locator('[data-area]').count(),6);
+ await page.locator('[data-area="5"]').click();await page.locator('#nightRead').click();
+ for(let i=0;i<8;i++){assert.ok(await page.locator('.night-layout svg').isVisible());assert.ok((await page.locator('.night-count').textContent()).includes((i+1)+' из 8'));assert.ok((await page.locator('.night-layout p').first().textContent()).length>80);await page.locator('.night-riddle summary').click();assert.ok(await page.locator('.night-riddle p').isVisible());await page.locator('#nightNext').click();}
+ await page.locator('#nightRead').click();await page.locator('#nightChapter').selectOption('5');assert.ok((await page.locator('.night-layout h3').textContent()).includes('Сова'));await page.locator('#nightPrev').click();assert.ok((await page.locator('.night-count').textContent()).includes('5 из 8'));await page.locator('#nightBack').click();
  await page.locator('[data-area="1"]').click();
- assert.equal(await page.locator('.explore-grid [data-world]').count(),9);
- for(const [area,id] of [[1,'bat-echo'],[1,'bat-life'],[4,'egypt-nile'],[4,'egypt-writing']]){
+ assert.equal(await page.locator('.explore-grid [data-world]').count(),7);
+ for(const [area,id] of [[5,'bat-echo'],[5,'bat-life'],[5,'owl-hearing'],[5,'owl-eyes'],[4,'egypt-nile'],[4,'egypt-writing']]){
   await page.locator('[data-area="'+area+'"]').click();await page.locator('.explore-grid [data-world="'+id+'"]').click();
   assert.ok(await page.locator('#worldIllustration svg').isVisible());
   for(let step=0;step<3;step++){assert.ok((await page.locator('#worldQuestion').textContent()).length>10);await page.locator('#worldUnsure').click();if(step<2)await page.locator('#worldNext').click();}
@@ -323,7 +326,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#dayExperiment').isVisible(),false);
  await page.locator('#worldUnsure').click();await page.locator('#dayRotate').click();await page.locator('#dayRotate').click();
  assert.ok((await page.locator('.day-model-label').textContent()).includes('Ночь'));
- for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float'],[0,'ice'],[2,'sound'],[0,'rain'],[2,'air'],[0,'moon'],[1,'bee'],[1,'bat-echo'],[4,'egypt-nile']]){
+ for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float'],[0,'ice'],[2,'sound'],[0,'rain'],[2,'air'],[0,'moon'],[1,'bee'],[5,'bat-echo'],[4,'egypt-nile']]){
   await page.locator('#worldBack').click();await page.locator('[data-area="'+area+'"]').click();await page.locator('[data-world="'+id+'"]').click();
   assert.equal(await page.locator('#worldLab').isVisible(),false);
   await page.locator('#worldUnsure').click();assert.ok(await page.locator('#worldLab').isVisible());
