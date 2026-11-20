@@ -2845,8 +2845,8 @@ function editor(bid,fromGallery=null,ownTheme=null){
   if(preview)renderBookPreview(b);
  }
  function refreshCover(b){$('coverPreview').innerHTML=coverArt({...b,icon:b.icon||themeOf(b.theme)?.icon||'📖'})}
- form.querySelector('.cover-designer').addEventListener('toggle',()=>{if(form.querySelector('.cover-designer').open&&$('writerExtras').open)refreshCover(snapshot());else $('coverPreview').replaceChildren()});
- form.querySelector('.writer-chapters').addEventListener('toggle',()=>{if(form.querySelector('.writer-chapters').open&&$('writerExtras').open)syncChapters(snapshot())});
+ form.querySelector('.cover-designer').addEventListener('toggle',()=>{if($('storyForm')!==form)return;if(form.querySelector('.cover-designer').open&&$('writerExtras').open)refreshCover(snapshot());else $('coverPreview').replaceChildren()});
+ form.querySelector('.writer-chapters').addEventListener('toggle',()=>{if($('storyForm')!==form)return;if(form.querySelector('.writer-chapters').open&&$('writerExtras').open)syncChapters(snapshot())});
  function syncChapters(b){
   const list=$('writerChapterList'),parts=storyChapters(b.body,rich.markup),hasHead=rich.markup&&/^## [^\n]+/m.test(b.body);
   if(!hasHead){list.textContent='Пока без глав. Это тоже хорошо.';return}
@@ -2934,7 +2934,7 @@ function editor(bid,fromGallery=null,ownTheme=null){
   if(!commitLibrary(next)){form.dataset.saveFailed='yes';$('draftStatus').textContent='Книжка пока не опубликована: нет места в хранилище. Скопируй текст или попробуй сохранить ещё раз.';return}
   form.dataset.saveFailed='no';closeModal();navigate(a,selectedTheme?b.theme:'');toast(share?'Книжка сохранена. Отправляем её в семейный архив…':'Книжка на личной полке!');if(share)startWriter();
  };
- literacy=initLiteracy(form,body,draft);$('writerExtras').addEventListener('toggle',()=>{if($('writerExtras').open){literacy.refresh();if(form.querySelector('.cover-designer').open)refreshCover(snapshot());if(form.querySelector('.writer-chapters').open)syncChapters(snapshot())}else $('coverPreview').replaceChildren()});initPractice();
+ literacy=initLiteracy(form,body,draft);$('writerExtras').addEventListener('toggle',()=>{if($('storyForm')!==form)return;if($('writerExtras').open){literacy.refresh();if(form.querySelector('.cover-designer').open)refreshCover(snapshot());if(form.querySelector('.writer-chapters').open)syncChapters(snapshot())}else $('coverPreview').replaceChildren()});initPractice();
  tray();refresh();if(fromGallery)addDrawnPicture(fromGallery,false,body.value.length);if(a!==OWN)$('publishFamily').hidden=true;
 }
 function exportIllustrated(b){
