@@ -3797,9 +3797,14 @@ async function ghWriterTick(s){
   const result=await ghRequest('/contents/'+ghPath(s.room),token,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(fam!==s)return;
   const sha=result?.content?.sha;if(!/^[0-9a-f]{40}$/.test(sha||''))throw Error('unconfirmed write');
-  fput(stateKey,JSON.stringify({sha}));s.ghSaved=serialized;confirmed=true;
-  fstatus('Архив GitHub · '+local.length+' книг сохранено');
-  toast('Книжки сохранены в семейном архиве.');
+  fput(stateKey,JSON.stringify({sha}));
+  fstatus('Отправлено в архив. Проверяем чтение без аккаунта GitHub…');
+  const publicCopy=await ghPublicAPI(s);
+  if(fam!==s)return;
+  if(!publicCopy||publicCopy.revision!==revision||JSON.stringify(publicCopy.books)!==serialized)throw Error('public verification pending');
+  s.ghSaved=serialized;confirmed=true;
+  fstatus('Проверено без входа в GitHub · '+local.length+' книг доступны по семейной ссылке');
+  toast('Сказки доступны в семейном архиве.');
  }catch(e){if(fam===s)fstatus(e.status===401||e.status===403?'Архив: проверьте разрешение GitHub. Книги на iPad сохранены.':'Архив не подтвердил запись. Книги сохранены на iPad, повторим попытку.')}
  finally{s.ghBusy=false;if(fam===s&&confirmed&&(s.ghPending||JSON.stringify(fpublished())!==serialized)&&JSON.stringify(fpublished())!==serialized)ghWriterTick(s)}
 }
