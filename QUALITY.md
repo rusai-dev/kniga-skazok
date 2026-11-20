@@ -320,3 +320,8 @@ PR #42 passed regression, Chromium and WebKit and merged before this candidate. 
 ## Candidate 1.5.87 — family archive integrity and progressive classification
 
 PR #44 passed regression, Chromium and WebKit before merge; malformed publication data blocks sync and publication changes instead of being treated as an empty archive; private save preserves publication source. New classification tasks replace two of three fixed-choice questions with four levels of independent numeric answers over labeled shapes (single attribute, conjunction, exclusion, inclusive disjunction). Existing semantic classification and adaptive state retained. 800 generated cases executed in isolated JS runtime, independently checking rule results and diversity. Browser fixture checks visual cards, numeric answer and completion. No schema migration or dependencies. HTML 896886 bytes; added CSS and generator only. Release manifest and offline shell bumped together. Full CI and actual deployment still required. Real-device usability and educational outcomes not measured.
+
+
+## Candidate 1.5.88 — multicolour figures inside exercises
+
+Classification tasks now use six named figure colours (turquoise, violet, yellow, pink, green, orange) rather than just two. Each generated task includes at least three distinct figure colours, preserving numeric answers, all four reasoning levels, adaptive scoring and the semantic classification interleave. Labels accompany colour for accessibility; no storage schema changes or extra assets. Regression verifies six-colour coverage, per-task variety and independent answer validation across 800 cases. Browser CI and physical tablet checks remain required.
