@@ -379,3 +379,8 @@ Two interactive investigations in existing science topics: evaporation, cloud fo
 ## Candidate 1.5.98 — lunar phases and honey-making investigations
 
 Two additional existing science lessons now include three-state labelled SVG models. The Moon diagram separates fixed solar illumination and a schematic orbit from the Earth-view disk and explicitly distinguishes ordinary phases from eclipses. The honey model follows nectar collection, processing and storage, without implying all bee species produce honey. Reuses the existing lesson flow and progress keys. Full dependency-free regression passed (27 lab states, nine interaction paths, six additional nature/space checks), browser cases extended. No new assets or dependencies. HTML 918337 → 924096 bytes. Actual device usability, learning benefit, publication and browser CI remain separate gates.
+
+
+## Candidate 1.5.99 — flexible attention rules
+
+Five rule types replace the previous two, with color-only and form-only at the foundation, conjunction and exclusion at higher levels, and inclusive OR at the highest level. Explicit overlapping distractors and visible check marks distinguish features and results without color alone. Feedback reports correct selections, missed and extra cells, with existing untimed practice, scoring and progress storage unchanged. Full dependency-free regression passed including 4,000 attention cases and existing 1,200 memory tasks. Browser interaction added. HTML 924090 → 926010 bytes. Browser acceptance, physical iPad and learning outcomes pending.
