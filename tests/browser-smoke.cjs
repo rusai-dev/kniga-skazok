@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.79')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.80')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -93,6 +93,7 @@ const server=http.createServer((req,res)=>{
  await page.reload();await page.locator('#homeDrafts').click();await page.locator('[data-own-draft]').filter({hasText:'Лисёнок'}).click();await page.locator('#writerExtras > summary').click();await page.locator('.story-notebook summary').click();
  assert.equal(await page.locator('[data-story-plan="hero"]').inputValue(),'Лисёнок');assert.equal(await page.locator('[data-story-plan="wish"]').inputValue(),'Найти друзей');assert.equal(await page.locator('#storyBody').inputValue(),'');
  await page.locator('#storyTitle').fill('Лисёнок и друзья');await page.locator('#storyBody').fill('Жил маленький лисёнок.');
+ await page.locator('#storyVersions summary').click();await page.locator('#versionSave').click();assert.equal(await page.locator('[data-version-use]').count(),1);await page.locator('#storyBody').fill('Лисёнок увидел звезду.');page.once('dialog',d=>d.accept());await page.locator('[data-version-use]').click();assert.equal(await page.locator('#storyBody').inputValue(),'Жил маленький лисёнок.');assert.ok((await page.locator('#versionList').textContent()).includes('Лисёнок увидел звезду.'));await page.locator('#storyVersions summary').click();
  await page.locator('.writer-chapters summary').click();const beforeChapter=await page.evaluate(()=>localStorage.getItem(KEY));await page.locator('#newChapterTitle').fill('В лесу');assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),beforeChapter,'temporary title does not save');
  await page.locator('#appendChapter').click();assert.equal(await page.locator('#storyBody').inputValue(),'Жил маленький лисёнок.\n\n## В лесу\n');
  await page.locator('#storyBody').fill('Жил маленький лисёнок.\n\n## В лесу\nОн нашёл друга.');await page.locator('#newChapterTitle').fill('Возвращение');await page.locator('#newChapterTitle').press('Enter');assert.ok(await page.locator('#storyForm').isVisible());await page.locator('#storyBody').fill('Жил маленький лисёнок.\n\n## В лесу\nОн нашёл друга.\n\n## Возвращение\nОни вернулись домой.');
