@@ -687,3 +687,10 @@ Single-draft recoverable JSON for failed saves, private additive restore via exi
 
 ## Package 01 candidate 1.5.154
 #118 1.5.153 passed all three CI jobs and merged 7c24012cc2a0a148239ee90791c6da482b42bbc0. A08: persist personal/family reader font size in existing bookmark, legacy compatible, no changes to book or publication. 998965 B startup source, syntax and isolated validation passed, CI pending. Real Pages/iPad/family archive verification outstanding.
+
+
+1.5.155 candidate: emergency PNG export when drawing persistence or insertion fails; no storage schema change, canvas remains open. 999499 B / 1M. New browser scenario; syntax passed. Exact CI pending, base #119 must be accepted first.
+
+
+## Package 01 candidate 1.5.156 — approved writer squirrel
+Owner approved replacing the ART-04 fox with the exact illustrated squirrel. New immutable UI WebP URL and manifest; original fox kept for earlier offline shells, no changes to child artwork or data. Source generated in chat, 1254 × 1254, SHA-256 4355a2e29dd7179bb104e6163cad9a80cd450c06466b62b7fed3907a5eba03f9; resized to existing 144 × 144 card slot, 5460 → 5232 B. Maintains generic paper/pencil SVG fallback and separate white editor. Browser smoke now checks exact new URL, hash, decoding, offline shell and missing-image writing route. Startup source estimate 999504 B (previous 999499 B); actual transfer/latency/iPad not measured. #119 passed all three jobs and merged b439ab9f6c89877360b631e2bf05268e08554e7c; main tree equals #119 head, #120 prior exact head passed all three jobs. Reconcile #120 with main as two-parent candidate retaining previous drawing rescue; require fresh exact-head CI on 1.5.156. Full acceptance 0/12, live Pages and physical iPad/family archive still unverified. Next: verify CI, deploy then confirm the card and writing on iPad; continue A01–A12.
