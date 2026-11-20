@@ -190,6 +190,22 @@ function verify(html){
  const modelAlternativesUI=new Function('fget','fput','childArt','esc','$','openModal',source+'\nreturn ('+alternativeUICode.toString()+')();')(k=>modelStore.get(k)||null,(k,v)=>{modelStore.set(k,v);return true},()=>'',s=>s,modelNode,()=>modelNodes.clear());
 
 
+ const coordinateTestCode=function(){
+ let count=0;
+ for(let l=0;l<4;l++){const colors=new Set(),routes=new Set();for(let n=0;n<1000;n++){
+ const q=academySpatial(n,l),dirs=q.q.match(/вправо|влево|вверх|вниз/g),start=q.q.match(/клетке ([АБВГД])([1-5])/),side=l>=2?5:4;
+ if(!start||dirs.length!==l+1)throw Error("route length");
+ let x="АБВГД".indexOf(start[1]),y=+start[2]-1;const seen=new Set([x+","+y]),labels=[start[1]+start[2]];
+ const marker=q.picture.match(/<circle cx="(\d+)" cy="(\d+)" r="12" fill="(#[A-Fa-f0-9]{6})"/);
+ if(!marker||+marker[1]!==64+x*44||+marker[2]!==54+y*44)throw Error("wrong drawn start");colors.add(marker[3]);
+ for(const d of dirs){x+=d==="вправо"?1:d==="влево"?-1:0;y+=d==="вниз"?1:d==="вверх"?-1:0;if(x<0||y<0||x>=side||y>=side||seen.has(x+","+y))throw Error("route bounds or repeat");seen.add(x+","+y);labels.push("АБВГД"[x]+(y+1))}
+ if(q.answer!==labels.at(-1)||q.opts.length!==4||new Set(q.opts).size!==4||!q.opts.includes(q.answer)||!q.why.includes(labels.join(" → ")))throw Error("coordinate answer");
+ if(q.opts.some(v=>!v.match(/^[АБВГД][1-5]$/)||"АБВГД".indexOf(v[0])>=side||+v[1]>side))throw Error("choice outside grid");
+ routes.add(q.q);count++;
+ }if(colors.size!==6||routes.size<12)throw Error("coordinate diversity")}
+ return count;
+ };
+ const coordinateTests=new Function('fget','fput','childArt','esc',source+'\nreturn ('+coordinateTestCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);assert(coordinateTests===4000,'coordinate coverage');
  const spatialTestCode=function(){
  let count=0,mazes=0,rotations=0;
  for(let l=0;l<4;l++)for(let n=0;n<180;n++){
