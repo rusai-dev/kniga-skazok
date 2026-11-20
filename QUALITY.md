@@ -545,3 +545,13 @@ Based on 0870407, pending PR #83; requires compatible main and green checks. Cre
 ## Performance instrumentation follow-up (test-only)
 
 Correct previous HOME RESOURCE BYTES sample: it was recorded after entering library and math/logic. Sample true cold home in both tablet viewports before clicks, record encoded and transferred bytes and navigation timings, forbid optional heavy resources and enforce provisional 1.2 MB local encoded response cap in addition to unchanged 1 MB source limit. Keep cumulative scenario measurement separately. No runtime, version, images or user storage changed. Syntax checked; browser CI pending. See docs/performance-budget.md for baseline and safe architecture plan. Depends on PR #84.
+
+
+## Candidate 1.5.126 — defer hidden shelf construction and book allocation
+
+PR #86 passed regression, Chromium and WebKit (44775192738), merged at e449747. Cold home previously constructed a hidden library, including topic/author buttons, hero art and potentially personal book cards. Skip render while hidden but retain storage status; normal navigation builds fresh data on entry. Remove exact duplicate inline hero SVG (identical to retained bearArt); no artwork removed. Construct and memoize reading catalog only on first demand. All 36 book records compared byte-for-byte by serialized decoded data, preserved order, IDs, images and text. Source 998917 → 992885 bytes; reserve 7115. No new requests, storage changes or dependencies. Existing offline content remains bundled. Full regression passed in isolated JS execution; new browser assertions verify empty hidden shelf/cold catalog, first-entry construction and existing authoring/reading scenarios. Hardware timing, memory, physical iPad and family delivery not measured; mandatory CI pending. This is first safe optimization, not yet the 800–850 KB target; genuine deferred content transfer remains distinct.
+
+
+## Candidate 1.5.126 — cold home CI correction
+
+CI 44775953162: regression passed, both browser jobs failed at the cold hidden-shelf check (6 buttons found). Root cause: static placeholder markup (four topic buttons and two author buttons), not runtime shelf construction. Remove those placeholders and the inactive mock new-page button; library entry still uses existing render, all data unchanged. Tighten browser check to include every book/hero child and confirm cold direct writing does not allocate reading catalog. Full regression passed in isolated JS execution; browser tests syntax checked. Source 992885 → 992368 bytes; total 6549 B below 1.5.125, reserve 7632. No data keys or artwork changes. Browser CI required again. No physical iPad or actual delivery verification.
