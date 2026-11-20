@@ -676,3 +676,10 @@ Active package only; see SECTION_ACCEPTANCE.md. Base main 1.5.150 d2c7b1f, PR #1
 
 ## Package 01 — candidate 1.5.152
 Lossless catalog optimization and safe illustration placement; source 995955 B vs 999530 B. Existing image bytes untouched. Expanded second-stage dictionary 128→512 limit, exact 36-book roundtrip, no new runtime dependency. Move existing illustration after selected paragraph; invalid/multiple markers refused; failure restores original body and selection. Cover selection rolls back on failure. Tests added, full CI/device pending. No change to stored schema. See SECTION_ACCEPTANCE.md.
+
+
+## Package 01 candidate 1.5.153
+Single-draft recoverable JSON for failed saves, private additive restore via existing backup flow; text, inserted artwork, cover, plan, editions. No family keys or other books in rescue export; no publication or wholesale replacement on import. TXT unchanged. New isolated and browser tests; source 998457 B, limit unchanged; full CI pending. Uninserted canvas not included. See SECTION_ACCEPTANCE.md.
+
+
+1.5.153 same-PR follow-up: compact emergency export controls no longer excluded by viewport CSS, backup async origin guard, tested scenario added for failed additive restore/retry. 998842 B initial source. See per-action inventory in SECTION_ACCEPTANCE.md. Exact-head browser CI pending.
