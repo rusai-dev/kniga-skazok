@@ -265,3 +265,8 @@ New stories always open a blank editor in neutral My Stories theme, with indepen
 ## Candidate 1.5.80 — private author editions
 
 Optional manual history of up to three editions (title, text and rich formatting/images), with a combined 600,000-character serialized history limit. Restoring exchanges the current edition and selected slot instead of discarding current work. Explicit confirmed removal only; quota failure rolls back the attempted operation in the editor. Notes/theme remain unchanged. Existing archive format accepts validated optional editions; family fbook excludes private history. Legacy books open unchanged. No new artwork, dependencies, or keys. Regression passed; browser smoke includes save and swap. Startup 984388 bytes (previous 979185), under 1 MB. Physical-device acceptance and measured memory/time pending.
+
+
+### 1.5.80 follow-up — personal reader and browser fix
+
+Previous 1.5.80 PR browser run failed because the chapter selector matched two details panels; explicit chapter ID resolves the ambiguity. Added optional page reading mode from the existing personal book reader. Text and inline emphasis/headings retain their visible content, authored images are shown in order on separate pages; no rewriting, automatic art or library migrations. Layout uses actual viewport text-height fitting, font controls, swipe and arrow navigation, with approximate position stored in existing reading-offset map under an own: prefix. Full original reader and export retained. Tests cover markup and missing images, browser entry/return and fitting. Regression passed; browser rerun pending. Startup 990846 bytes; limit unchanged. Very long stories may take time to measure; physical iPad/peak memory unmeasured.
