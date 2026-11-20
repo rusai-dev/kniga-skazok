@@ -1,0 +1,18 @@
+{
+  "id": "ART-04",
+  "path": "assets/ui/writer-squirrel-144-v1.webp",
+  "width": 144,
+  "height": 144,
+  "bytes": 5232,
+  "sha256": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee",
+  "source_sha256": "4355a2e29dd7179bb104e6163cad9a80cd450c06466b62b7fed3907a5eba03f9",
+  "git_sha": "80d026584011bd8dee90b9592aea098ce98d2e9d",
+  "source": "Original AI-generated illustration, approved by owner in chat 2026-11-20; supersedes ART-04 fox in author entry only",
+  "source_dimensions": [
+    1254,
+    1254
+  ],
+  "role": "Decorative author entry artwork; no effect on draft or publication",
+  "status": "owner-approved reference, integrated candidate; CI and device pending",
+  "alt": ""
+}
