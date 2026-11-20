@@ -108,6 +108,30 @@ const server=http.createServer((req,res)=>{
   await page.locator('#storybookHome').waitFor({state:'visible'});assert.deepEqual(errors,[],'no runtime errors with older API set');
   console.log('PASS all six home destinations with older JavaScript API set');
  }finally{await legacy.close()}
+ // Separate touch-enabled contexts: follow public entry buttons, not internal artRoom().
+ for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
+  for(const mode of ['free','story']){
+   const touch=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'block'});
+   try{
+    const page=await touch.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(url);await page.locator('#startNotice').waitFor({state:'hidden'});
+    const storyText='Проверочная сказка о звезде.';
+    if(mode==='free'){await page.locator('#homeCreate').tap();await page.locator('#childDraw').tap()}
+    else{await page.locator('#homeWrite').tap();await page.locator('#storyBody').fill(storyText);await page.locator('#writerExtras > summary').tap();await page.locator('#drawStory').tap()}
+    const canvas=page.locator('#drawingCanvas'),expand=page.locator('#drawingExpand');
+    await canvas.waitFor({state:'visible'});const normal=await canvas.boundingBox(),blank=await canvas.evaluate(c=>c.toDataURL());
+    await expand.tap();await page.waitForFunction(w=>document.getElementById('drawingCanvas').getBoundingClientRect().width>=w*1.10,normal.width);
+    const big=await canvas.boundingBox();assert.ok(big.width*big.height>normal.width*normal.height*1.20);
+    await canvas.tap({position:{x:30,y:30}});const ink=await canvas.evaluate(c=>c.toDataURL());assert.notEqual(ink,blank,'touch creates a mark');
+    await expand.tap();assert.equal(await expand.getAttribute('aria-pressed'),'false');assert.equal(await canvas.evaluate(c=>c.toDataURL()),ink);
+    await page.locator('#drawingUndo').tap();assert.equal(await canvas.evaluate(c=>c.toDataURL()),blank);await page.locator('#drawingRedo').tap();assert.equal(await canvas.evaluate(c=>c.toDataURL()),ink);
+    await expand.tap();await page.locator('#drawingFullSave').tap();await canvas.waitFor({state:'hidden'});
+    if(mode==='story'){assert.equal(await page.locator('#storyBody').inputValue(),storyText,'illustration leaves story text intact')}
+    else{assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length),1,'touch saves one drawing')}
+    assert.deepEqual(errors,[]);console.log('PASS touch drawing',mode,viewport);
+   }finally{await touch.close()}
+  }
+ }
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.stack||e.message));
