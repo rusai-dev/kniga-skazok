@@ -15,6 +15,19 @@ const entry=fs.readFileSync(path.join(root,'index.html'),'utf8');
 assert.ok(entry.includes("const APP_RELEASE='"+release+"'"),'runtime release must match manifest');
 for(const asset of initialFiles.slice(1))assert.ok(entry.includes(asset+'?v='+release+'"'),'versioned core URL mismatched: '+asset);
 
+async function verifyWriterRetry(source){
+ const a=[{id:'a',title:'A'}],b=[{id:'b',title:'B'}],shaA='a'.repeat(40),shaB='b'.repeat(40),shaC='c'.repeat(40);
+ let local=a,remote={books:a,revision:1,sha:shaA},fail=false,reads=0,writes=0,status='';
+ const state={room:'test',key:null,ghSaved:JSON.stringify(a),ghVerifiedAt:Date.now()},store=new Map([['skazki-gh-state-test',JSON.stringify({sha:shaA})]]);
+ const tick=new Function('fam','ghToken','publicationWritable','$','fstatus','fget','fput','ghReadWriter','ghPublicAPI','fseal','ghRequest','ghPath','cloudEncode','toast','TextEncoder',source+'return ghWriterTick')(state,()=> 'test',()=>local,()=>null,v=>{status=v},k=>store.get(k), (k,v)=>{store.set(k,v);return true},async()=>{reads++;return remote},async()=>{if(fail)throw Error('offline');return {books:remote.books,revision:remote.revision}},async()=>({iv:'test',cipher:new Uint8Array(0)}),async()=>{writes++;const sha=writes===1?shaB:shaC;remote={books:local,revision:remote.revision+1,sha};return {content:{sha}}},()=> 'test',()=>'',()=>{},class{encode(){return new Uint8Array(0)}});
+ await tick(state);if(reads!==0)throw Error('recent verified snapshot should be reused');
+ local=b;fail=true;await tick(state);
+ if(writes!==1||remote.books!==b||state.ghSaved!==null||state.ghVerifiedAt!==0||!status.includes('не подтверждено'))throw Error('failed verification must invalidate old confirmation: '+JSON.stringify({writes,status,state}));
+ local=a;fail=false;await tick(state);
+ if(writes!==2||remote.books!==a||state.ghSaved!==JSON.stringify(a)||!status.includes('Проверено'))throw Error('reverted publication must be sent and verified');
+ await tick(state);if(reads!==2||writes!==2)throw Error('recent reverified snapshot should be reused');
+ return true;
+}
 const server=http.createServer((req,res)=>{
  const name=new URL(req.url,'http://127.0.0.1').pathname;
  const file=path.resolve(root,'.'+(name==='/'?'/index.html':name));
@@ -22,6 +35,7 @@ const server=http.createServer((req,res)=>{
  res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
 });
 (async()=>{
+ assert.ok(await verifyWriterRetry(entry.slice(entry.indexOf('function ghDecision('),entry.indexOf('function ghCachedRevision('))+entry.slice(entry.indexOf('async function ghWriterTick('),entry.indexOf('function ghWriterStart('))));
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const url='http://127.0.0.1:'+server.address().port+'/?view=personal';
  const engine=process.env.BROWSER==='webkit'?webkit:chromium;
