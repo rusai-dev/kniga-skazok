@@ -108,6 +108,44 @@ const server=http.createServer((req,res)=>{
   await page.locator('#storybookHome').waitFor({state:'visible'});assert.deepEqual(errors,[],'no runtime errors with older API set');
   console.log('PASS all six home destinations with older JavaScript API set');
  }finally{await legacy.close()}
+ // Separate touch-enabled contexts: follow public entry buttons, not internal artRoom().
+ for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
+  for(const mode of ['free','story']){
+   const touch=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'block'});
+   try{
+    const page=await touch.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(url);await page.locator('#startNotice').waitFor({state:'hidden'});
+    const storyText='Проверочная сказка о звезде.';
+    if(mode==='free'){await page.locator('#homeCreate').tap();await page.locator('#childDraw').tap()}
+    else{await page.locator('#homeWrite').tap();await page.locator('#storyTitle').fill('Сенсорная проверка');await page.locator('#storyBody').fill(storyText);await page.locator('#writerExtras > summary').tap();await page.locator('#drawStory').tap()}
+    const canvas=page.locator('#drawingCanvas'),expand=page.locator('#drawingExpand');
+    await canvas.waitFor({state:'visible'});const normal=await canvas.boundingBox(),blank=await canvas.evaluate(c=>c.toDataURL());
+    await expand.tap();await page.waitForFunction(w=>document.getElementById('drawingCanvas').getBoundingClientRect().width>=w*1.10,normal.width);
+    const big=await canvas.boundingBox();assert.ok(big.width*big.height>normal.width*normal.height*1.20);
+    await canvas.tap({position:{x:30,y:30}});const ink=await canvas.evaluate(c=>c.toDataURL());assert.notEqual(ink,blank,'touch creates a mark');
+    await expand.tap();assert.equal(await expand.getAttribute('aria-pressed'),'false');assert.equal(await canvas.evaluate(c=>c.toDataURL()),ink);
+    await page.locator('#drawingUndo').tap();assert.equal(await canvas.evaluate(c=>c.toDataURL()),blank);await page.locator('#drawingRedo').tap();assert.equal(await canvas.evaluate(c=>c.toDataURL()),ink);
+    await expand.tap();await page.locator('#drawingFullSave').tap();await canvas.waitFor({state:'hidden'});
+    if(mode==='story'){const body=await page.locator('#storyBody').inputValue();assert.equal(body.replace('\n[[рисунок:1]]\n',''),storyText,'illustration leaves story text intact');assert.ok(body.includes('[[рисунок:1]]'),'one illustration marker');assert.equal(await page.locator('#imageTray img').count(),1);assert.ok(await page.locator('#imageTray img').evaluate(img=>img.src.startsWith('data:image/jpeg;base64,')),'saved illustration attached to story')}
+    else{assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length),1,'touch saves one drawing')}
+    // A successful save must survive reload, not just update the current DOM.
+    if(mode==='story'){
+     const savedBody=await page.locator('#storyBody').inputValue(),savedImage=await page.locator('#imageTray img').getAttribute('src');
+     await page.reload();await page.locator('#startNotice').waitFor({state:'hidden'});
+     await page.locator('#homeDrafts').tap();await page.locator('[data-own-draft]').filter({hasText:'Сенсорная проверка'}).tap();
+     assert.equal(await page.locator('#storyBody').inputValue(),savedBody);
+     assert.equal(await page.locator('#imageTray img').getAttribute('src'),savedImage,'touch illustration persists in restored story');
+    }else{
+     const savedGallery=await page.evaluate(()=>localStorage.getItem('skazki-art-gallery-v1'));
+     await page.reload();await page.locator('#startNotice').waitFor({state:'hidden'});
+     await page.locator('#homeCreate').tap();await page.locator('#childDraw').tap();await page.locator('#openGallery').tap();
+     assert.equal(await page.locator('#galleryGrid [data-view]').count(),1);
+     assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-art-gallery-v1')),savedGallery,'touch gallery survives reload');
+    }
+    assert.deepEqual(errors,[]);console.log('PASS touch drawing',mode,viewport);
+   }finally{await touch.close()}
+  }
+ }
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.stack||e.message));
@@ -452,13 +490,31 @@ const server=http.createServer((req,res)=>{
  const drawingView=page.locator('#drawingCanvas'),expand=page.locator('#drawingExpand');
  const drawSnapshot=()=>drawingView.evaluate(c=>({pixels:c.toDataURL(),width:c.width,height:c.height}));
  const blankDrawing=await drawSnapshot(),normalBox=await drawingView.boundingBox();
+ assert.equal(await expand.evaluate(e=>e.parentElement.id),'studioSheet','size control belongs to the drawing sheet');
+ assert.ok((await expand.boundingBox()).height>=44,'large touch target');
+
  await expand.click();await page.waitForFunction(()=>document.getElementById('modal').classList.contains('canvas-full'));
- await page.waitForFunction(area=>{const c=document.getElementById('drawingCanvas').getBoundingClientRect();return c.width*c.height>=area},normalBox.width*normalBox.height);
+ await page.waitForFunction(w=>document.getElementById('drawingCanvas').getBoundingClientRect().width>=w*1.10,normalBox.width);
+ const enlargedBox=await drawingView.boundingBox();console.log('DRAWING RECT',JSON.stringify({viewport:page.viewportSize(),normal:normalBox,expanded:enlargedBox}));assert.ok(enlargedBox.width*enlargedBox.height>normalBox.width*normalBox.height*1.20,'expanded area must grow by at least 20 percent');
  assert.equal(await expand.getAttribute('aria-pressed'),'true');assert.ok((await expand.textContent()).includes('Уменьшить'));
  assert.deepEqual(await drawSnapshot(),blankDrawing,'expand must not reset or resample drawing');
  assert.equal(await page.locator('#drawingFullColor').isVisible(),true);
+ assert.equal(await page.locator('#drawingFullSave').isVisible(),true);
+ assert.equal(await page.locator('#drawingFullSave').isEnabled(),false,'blank drawing has no save');
+ for(const tool of ['fill','pick'])assert.equal(await page.locator('[data-tool="'+tool+'"]').isVisible(),true,'active tools remain visible');
+ const edge=await expand.boundingBox(),paper=await drawingView.boundingBox();assert.ok(edge.y+edge.height<=paper.y+1,'expand control must never cover pixels');
+
+ const detail=page.locator('#drawingDetail'),pan=page.locator('#drawingPan');
+ if(await detail.getAttribute('aria-pressed')==='false')await detail.click();
+ await pan.click();assert.equal(await pan.getAttribute('aria-pressed'),'true');
+ const view=await page.locator('#studioViewport').boundingBox();
+ await page.mouse.move(view.x+Math.min(180,view.width-20),view.y+Math.min(180,view.height-20));await page.mouse.down();await page.mouse.move(view.x+30,view.y+30,{steps:5});await page.mouse.up();
+ assert.deepEqual(await drawSnapshot(),blankDrawing,'moving paper must not draw on it');
+ assert.ok(await page.locator('#studioViewport').evaluate(e=>e.scrollLeft>0||e.scrollTop>0),'paper can be moved when zoomed');
+ await pan.click();await detail.click();assert.equal(await detail.getAttribute('aria-pressed'),'false');
+ assert.deepEqual(await drawSnapshot(),blankDrawing,'fit view preserves original paper');
  await page.locator('[data-tool="brush"]').click();await drawingView.click({position:{x:70,y:70}});
- const expandedDrawing=await drawSnapshot();assert.notEqual(expandedDrawing.pixels,blankDrawing.pixels);
+ const expandedDrawing=await drawSnapshot();assert.notEqual(expandedDrawing.pixels,blankDrawing.pixels);assert.ok(await page.locator('#drawingFullSave').isEnabled());
  const drawViewport=page.viewportSize();await page.setViewportSize({width:drawViewport.height,height:drawViewport.width});
  assert.deepEqual(await drawSnapshot(),expandedDrawing,'rotation preserves original pixels');
  await page.setViewportSize(drawViewport);
@@ -558,7 +614,7 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>document.getElementById('drawingStatus')?.textContent.includes('Продолжай свой сохранённый рисунок'));
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1')),draft);
  assert.deepEqual(await inkAt(),ink,'original contour restored after reload');
- await page.locator('#drawingSave').click();
+ await page.locator('#drawingExpand').click();await page.locator('#drawingFullSave').click();
  await page.locator('#galleryGrid [data-view]').first().click();assert.ok(await page.locator('.gallery-large').isVisible());
  await page.locator('#galleryReturn').click();assert.ok(await page.locator('#galleryGrid').isVisible());
  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length>0),'drawing stored');

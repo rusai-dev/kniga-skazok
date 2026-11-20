@@ -575,3 +575,8 @@ Chapter 2: optional 1–5 m model, prediction before explanation, outbound/retur
 ## Candidate 1.5.131 — reversible full-screen drawing
 
 Child can enlarge the existing 720x480 drawing in both standalone and story illustration workspaces using a labelled 44px toggle, then return with the same control or Escape. Full-screen uses available viewport; hides surrounding panels while keeping brush, eraser, quick color, undo/redo. Save and gallery remain in the normal workspace. Intrinsic canvas, pixel contents, outline, history, storage format and existing drawing behavior unchanged. No new assets or dependencies. Existing isolated regression passed; browser tests added for actual toggle, unchanged pixels, rotation, undo/redo and Escape. Physical iPad and hardware memory/latency not verified. Publish only after mandatory green CI.
+
+
+## Candidate 1.5.133 — actual enlarged drawing surface
+
+User reports 1.5.131 leaf does not enlarge. Previous browser assertion allowed equal area and portrait fit can be width-limited. #94 controls retained; version built from current main, no data format changes. New sheet viewport and detail mode scales CSS display by 1.4 when normal-to-full width gain is below 12%, with reversible whole-page view and explicit pan mode (no drawing while panning). Canvas bitmap remains 720×480. Test requires ≥10% width and >20% area gain, records geometry, verifies pan leaves pixels unchanged, fit/rotation/undo and full-screen save. Isolated regression 69 categories passed. Start source 989380 B (budget 1M). Actual deployment, physical iPad, browser CI pending. Detail view can crop edges until panned or switched to whole page; intentional, not bitmap cropping. No new assets.
