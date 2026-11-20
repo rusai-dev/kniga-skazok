@@ -369,3 +369,8 @@ Four stable, labelled denomination panels in blue, green, amber and violet, larg
 ## Candidate 1.5.96 — visual geometry reasoning
 
 Explicit geometry generator for all four levels. Rotated and stretched polygons with six fills teach sides and vertices; proportional rectangles label opposite pairs in purple and blue; level 3 alternates direct perimeter and inverse unknown-side problems. Interactive constructions keep existing constraints and scoring, with the same side-pair colors. 1,600 independent geometry checks including 200 inverse tasks passed alongside the full dependency-free regression. HTML 911430 → 914150 bytes; no new assets, libraries or data keys. Browser CI and physical device acceptance pending. The diagrams are schematic, not physical centimetres.
+
+
+## Candidate 1.5.97 — water and air investigations
+
+Two interactive investigations in existing science topics: evaporation, cloud formation and rainfall; air occupying space in an inverted cup and escaping as bubbles when tilted. Three labeled color diagrams per topic; no simulated timing or visible-water-vapor claims. The labs reuse the existing reveal-after-prediction and next-question workflow, with no new screen, persistence keys or external resources. Expanded regression covers 21 states and seven lab interactions, plus six new diagram checks. Full dependency-free suite passed; browser scenarios extended. HTML 914150 → 918342 bytes. Physical iPad, real-world learning and deployment remain unverified.
