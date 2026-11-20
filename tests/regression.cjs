@@ -17,7 +17,7 @@ function verify(html){
  'let count=0;const ids=new Set();for(const [key,rows] of Object.entries(shortScenes)){const b=books.find(x=>x.id===key);if(!b||rows.length!==b.pages.length)throw Error("art coverage");for(let i=0;i<rows.length;i++){const svg=shortBookArt(key,i);if(!svg.includes("aria-label=")||svg.includes("undefined")||svg.includes("NaN")||!svg.endsWith("</svg>"))throw Error("art "+key);for(const m of svg.matchAll(/id="([^"]+)"/g)){if(ids.has(m[1]))throw Error("duplicate id");ids.add(m[1])}count++}}return count;')(books,s=>s);
  const source=between('const worldLessons=','function letterDifference(a,b)');
  const academy=new Function('fget','fput','childArt','esc',source+
- 'let math=0,logic=0,memory=0,science=0;const valid=q=>q.q&&q.hint&&q.why&&q.answer&&(!q.opts||q.opts.includes(q.answer)&&new Set(q.opts).size===q.opts.length);for(const [k] of academyMath)for(let l=0;l<4;l++)for(let n=0;n<100;n++){const q=numberQuestion(k,n,l);if(!valid(q))throw Error("math "+k);if(k==="add"||k==="sub"){const m=q.q.match(/^(\\d+) ([+−]) (\\d+)/);if(!m||String(m[2]==="+"?+m[1]+ +m[3]:+m[1]- +m[3])!==q.answer)throw Error("arithmetic")}math++}for(const [k] of academyLogic)for(let l=0;l<4;l++)for(let n=0;n<100;n++){if(!valid(academyLogicQuestion(k,n,l)))throw Error("logic "+k);logic++}for(const [k] of memorySkills)for(let l=0;l<4;l++)for(let n=0;n<100;n++){const q=memoryCard(k,n,l);if(!memoryEqual(q,q.answer)||memoryEqual(q,q.answer.slice(1))||new Set(q.answer).size!==q.answer.length||q.answer.some(i=>!q.choices.includes(i)))throw Error("memory "+k);memory++}for(const b of worldLessons)for(let n=0;n<4;n++){const q=academyWorldQuestions(b[0],n);if(q.length!==3||q.some(x=>!x[0]||!x[1][x[2]]||new Set(x[1]).size!==x[1].length||!x[3]))throw Error("world "+b[0]);science++}return {math,logic,memory,science};')(()=>null,()=>true,()=>'',s=>s);
+ 'let math=0,logic=0,memory=0,science=0;const valid=q=>q.q&&q.hint&&q.why&&q.answer&&(!q.opts||q.opts.includes(q.answer)&&new Set(q.opts).size===q.opts.length);for(const [k] of academyMath)for(let l=0;l<4;l++)for(let n=0;n<100;n++){const q=numberQuestion(k,n,l);if(!valid(q))throw Error("math "+k);if(k==="add"||k==="sub"){const m=q.q.match(/^(\\d+) ([+−]) (\\d+)/);if(!m||String(m[2]==="+"?+m[1]+ +m[3]:+m[1]- +m[3])!==q.answer)throw Error("arithmetic")}math++}for(const [k] of academyLogic)for(let l=0;l<4;l++)for(let n=0;n<100;n++){if(!valid(academyLogicQuestion(k,n,l)))throw Error("logic "+k);logic++}for(const [k] of memorySkills)for(let l=0;l<4;l++)for(let n=0;n<100;n++){const q=memoryCard(k,n,l);if(!memoryEqual(q,q.answer)||memoryEqual(q,q.answer.slice(1))||new Set(q.answer).size!==q.answer.length||q.answer.some(i=>!q.choices.includes(i)))throw Error("memory "+k);if(k==="attention"){const forms=q.forms,colors=q.colors,form=l===0?["круги","квадраты","треугольники"].findIndex(x=>q.rule.includes(x)):forms.findIndex(x=>q.rule.includes(x)),color=colors.findIndex(x=>q.rule.includes(x));const correct=q.tiles.flatMap((t,i)=>t.form===form&&(l===0||t.color===color)?[i]:[]);if(colors.length!==(l>=2?6:4)||new Set(q.tiles.map(t=>t.color)).size!==colors.length||correct.length!==(l>=2?4:3)||String(correct)!==String(q.answer)||q.tiles.some(t=>!forms[t.form]||!colors[t.color]||!/^#[0-9A-F]{6}$/i.test(memoryShape(t).match(/fill="([^"]+)"/)?.[1]||"")))throw Error("attention color diversity or answer "+q.rule)}memory++}for(const b of worldLessons)for(let n=0;n<4;n++){const q=academyWorldQuestions(b[0],n);if(q.length!==3||q.some(x=>!x[0]||!x[1][x[2]]||new Set(x[1]).size!==x[1].length||!x[3]))throw Error("world "+b[0]);science++}return {math,logic,memory,science};')(()=>null,()=>true,()=>'',s=>s);
  const reading=new Function('books',between('const readingComprehension=','const comprehensionKey=')+
  'let quiz=0,terms=0;for(const b of books){const rows=readingComprehension[b.id];if(!rows||rows.length!==2||rows.some(x=>x.length!==5||new Set(x.slice(1,4)).size!==3))throw Error("quiz "+b.id);quiz+=rows.length;for(const [w,v] of readingGlossary[b.id]||[]){if(!b.pages.join(" ").toLowerCase().replace(/ё/g,"е").includes(w.toLowerCase().replace(/ё/g,"е"))||!v)throw Error("glossary "+w);terms++}}return {quiz,terms};')(books);
  const portable=new Function(between('const portableKeys=','function backup(){')+
@@ -117,6 +117,29 @@ function verify(html){
  if(m.kind==="line"&&m.max[0]>20&&mathModelMove(m,[m.max[0]-1],0,10)[0]!==m.max[0]-1)throw Error("invalid ten-step");count++;
  }return {count,alternatives};
  };
+
+ const checkLearningArt=()=>{
+  const clockCheck=(svg,h,min)=>{
+   const hands=[...svg.matchAll(/<path d="M100 100L([^ ]+) ([^"]+)" stroke="[^"]+" stroke-width="(7|4)"/g)];
+   if(hands.length!==2)throw Error("clock hands missing");
+   for(const [,x,y,w] of hands){const angle=w==="7"?(h+min/60)*Math.PI/6:min*Math.PI/30,r=w==="7"?43:58;if(Math.abs(+x-100-r*Math.sin(angle))>1e-7||Math.abs(+y-100+r*Math.cos(angle))>1e-7)throw Error("clock hand position "+h+":"+min)}
+  };
+  let clocks=0,data=0;
+  for(let h=1;h<=12;h++)for(let min=0;min<60;min+=5){clockCheck(clockPicture(h,false,min),h,min);clocks++}
+  for(let l=0;l<4;l++){const contexts=new Set();for(let n=0;n<200;n++){
+   const m=mathModelQuestion("clock",n,l)?.model;if(m){clockCheck(mathModelArt(m,m.solution),m.solution[0],m.solution[1]*m.unit);clocks++}
+   if(l>=2&&n%2===0){const q=numberQuestion("clock",n,l),[h,min]=q.answer.split(":").map(Number);clockCheck(q.picture,h,min);clocks++}
+   const q=numberQuestion("data",n,l),names=["Аня","Лена","Вера"],gen=["Ани","Лены","Веры"],ctx=["книг","шишек","открыток","закладок"].find(x=>q.q.includes(x));
+   if(!ctx)throw Error("data context");contexts.add(ctx);
+   const values=n%2?[...q.picture.matchAll(/font-weight="700">(\d+)<\/text>/g)].map(x=>+x[1]):[...q.picture.matchAll(/<td>(\d+)<\/td>/g)].map(x=>+x[1]);
+   if(values.length!==3)throw Error("data values");
+   const expected=l===0?values[names.findIndex(x=>q.q.includes(x))]:l===1?names[values.indexOf(Math.max(...values))]:l===2?Math.abs(values[gen.findIndex(x=>q.q.includes(x))]-values[gen.findLastIndex(x=>q.q.includes(x))]):values.reduce((a,b)=>a+b,0);
+   if(String(expected)!==q.answer)throw Error("data answer "+q.q);data++;
+  }if(contexts.size!==4)throw Error("data context diversity")}
+  return {clocks,data};
+ };
+ const artChecks=new Function('fget','fput','childArt','esc',source+'\nreturn ('+checkLearningArt.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
+ assert(artChecks.clocks===504&&artChecks.data===800,'clock geometry and data contexts');
  const models=new Function('fget','fput','childArt','esc',source+'\nreturn ('+modelVerifyCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
  const modelStore=new Map(),modelNodes=new Map();
  function modelNode(id){if(!modelNodes.has(id)){const x={id,hidden:false,disabled:false,textContent:'',value:'',dataset:{},children:[],querySelectorAll(){return this.children},setAttribute(){}};Object.defineProperty(x,'innerHTML',{set(v){this.markup=v;this.children=[...v.matchAll(/data-model-i="(\d+)" data-model-d="(-?\d+)"/g)].map(m=>({dataset:{modelI:m[1],modelD:m[2]}}))}});modelNodes.set(id,x)}return modelNodes.get(id)}
