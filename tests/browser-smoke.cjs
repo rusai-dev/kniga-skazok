@@ -452,13 +452,31 @@ const server=http.createServer((req,res)=>{
  const drawingView=page.locator('#drawingCanvas'),expand=page.locator('#drawingExpand');
  const drawSnapshot=()=>drawingView.evaluate(c=>({pixels:c.toDataURL(),width:c.width,height:c.height}));
  const blankDrawing=await drawSnapshot(),normalBox=await drawingView.boundingBox();
+ assert.equal(await expand.evaluate(e=>e.parentElement.id),'studioSheet','size control belongs to the drawing sheet');
+ assert.ok((await expand.boundingBox()).height>=44,'large touch target');
+
  await expand.click();await page.waitForFunction(()=>document.getElementById('modal').classList.contains('canvas-full'));
- await page.waitForFunction(area=>{const c=document.getElementById('drawingCanvas').getBoundingClientRect();return c.width*c.height>=area},normalBox.width*normalBox.height);
+ await page.waitForFunction(w=>document.getElementById('drawingCanvas').getBoundingClientRect().width>=w*1.10,normalBox.width);
+ const enlargedBox=await drawingView.boundingBox();console.log('DRAWING RECT',JSON.stringify({viewport:page.viewportSize(),normal:normalBox,expanded:enlargedBox}));assert.ok(enlargedBox.width*enlargedBox.height>normalBox.width*normalBox.height*1.20,'expanded area must grow by at least 20 percent');
  assert.equal(await expand.getAttribute('aria-pressed'),'true');assert.ok((await expand.textContent()).includes('Уменьшить'));
  assert.deepEqual(await drawSnapshot(),blankDrawing,'expand must not reset or resample drawing');
  assert.equal(await page.locator('#drawingFullColor').isVisible(),true);
+ assert.equal(await page.locator('#drawingFullSave').isVisible(),true);
+ assert.equal(await page.locator('#drawingFullSave').isEnabled(),false,'blank drawing has no save');
+ for(const tool of ['fill','pick'])assert.equal(await page.locator('[data-tool="'+tool+'"]').isVisible(),true,'active tools remain visible');
+ const edge=await expand.boundingBox(),paper=await drawingView.boundingBox();assert.ok(edge.y+edge.height<=paper.y+1,'expand control must never cover pixels');
+
+ const detail=page.locator('#drawingDetail'),pan=page.locator('#drawingPan');
+ if(await detail.getAttribute('aria-pressed')==='false')await detail.click();
+ await pan.click();assert.equal(await pan.getAttribute('aria-pressed'),'true');
+ const view=await page.locator('#studioViewport').boundingBox();
+ await page.mouse.move(view.x+Math.min(180,view.width-20),view.y+Math.min(180,view.height-20));await page.mouse.down();await page.mouse.move(view.x+30,view.y+30,{steps:5});await page.mouse.up();
+ assert.deepEqual(await drawSnapshot(),blankDrawing,'moving paper must not draw on it');
+ assert.ok(await page.locator('#studioViewport').evaluate(e=>e.scrollLeft>0||e.scrollTop>0),'paper can be moved when zoomed');
+ await pan.click();await detail.click();assert.equal(await detail.getAttribute('aria-pressed'),'false');
+ assert.deepEqual(await drawSnapshot(),blankDrawing,'fit view preserves original paper');
  await page.locator('[data-tool="brush"]').click();await drawingView.click({position:{x:70,y:70}});
- const expandedDrawing=await drawSnapshot();assert.notEqual(expandedDrawing.pixels,blankDrawing.pixels);
+ const expandedDrawing=await drawSnapshot();assert.notEqual(expandedDrawing.pixels,blankDrawing.pixels);assert.ok(await page.locator('#drawingFullSave').isEnabled());
  const drawViewport=page.viewportSize();await page.setViewportSize({width:drawViewport.height,height:drawViewport.width});
  assert.deepEqual(await drawSnapshot(),expandedDrawing,'rotation preserves original pixels');
  await page.setViewportSize(drawViewport);
@@ -558,7 +576,7 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>document.getElementById('drawingStatus')?.textContent.includes('Продолжай свой сохранённый рисунок'));
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1')),draft);
  assert.deepEqual(await inkAt(),ink,'original contour restored after reload');
- await page.locator('#drawingSave').click();
+ await page.locator('#drawingExpand').click();await page.locator('#drawingFullSave').click();
  await page.locator('#galleryGrid [data-view]').first().click();assert.ok(await page.locator('.gallery-large').isVisible());
  await page.locator('#galleryReturn').click();assert.ok(await page.locator('#galleryGrid').isVisible());
  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length>0),'drawing stored');
