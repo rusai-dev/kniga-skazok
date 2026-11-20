@@ -240,3 +240,8 @@ Makes writing the top-level home action. Own-author draft picker lists separate 
 ## Candidate 1.5.74 — author continuity and safe editor exit
 
 Shows unfinished edits of the child's already saved books alongside new drafts, without changing originals or storage schema. Moves existing preview and save status beside text, adds quick save/close. Failed writes now protect generic Back/Escape; explicit save retries and can close without saving only after confirmation. Successful publication clears the failure flag. Browser regression scenarios inject a storage write error, verify the editor stays open, retry and check persistence, plus edited draft and preview checks. Static/functional regression passed. Startup 965825 bytes under 1 MB. Browser and real device checks pending.
+
+
+## Candidate 1.5.75 — private story planning notebook
+
+Optional six-field notebook inside the author editor: character, traits, place, wish, obstacle/action, ending. Notes are written by the child; no generated prose or compulsory fields. Autosave supports notes-only drafts; chooser uses hero name when title is empty. Bounded notes are retained in the existing library and portable archive, deliberately excluded by family fbook and story text export. Legacy drafts open without notes; no migration or new keys. Added regression checks for normalization, HTML escaping and archive retention, browser lifecycle for notes-only draft/reload/publish/privacy. Startup 968423 bytes under 1 MB. Browser/physical iPad and learning outcomes pending.
