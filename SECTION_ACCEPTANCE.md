@@ -41,3 +41,26 @@ Branch `section-01-picture-placement`, based on #116 exact head 5aac4dd46fa4103c
 
 ## Follow-on 1.5.153
 Branch section-01-draft-recovery, based on #117 head 5e14908f144e0d970cf11b059b3f92573a413f39. A04/A10: new on-demand single OWN draft JSON rescue (text, images, cover, plan, versions) from active editor on failed save. Existing TXT kept. Import through backup preview adds a private new draft; no replacement of books or publications, cancellation supported. Unknown theme restored as local theme. No storage schema change. Uninserted canvas is not part of snapshot. Source 998457 B; syntax checked, synthetic tests added, CI pending. Full device/real archive and concurrent writes still outstanding. 0/12 full mandatory rows accepted. Next: complete #117 then #118 exact head CI, inventory all optional controls, device check.
+
+## 1.5.153 follow-up, same PR #118
+Found full-copy rescue hidden by compact writer whitelist. Both rescue choices now share a 44px action row visible in keyboard mode. Backup file read is bound to the originating backup modal; late result cannot replace an unrelated dialog. Added compact-mode full rescue bounds check and quota-failed additive restore / retry with exact persisted-state comparison. Source 998842 B (prior 998457); syntax passed, new exact-head CI required. No schema change. Real iPad and live family archive remain blocked, A01–A12 full rows 0/12.
+
+### Per-action inventory — writer / related routes (static audit, not blanket PASS)
+| Screen | Controls / input | Expected result and return | Evidence / still required |
+|---|---|---|---|
+| Draft picker | [data-own-draft], [data-own-edit], newOwnStory | chosen private draft / edit / blank sheet, back to caller | existing browser paths; check focus/back |
+| Writer main | storyTitle, storyBody, writerFocus, writerDoneTyping, saveStoryNow, close, publishStory, publishFamily | optional title, free text, expand/restore, blur, save/return, explicit publish | compact and quota browser fixtures; physical keyboard/IME unknown |
+| Writer rescue | rescueDraft, rescueFull | TXT or complete private JSON, remain in editor, retry save | added compact bounds assertion and exact copy test |
+| Writer quick idea | quickIdea, quickIdeaClose | one prompt, dismiss and restore focus, unchanged text | verify repeat/dismiss and no mutation |
+| Writer extras / notes | writerExtras, story notebook details, [data-story-plan], storyTheme, storyIcon | optional disclosure, private notes/theme/icon, return to same text | verify touch, reload, no leak |
+| Chapters | storyChapters, newChapterTitle, appendChapter, [data-chapter-jump], chapterStory | add/jump, preserve text on failure, return to editor | rollback test exists; check wrapped text/jump |
+| Typography | storyFont, storySize, boldStory, italicStory, previewStory, bookPreviewChapter | chosen font/size, voluntary markup, preview and selection, exit preview | verify all normal and failure paths |
+| Editions | versionSave, [data-version-use], [data-version-delete] | save/swap/remove with confirmation, current version retained | existing version fixtures; quota rollback |
+| Pictures | drawStory, pictureStory/pictureFile, [data-cover-pic], [data-move-pic], [data-picture], coverColor, coverImage | insert, select cover, move, delete/cancel, return to editor | browser picture rollback tests; unfinished canvas separate |
+| Ideas / words / literacy | ideaStage, ideaStory, writerWordSelect, literacyToggle, literacyCheck, literacyAccept, literacyNext, literacyLocate | one voluntary idea or correction; explicit acceptance only | individual action coverage and unchanged prose checks needed |
+| Text import | loadText, storyFile | preview replacement confirmation, preserve edition, cancel/failure rollback | existing browser fixtures |
+| Own reader | ownReadPages, ownReadBack, ownReadSmall/Large, ownReadPrev/Next/Jump | page fits, prev/next and jump, return, position retained | existing paginated fixtures; size persistence needs review |
+| Family shelf | familyOwnInvite, familyOwnBack, family-own-book, shareFamilyBook | explicit selection, invitation setup, return, share selected snapshot | synthetic archive tests; real anonymous access unknown |
+| Parent backups | download, restore/importFile, localRestore, undoRestore, confirmRestore, confirmDraftRescue, cancelRestore | validated file, confirm or cancel, additive draft vs full replacement; retry on failure | quota test added, async origin guard; full rollback evidence partial |
+
+Next: verify #117 exact CI and merge if compatible; then #118 exact-head checks and Pages. Complete action audit for shelf, family and drawing including measured accessibility and real-device evidence. No new section until acceptance.
