@@ -2,7 +2,8 @@
 'use strict';
 const REV='1.5.67',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
 const ROOT=new URL('./',self.registration.scope).href,INDEX=new URL('index.html',ROOT).href;
-const CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css'].map(name=>new URL(name+'?v='+REV,ROOT).href);
+const LEGACY_CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css'].map(name=>new URL(name,ROOT).href);
+const CORE=LEGACY_CORE.map(url=>url+'?v='+REV);
 const ART=new Set(['andersen-pea-bed.webp','andersen-pea-journey.webp','andersen-pea-morning.webp','andersen-pea-rain.webp','classic-cinder-1.jpg','classic-cinder-11.jpg','classic-cinder-3.jpg','classic-cinder-7.jpg','historic-pea-morning.jpg','historic-sunny.jpg','historic-wind1.jpg','historic-wind2.jpg','premium-coloring.png','premium-storybook.webp'].map(name=>new URL('assets/books/'+name,ROOT).href));
 async function fresh(url){return fetch(url,{cache:'no-store',credentials:'same-origin'})}
 function isHTML(r){return r.ok&&/text\/html/i.test(r.headers.get('content-type')||'')}
@@ -24,12 +25,16 @@ self.addEventListener('fetch',event=>{
  if(CORE.includes(url.href)){
   event.respondWith((async()=>{const cached=await find(CACHE,url.href);if(cached)return cached;const r=await fresh(url.href);if(r.ok)await save(CACHE,url.href,r);return r})());return;
  }
+ if(LEGACY_CORE.includes(url.href)){
+  // Old cached HTML uses bare URLs; retain its offline fallback during migration.
+  event.respondWith((async()=>{try{return await fresh(url.href)}catch(e){return await find('skazki-shell-v2',url.href)||await find('skazki-shell-v1',url.href)||Response.error()}})());return;
+ }
  if(ART.has(url.href)){
   event.respondWith((async()=>{const cached=await find(ART_CACHE,url.href);if(cached)return cached;const r=await fresh(url.href);if(isImage(r))await save(ART_CACHE,url.href,r);return r})());return;
  }
  if(req.mode!=='navigate'||(url.pathname!==base.pathname&&url.pathname!==new URL(INDEX).pathname))return;
  event.respondWith((async()=>{
-  try{const r=await fresh(req.url);if(r.ok){if(await sameRelease(r))await save(CACHE,INDEX,r);return r}if(r.status<500)return r;throw Error('network')}
+  try{const r=await fresh(req.url);if(r.ok)return r;if(r.status<500)return r;throw Error('network')}
   catch(e){return await find(CACHE,INDEX)||await find('skazki-shell-v2',INDEX)||await find('skazki-shell-v1',INDEX)||new Response('Открой Книгу сказок с интернетом один раз.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8'}})}
  })());
 });
