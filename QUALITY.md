@@ -404,3 +404,8 @@ Previously every installed release retained its own full versioned cache. Activa
 ## Candidate 1.5.103 — deferred reading banks and shelf rendering
 
 Avoid creating three static reading question/glossary objects at initial script execution (24026 bytes of source data); create once on first use, retaining inline offline/file support. Cache validated immutable book catalog and use one history, progress and favorites snapshot per shelf update instead of repeated storage parsing per book. No book contents, art, user data, or network dependencies changed. Full regression passed including deferred/memoized bank assertions, 19 books, 38 quiz questions and 32 terms; browser assertion added for deferred banks at home. HTML 938810 → 939402 bytes. This optimizes allocation and repeated parsing, not network transfer. Device timings/memory remain unmeasured.
+
+
+## Candidate 1.5.104 — verified absence of family archive
+
+A raw CDN 404 is no longer sufficient to declare an archive absent. The independent anonymous API must also return 404; temporary errors invalidate the in-memory absence confirmation, without increasing polling frequency. A previously received shelf remains readable and shows a separate unavailable status. No changes to publication content, encryption, storage keys or actual family archives. Full dependency-free regression and six isolated status transitions passed; browser scenario covers throttling, two 404 responses and API failures. Cache test versions derived from release manifest rather than hardcoded. HTML 939402 → 939883 bytes. Browser CI, live family invitation and physical-device acceptance remain pending.

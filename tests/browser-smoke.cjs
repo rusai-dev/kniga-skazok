@@ -29,23 +29,25 @@ const server=http.createServer((req,res)=>{
   const ctx=await browser.newContext({serviceWorkers:'allow'}),page=await ctx.newPage();
   try{
    await page.goto(new URL('release.json',url).href);
-   await page.evaluate(async()=>{const names=['skazki-shell-1.5.98','skazki-shell-1.5.99','skazki-shell-1.5.100','skazki-shell-1.5.101','skazki-shell-1.5.102','skazki-shell-1.5.104','skazki-shell-v2','unrelated-cache'];for(const name of names)await caches.open(name);const old=await caches.open('skazki-shell-1.5.102');await old.put(new URL('classic-art-153.js?v=1.5.102',location.href).href,new Response('/* previous core */'));});
+   const parts=release.split('.').map(Number),rev=offset=>[parts[0],parts[1],parts[2]+offset].join('.'),shell=offset=>'skazki-shell-'+rev(offset);
+   const obsolete=[-5,-4,-3].map(shell),keep=[-2,-1,0,1].map(shell).concat(['skazki-shell-v2','unrelated-cache']),previousCore='./classic-art-153.js?v='+rev(-1);
+   await page.evaluate(async({names,oldName,previousCore})=>{for(const name of names)await caches.open(name);const old=await caches.open(oldName);await old.put(new URL(previousCore,location.href).href,new Response('/* previous core */'));},{names:obsolete.concat(keep.filter(n=>n!==shell(0))),oldName:shell(-1),previousCore});
    await page.goto(url);
    await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});await navigator.serviceWorker.ready});
    await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
-   await page.waitForFunction(async()=>{const keys=await caches.keys();return !keys.includes('skazki-shell-1.5.98')&&!keys.includes('skazki-shell-1.5.99')&&!keys.includes('skazki-shell-1.5.100')});
-   const retained=await page.evaluate(()=>caches.keys());assert.ok(!retained.includes('skazki-shell-1.5.99'));for(const name of ['skazki-shell-1.5.101','skazki-shell-1.5.102','skazki-shell-1.5.103','skazki-shell-1.5.104','skazki-shell-v2','unrelated-cache'])assert.ok(retained.includes(name),'retained '+name);
+   await page.waitForFunction(async obsolete=>{const keys=await caches.keys();return obsolete.every(k=>!keys.includes(k))},obsolete);
+   const retained=await page.evaluate(()=>caches.keys());for(const name of keep)assert.ok(retained.includes(name),'retained '+name);
    const artPath='./assets/books/andersen-pea-bed.webp';
    assert.equal(await page.evaluate(async()=>{const c=await caches.open('skazki-book-art-v1');return (await c.keys()).length}),0,'no book art is precached');
    await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();localStorage.setItem('skazki-reading-size-v1','28')},artPath);
    assert.equal(await page.evaluate(async path=>!!await (await caches.open('skazki-book-art-v1')).match(new URL(path,location.href).href),artPath),true,'viewed art cached');
-   assert.equal(await page.evaluate(async()=>!!await (await caches.open('skazki-shell-1.5.102')).match(new URL('classic-art-153.js?v=1.5.102',location.href).href)),true,'previous version retained before offline');
-   await ctx.setOffline(true);assert.equal(await page.evaluate(async()=>await (await fetch('./classic-art-153.js?v=1.5.102')).text()),'/* previous core */');await page.reload();
+   assert.equal(await page.evaluate(async({name,previousCore})=>!!await (await caches.open(name)).match(new URL(previousCore,location.href).href),{name:shell(-1),previousCore}),true,'previous version retained before offline');
+   await ctx.setOffline(true);assert.equal(await page.evaluate(async previousCore=>await (await fetch(previousCore)).text(),previousCore),'/* previous core */');await page.reload();
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.103')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
-   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.103');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   assert.equal(await page.evaluate(async name=>{const keys=await (await caches.open(name)).keys();return keys.length},shell(0)),7,'complete versioned core including both artwork sprites');
+   const uiSprites=await page.evaluate(async name=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open(name);return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))},shell(0));assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -462,6 +464,15 @@ const server=http.createServer((req,res)=>{
   let requests=[];const fixtureFetch=async(input,options)=>{const url=String(input);if(url.startsWith('https://raw.githubusercontent.com/'+GH_REPO+'/')){requests.push('cdn');return {ok:true,status:200,text:async()=>raw}}if(url.startsWith(GH_API+'/contents/')){requests.push('api');return {ok:true,status:200,json:async()=>({type:'file',encoding:'base64',content:encoded})}}return original(input,options)};
   const received=await ghReadPublic(s,true,fixtureFetch);return {revision:received.revision,theme:received.books[1]?.theme,requests}
  });assert.deepEqual(synced,{revision:2,theme:'Море',requests:['cdn','api']},'encrypted archive refresh defeats stale CDN response');
+ const absence=await page.evaluate(async()=>{
+  const s={room:'skazki-'+'b'.repeat(64),ghAPICheck:0},requests=[];let apiStatus=503,rawStatus=404;
+  const fixture=async url=>{const raw=url.startsWith('https://raw.githubusercontent.com/');requests.push(raw?'raw':'api');const status=raw?rawStatus:apiStatus;return {status,ok:false}};
+  const outcome=async()=>{try{return await ghReadPublic(s,true,fixture)===null?'missing':'read'}catch{return 'unavailable'}};
+  const first=await outcome(),limited=await outcome();s.ghAPICheck=0;apiStatus=404;
+  const confirmed=await outcome(),cached=await outcome();s.ghAPICheck=0;apiStatus=403;
+  const failed=await outcome(),afterFail=await outcome();
+  return {first,limited,confirmed,cached,failed,afterFail,requests}
+ });assert.deepEqual(absence,{first:'unavailable',limited:'unavailable',confirmed:'missing',cached:'missing',failed:'unavailable',afterFail:'unavailable',requests:['raw','api','raw','raw','api','raw','raw','api','raw']},'only independently confirmed absence is reported; failures invalidate cached absence');
  const rollback=await page.evaluate(()=>{const cache='qa-family-revision-cache',secret='b'.repeat(64),books=[{id:'latest',title:'Свежая сказка',theme:'Лес',body:'Текст.',icon:'📖'}];const previousReader=fget(FAMILY_READER),previousConfirmed=fget(FAMILY_CONFIRMED);try{fdel(cache);fdel(cache+'-revision');const s={cache,secret,books:[],received:false};ghPublicCache(s,{revision:3,books});const reopened={cache,secret,books:JSON.parse(fget(cache)),ghRevision:ghCachedRevision({cache})};const stale=ghPublicCache(reopened,{revision:2,books:[]});const staleStatus=document.getElementById('familyViewStatus').textContent;const retry=ghPublicCache(reopened,{revision:3,books});return {revision:reopened.ghRevision,stale,count:JSON.parse(fget(cache)).length,status:staleStatus,retry,recovered:document.getElementById('familyViewStatus').textContent}}finally{fdel(cache);fdel(cache+'-revision');previousReader===null?fdel(FAMILY_READER):fput(FAMILY_READER,previousReader);previousConfirmed===null?fdel(FAMILY_CONFIRMED):fput(FAMILY_CONFIRMED,previousConfirmed)}});assert.equal(rollback.revision,3);assert.equal(rollback.stale,false);assert.equal(rollback.count,1);assert.ok(rollback.status.includes('не подтвердил свежую'));assert.equal(rollback.retry,true);assert.ok(rollback.recovered.includes('проверено и сохранено'));
  assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }
