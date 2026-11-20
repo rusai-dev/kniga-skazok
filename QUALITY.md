@@ -225,3 +225,8 @@ Fixes reported iPad view: theme chips were clipped by max-height and grid stretc
 ## Candidate 1.5.71 — qualitative science models
 
 Adds ice/temperature comparison and string vibration models to existing science lessons. Three distinct states per lab, explicit schematic limits, no real sound or numerical melting claims, no extra assets or dependencies. Models remain hidden before the first answer and on subsequent checks; storage and scoring unchanged. Regression passes 15 model states and 5 full lab transitions including the new labs; browser smoke has both new labs. Initial source 951011 bytes, under 1 MB. Physical iPad, learning outcomes and new browser run not yet verified. Includes explicit grid placement fix from 1.5.70 after browser logs showed authors above themes due to a legacy grid-row rule.
+
+
+## Candidate 1.5.72 — Russian language and guided story writing
+
+60 distinct language items instead of 36; added eight per skill (spelling, sentences, meaning) with level-specific pools and original typed spelling. Four writing stages (beginning, adventure, ending, revision), 16 optional prompts; random ideas remain. Prompts never insert or modify story text. No changes to storage keys, original art or dependencies. Regression passes 288 language cases and 16 guidance prompts. Browser smoke checks stage switching and preservation of the text. Initial source 960531 bytes under 1 MB. Physical device and pedagogical acceptance pending.
