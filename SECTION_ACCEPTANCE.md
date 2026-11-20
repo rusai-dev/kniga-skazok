@@ -35,3 +35,6 @@ Based on master prompt §§114–119, 127–132. A PASS requires evidence for th
 
 ## Exact next action
 Read CI for the current branch/PR head, fix failures without changing acceptance criteria or resource limits. Verify deployment separately if merged. Then free startup reserve losslessly, reconcile #112 placement and complete the per-action inventory including family/backup routes. Request one physical iPad test of typing/reopening when candidate is live; real family archive verification requires authorized isolated synthetic access. Do not mark either as PASS before evidence.
+
+## Follow-on candidate 1.5.152
+Branch `section-01-picture-placement`, based on #116 exact head 5aac4dd46fa4103ca1181ec62cb1262959ef346d; do not merge until #116 accepted and compatible with main. Expanded existing lossless dictionary; all 36 books exactly equal canonical JSON. Source budget 995955 B (from 999530 B). Restored only compatible placement logic from #112, not its obsolete HTML/catalog; optional move after paragraph, failed write rolls back text; failed cover change rolls back. Synthetic tests for marker edge cases, quota, placement and cover. A07/A12 evidence partial; mandatory rows remain 0/12; full CI pending. Next: finish #116, verify exact #117 or subsequent PR CI, deployment and device; add remaining action inventory and image-inclusive rescue.

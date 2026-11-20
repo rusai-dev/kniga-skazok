@@ -34,6 +34,7 @@ function verify(html,sourceCatalog){
  const familyKey=new Function(html.slice(html.indexOf('function familyReadingKey('),html.indexOf('function fread(s)'))+'return familyReadingKey')();
  assert(familyKey('room-a','id')!==familyKey('room-b','id')&&familyKey('room-a','id')!=='own:id'&&familyKey('a,b','c')!==familyKey('a','b,c'),'family reading offsets isolated by room and book');
  assert(html.includes("activeDialog!==kind")&&html.includes("ownBookRead(b.id,{book:b,room:s.room})")&&html.includes("if(!wasHidden&&s.readingRendered===edition)return"),'family pagination shares measured reader and avoids unchanged edition redraw');
+ const movePicture=new Function(html.slice(html.indexOf('function storyPictureMove('),html.indexOf('function richBody('))+'return storyPictureMove')();const mr={markup:true,images:['x']},mm='[[рисунок:1]]',mb='Первый абзац.\nВторой абзац.\n'+mm;assert(movePicture(mb,mr,0,2).body==='Первый абзац.\n'+mm+'\nВторой абзац.\n','move image after selected paragraph preserves words');assert(movePicture(mb+mm,mr,0,2)===null&&movePicture(mb,{...mr,markup:false},0,2)===null&&movePicture(mb,mr,1,2)===null,'protect duplicate or missing marker and literal text');
  const pictureRemoval=new Function(html.slice(html.indexOf('function storyPictureRemoval('),html.indexOf('function richBody('))+'return storyPictureRemoval')();
  const picRich={images:['a','b','c'],markup:true,coverImage:1,font:'story'},picBody='Текст [[рисунок:2]]\n[[рисунок:1]]\n[[рисунок:2]]';
  const removed=pictureRemoval(picBody,picRich,1);
