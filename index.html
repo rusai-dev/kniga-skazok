@@ -2620,15 +2620,13 @@ function memoryCard(skill,n,l){
  if(mode==='both'){tiles[distractors[0]]={form:targetForm,color:otherColor};tiles[distractors[1]]={form:other,color:targetColor};reserved=2}
  if(mode==='except'){tiles[distractors[0]]={form:targetForm,color:targetColor};tiles[distractors[1]]={form:other,color:otherColor};reserved=2}
  if(mode==='or'){tiles[forced[0]]={form:targetForm,color:otherColor};tiles[forced[1]]={form:other,color:targetColor};tiles[forced[2]]={form:targetForm,color:targetColor}}
- // Assign colors to distinct spare distractors, without removing the last occurrence of a previously covered color.
- const free=distractors.slice(reserved);
+ // Reserve one spare distractor per color not already covered by fixed examples.
+ const fixed=forced.concat(distractors.slice(0,reserved)),free=distractors.slice(reserved);
  for(let c=0;c<colors.length;c++){
-  if(tiles.some(t=>t.color===c))continue;
-  const pool=no.filter(t=>t.color===c);
-  const i=free.find(i=>tiles.filter(t=>t.color===tiles[i].color).length>1);
-  if(i!==undefined&&pool.length){tiles[i]={...pool[academyPick(n,95+c,0,pool.length-1)]};free.splice(free.indexOf(i),1)}
+  if(fixed.some(i=>tiles[i].color===c))continue;
+  const pool=no.filter(t=>t.color===c),i=free.shift();
+  if(i!==undefined&&pool.length)tiles[i]={...pool[academyPick(n,95+c,0,pool.length-1)]};
  }
- // A color-only rule always has its target color on the selected cells; other colors can be assigned to distractors.
  const rule=mode==='form'?'Найди все '+['круги','квадраты','треугольники'][targetForm]+'. Цвет не важен.':mode==='color'?'Найди все фигуры. Цвет — '+colors[targetColor]+'. Форма не важна.':mode==='both'?'Найди все подходящие фигуры. Форма — '+forms[targetForm]+', цвет — '+colors[targetColor]+'.':mode==='except'?'Форма — '+forms[targetForm]+'. Исключи цвет: '+colors[targetColor]+'.':'Выбери фигуры, у которых форма — '+forms[targetForm]+' ИЛИ цвет — '+colors[targetColor]+'. Если подходят оба признака, тоже выбери.';
  return {kind:skill,size,answer:all.filter(i=>match(tiles[i])),choices:all,tiles,rule,forms,colors,mode,targetForm,targetColor};
 }
