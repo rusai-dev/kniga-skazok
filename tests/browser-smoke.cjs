@@ -253,6 +253,13 @@ const server=http.createServer((req,res)=>{
  await page.locator('#studyNext').click();
  assert.equal(await page.locator('#studySequence').isVisible(),false);
  await page.keyboard.press('Escape');
+ await page.evaluate(()=>{let v=studyState("logic-deduction");v.n=2;v.level=3;studySave("logic-deduction",v);studyOpen("logic","deduction")});
+ assert.equal(await page.locator('#sequenceRules li').count(),4);assert.equal(await page.locator('#sequenceRules li').filter({hasText:'соседние места'}).count(),2);
+ const deductOrder=await page.evaluate(()=>academyLogicQuestion("deduction",2,3).sequence.solution);
+ for(const i of deductOrder.slice().reverse())await page.locator('#sequenceChoices [data-answer="'+i+'"]').click();
+ await page.locator('#sequenceCheck').click();assert.ok((await page.locator('#studyFeedback').textContent()).includes('Проверь условие'));
+ await page.locator('#sequenceReset').click();for(const i of deductOrder)await page.locator('#sequenceChoices [data-answer="'+i+'"]').click();await page.locator('#sequenceCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
+ await page.keyboard.press('Escape');
  await page.evaluate(()=>{let v=studyState("logic-order");v.n=3;v.level=2;studySave("logic-order",v);studyOpen("logic","order")});
  assert.ok(await page.locator('#studySpatial').isVisible());await page.locator('#spatialControls button:enabled').first().click();
  assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 1');
