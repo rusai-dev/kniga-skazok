@@ -575,3 +575,8 @@ Chapter 2: optional 1–5 m model, prediction before explanation, outbound/retur
 ## Candidate 1.5.131 — reversible full-screen drawing
 
 Child can enlarge the existing 720x480 drawing in both standalone and story illustration workspaces using a labelled 44px toggle, then return with the same control or Escape. Full-screen uses available viewport; hides surrounding panels while keeping brush, eraser, quick color, undo/redo. Save and gallery remain in the normal workspace. Intrinsic canvas, pixel contents, outline, history, storage format and existing drawing behavior unchanged. No new assets or dependencies. Existing isolated regression passed; browser tests added for actual toggle, unchanged pixels, rotation, undo/redo and Escape. Physical iPad and hardware memory/latency not verified. Publish only after mandatory green CI.
+
+
+## Candidate 1.5.132 — controls at the sheet edge and full-screen save
+
+Follow-up to #93, based on head 1dff012. Move the single resize button to the sheet frame, outside drawable pixels, and reserve its height during layout. Preserve visible fill/pick controls (including active tool), add a full-screen save proxy to the existing guarded save action, synchronize disabled state and ensure lesson layout expands as well. No changes to user storage, image assets or canvas resolution. Source 986270 → 987131 B; isolated regression passed (69 categories). Added browser assertions for touch target, non-overlap, enabled state, visible tools and real gallery save from expanded mode. Requires green Chromium/WebKit and acceptance of #93 before merge. Physical iPad, actual device memory and family archive not tested.
