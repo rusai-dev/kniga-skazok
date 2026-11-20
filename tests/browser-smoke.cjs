@@ -214,6 +214,14 @@ const server=http.createServer((req,res)=>{
  await page.locator('#drawingCanvas').click({position:{x:12,y:12}});
  assert.equal(await page.locator('#drawingCustom').inputValue(),'#bd3948');
  assert.equal(await pixelState(),colored,'pipette does not change pixels');
+ // The protected sun contour must survive both fill taps and strokes across it.
+ const inkAt=()=>page.locator('#drawingCanvas').evaluate(c=>Array.from(c.getContext('2d').getImageData(646,81,1,1).data));
+ const canvasPoint=async(x,y)=>{const q=await page.locator('#drawingCanvas').boundingBox();return {x:q.x+x*q.width/720,y:q.y+y*q.height/480}};
+ const ink=await inkAt();assert.ok(ink[0]<150,'expected original ink');
+ await page.locator('[data-tool="fill"]').click();const inkPoint=await canvasPoint(646,81);await page.mouse.click(inkPoint.x,inkPoint.y);assert.equal(await pixelState(),colored,'fill on original ink ignored');
+ await page.locator('[data-tool="brush"]').click();await page.locator('#drawingColors button[data-color="#bd3948"]').click();const l=await canvasPoint(630,81),r=await canvasPoint(662,81);await page.mouse.move(l.x,l.y);await page.mouse.down();await page.mouse.move(r.x,r.y,{steps:5});await page.mouse.up();assert.deepEqual(await inkAt(),ink,'brush preserves outline');await page.locator('#drawingUndo').click();assert.equal(await pixelState(),colored);
+ await page.locator('[data-tool="eraser"]').click();await page.mouse.click(inkPoint.x,inkPoint.y);assert.deepEqual(await inkAt(),ink,'eraser preserves outline');await page.locator('#drawingUndo').click();assert.equal(await pixelState(),colored);
+
  assert.ok(await page.locator('#recentDrawingColors button').count());
  const textures=await page.evaluate(()=>{const outputs=[];for(const effect of ['solid','soft','marker','crayon','water']){const c=document.createElement('canvas');c.width=100;c.height=50;const cx=c.getContext('2d');studioStroke(cx,{x:15,y:25},{x:85,y:25},12,effect,'#bd3948');outputs.push(c.toDataURL())}return new Set(outputs).size});
  assert.equal(textures,5,'distinct brush strokes');
@@ -244,10 +252,17 @@ const server=http.createServer((req,res)=>{
  await page.keyboard.press('Escape');await page.reload();await page.evaluate(()=>artRoom());
  await page.waitForFunction(()=>document.getElementById('drawingStatus')?.textContent.includes('Продолжай свой сохранённый рисунок'));
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1')),draft);
+ assert.deepEqual(await inkAt(),ink,'original contour restored after reload');
  await page.locator('#drawingSave').click();
  await page.locator('#galleryGrid [data-view]').first().click();assert.ok(await page.locator('.gallery-large').isVisible());
  await page.locator('#galleryReturn').click();assert.ok(await page.locator('#galleryGrid').isVisible());
  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length>0),'drawing stored');
+ const savedGallery=await page.evaluate(()=>localStorage.getItem(ART_GALLERY));
+ const expanded=await page.evaluate(()=>{const old=galleryItems();const image=old[0].src;let ok=0;for(let i=old.length;i<10;i++)if(gallerySave(image))ok++;return {count:galleryItems().length,first:galleryItems()[0].id,oldFirst:old[0].id,ok}});
+ assert.equal(expanded.count,10);assert.equal(expanded.first,expanded.oldFirst);
+ await page.reload();await page.evaluate(()=>artGallery());assert.equal(await page.locator('#galleryGrid [data-view]').count(),10);
+ await page.evaluate(raw=>localStorage.setItem(ART_GALLERY,raw),savedGallery);
+
  await page.keyboard.press('Escape');
  const archiveFixture=await page.evaluate(()=>{
  const book={id:'archive-test-book',title:'Тестовая книга',body:'Сохранённый текст.',theme:'Винни-Пух',author:OWN,icon:'📖'};
