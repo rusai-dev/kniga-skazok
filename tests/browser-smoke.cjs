@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.73')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.74')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -70,15 +70,20 @@ const server=http.createServer((req,res)=>{
  assert.ok(await page.evaluate(()=>document.getElementById('storyBody').compareDocumentPosition(document.getElementById('storyTheme'))&Node.DOCUMENT_POSITION_FOLLOWING),'writing before settings');
 
  const original=await page.locator('#storyBody').inputValue(),originalLibrary=await page.evaluate(()=>localStorage.getItem(KEY));
+ await page.locator('#previewStory').click();assert.ok(await page.locator('#bookPreview').isVisible());await page.locator('#previewStory').click();assert.equal(await page.locator('#bookPreview').isVisible(),false);
  await page.locator('.story-guide summary').click();
  await page.locator('#ideaStage').selectOption('revise');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('Прочитай начало'));
  await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('повторяется'));
  await page.locator('#ideaStage').selectOption('middle');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('мешает'));
  assert.equal(await page.locator('#storyBody').inputValue(),original,'guidance never modifies story');assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),originalLibrary,'guidance never writes library');await page.keyboard.press('Escape');
  const beforeDrafts=await page.evaluate(()=>JSON.stringify(data));
- await page.evaluate(()=>{const a={author:OWN,theme:'Лес',title:'Лесной черновик',body:'Текст один'},b={author:OWN,theme:'Море',title:'Морской черновик',body:'Текст два'};data.drafts={...data.drafts,[draftKey(OWN,'Лес')]:a,[draftKey(OWN,'Море')]:b};});
+ await page.evaluate(()=>{const a={author:OWN,theme:'Лес',title:'Лесной черновик',body:'Текст один'},b={author:OWN,theme:'Море',title:'Морской черновик',body:'Текст два'};data.drafts={...data.drafts,[draftKey(OWN,'Лес')]:a,[draftKey(OWN,'Море')]:b};const story={id:'qa-edit-own',author:OWN,theme:'Лес',title:'Готовая история',body:'Старый текст'};data.stories=[...data.stories,story];data.edits={...data.edits,[story.id]:{...story,title:'Новая редакция',body:'Новый текст'}};});
  await page.locator('#homeWrite').click();await page.locator('[data-own-draft]').filter({hasText:'Морской черновик'}).click();assert.equal(await page.locator('#storyBody').inputValue(),'Текст два');assert.equal(await page.locator('#storyTitle').inputValue(),'Морской черновик');
- await page.keyboard.press('Escape');await page.locator('#homeWrite').click();await page.locator('#newOwnStory').click();assert.equal(await page.locator('#storyBody').inputValue(),'');assert.equal(await page.evaluate(()=>getDraft(OWN,'Лес').body),'Текст один');assert.equal(await page.evaluate(()=>getDraft(OWN,'Море').body),'Текст два');await page.keyboard.press('Escape');
+ await page.keyboard.press('Escape');await page.locator('#homeWrite').click();await page.locator('[data-own-edit]').filter({hasText:'Новая редакция'}).click();assert.equal(await page.locator('#storyBody').inputValue(),'Новый текст');assert.equal(await page.evaluate(()=>bookOf('qa-edit-own').body),'Старый текст');await page.keyboard.press('Escape');await page.locator('#homeWrite').click();await page.locator('#newOwnStory').click();assert.equal(await page.locator('#storyBody').inputValue(),'');assert.equal(await page.evaluate(()=>getDraft(OWN,'Лес').body),'Текст один');assert.equal(await page.evaluate(()=>getDraft(OWN,'Море').body),'Текст два');
+ await page.evaluate(()=>{window.__qaSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY)throw new Error('quota');return window.__qaSetItem.call(this,k,v)}});
+ await page.locator('#storyTitle').fill('Проверка сохранения');await page.locator('#storyBody').fill('Мой текст остаётся открыт.');
+ assert.ok((await page.locator('#draftStatus').textContent()).includes('Не удалось сохранить'));await page.keyboard.press('Escape');assert.ok(await page.locator('#storyForm').isVisible());await page.locator('#close').click();assert.ok(await page.locator('#storyForm').isVisible());assert.equal(await page.locator('#storyBody').inputValue(),'Мой текст остаётся открыт.');
+ await page.evaluate(()=>{Storage.prototype.setItem=window.__qaSetItem});await page.locator('#saveStoryNow').click();assert.equal(await page.locator('#modal').isVisible(),false);assert.ok(await page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem(KEY)).drafts).some(d=>d.body==='Мой текст остаётся открыт.')));
  await page.evaluate(raw=>{if(!commitLibrary(JSON.parse(raw)))throw Error('restore fixture')},beforeDrafts);
  await page.locator('#homeCreate').click();assert.ok(await page.locator('#creativeHome').isVisible());assert.equal(await page.locator('#storybookHome').isVisible(),false);
  await page.locator('#childBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());assert.equal(await page.locator('#homeLabel').textContent(),'Главная');
