@@ -126,7 +126,7 @@ const server=http.createServer((req,res)=>{
     await expand.tap();assert.equal(await expand.getAttribute('aria-pressed'),'false');assert.equal(await canvas.evaluate(c=>c.toDataURL()),ink);
     await page.locator('#drawingUndo').tap();assert.equal(await canvas.evaluate(c=>c.toDataURL()),blank);await page.locator('#drawingRedo').tap();assert.equal(await canvas.evaluate(c=>c.toDataURL()),ink);
     await expand.tap();await page.locator('#drawingFullSave').tap();await canvas.waitFor({state:'hidden'});
-    if(mode==='story'){assert.equal(await page.locator('#storyBody').inputValue(),storyText,'illustration leaves story text intact')}
+    if(mode==='story'){const body=await page.locator('#storyBody').inputValue();assert.equal(body.replace('\n[[рисунок:1]]\n',''),storyText,'illustration leaves story text intact');assert.ok(body.includes('[[рисунок:1]]'),'one illustration marker');assert.equal(await page.locator('#imageTray img').count(),1);assert.ok(await page.locator('#imageTray img').evaluate(img=>img.src.startsWith('data:image/jpeg;base64,')),'saved illustration attached to story')}
     else{assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length),1,'touch saves one drawing')}
     assert.deepEqual(errors,[]);console.log('PASS touch drawing',mode,viewport);
    }finally{await touch.close()}
