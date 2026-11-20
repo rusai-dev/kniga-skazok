@@ -230,6 +230,7 @@ const server=http.createServer((req,res)=>{
   await page.locator('#worldUnsure').click();assert.ok(await page.locator('#worldLab').isVisible());
   const sizes=await page.locator('#worldLabControls button').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {w:r.width,h:r.height}}));assert.ok(sizes.every(s=>s.w>=44&&s.h>=44),'lab touch targets');
   assert.ok(await page.locator('#worldLabModel svg[role="img"][aria-label]').isVisible());
+  if(id==='moon'||id==='bee'){const diagram=page.locator('#worldLabModel svg');if(id==='moon')assert.equal(await diagram.locator('[data-moon-position="0"]').count(),1);await page.locator('[data-lab="1"]').click();assert.ok((await diagram.textContent()).includes(id==='moon'?'Четверть: половина диска':'Переработка нектара'));await page.locator('[data-lab="0"]').click();}
   const first=await page.locator('#worldLabLabel').textContent();
   await page.locator('[data-lab="2"]').click();
   assert.notEqual(await page.locator('#worldLabLabel').textContent(),first);
