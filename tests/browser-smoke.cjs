@@ -39,7 +39,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.82')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.83')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -385,6 +385,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('.family-book').first().click();assert.equal(await page.locator('#familyReading .family-theme-label').textContent(),'Тема: Лес');await page.locator('#familyBack').click();
  await page.evaluate(()=>{window.__familyQA.books.push({id:'d',title:'Третья лесная сказка',theme:'Лес',body:'Новый текст.',icon:'📖'});fdraw(window.__familyQA)});assert.equal(await page.locator('.family-book').count(),3);assert.ok(await page.getByRole('button',{name:'Лес (3)',exact:true}).isVisible());
  await page.getByRole('button',{name:'Все сказки (4)',exact:true}).click();assert.equal(await page.locator('.family-book').count(),4);
+ const palette=await page.evaluate(()=>{const el=document.querySelector('#familyRefresh'),style=getComputedStyle(el);return {ink:getComputedStyle(document.documentElement).getPropertyValue('--ink').trim(),accent:style.backgroundColor,text:style.color,bg:getComputedStyle(document.body).backgroundColor}});assert.deepEqual(palette,{ink:'#173c3e',accent:'rgb(15, 118, 110)',text:'rgb(255, 255, 255)',bg:'rgb(244, 251, 250)'},'white and turquoise family UI');
  const releaseCases=await page.evaluate(async()=>{
   const paths=[],mock=(version,actual)=>async url=>{const name=new URL(url).pathname.split('/').pop();paths.push(name);return name==='release.json'?{ok:version!==null,json:async()=>({version})}:{ok:true,text:async()=>'<footer>Книга сказок · версия '+actual+'</footer>'}};
   const current=await fetchReleaseVersion(APP_RELEASE,mock(APP_RELEASE,APP_RELEASE)),unchanged=paths.splice(0);
@@ -399,8 +400,8 @@ const server=http.createServer((req,res)=>{
   const old=[{id:'old',title:'Старая сказка',theme:'Лес',body:'Лес',icon:'📖'}],updated=[...old,{id:'new',title:'Новая сказка',theme:'Море',body:'Море',icon:'📖'}];
   async function envelope(revision,books){const p=await fseal(s.key,{type:'github-archive',revision,books});return JSON.stringify({version:1,revision,iv:p.iv,cipher:cloudEncode(p.cipher)})}
   const raw=await envelope(1,old),fresh=await envelope(2,updated),encoded=cloudEncode(new TextEncoder().encode(fresh)),original=window.fetch;
-  let requests=[];window.fetch=async(input,options)=>{const url=String(input);if(url.startsWith('https://raw.githubusercontent.com/'+GH_REPO+'/')){requests.push('cdn');return {ok:true,status:200,text:async()=>raw}}if(url.startsWith(GH_API+'/contents/')){requests.push('api');return {ok:true,status:200,json:async()=>({type:'file',encoding:'base64',content:encoded})}}return original(input,options)};
-  try{const received=await ghReadPublic(s,true);return {revision:received.revision,theme:received.books[1]?.theme,requests}}finally{window.fetch=original}
+  let requests=[];const fixtureFetch=async(input,options)=>{const url=String(input);if(url.startsWith('https://raw.githubusercontent.com/'+GH_REPO+'/')){requests.push('cdn');return {ok:true,status:200,text:async()=>raw}}if(url.startsWith(GH_API+'/contents/')){requests.push('api');return {ok:true,status:200,json:async()=>({type:'file',encoding:'base64',content:encoded})}}return original(input,options)};
+  const received=await ghReadPublic(s,true,fixtureFetch);return {revision:received.revision,theme:received.books[1]?.theme,requests}
  });assert.deepEqual(synced,{revision:2,theme:'Море',requests:['cdn','api']},'encrypted archive refresh defeats stale CDN response');
  assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }
