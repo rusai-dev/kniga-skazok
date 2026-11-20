@@ -291,6 +291,7 @@ const server=http.createServer((req,res)=>{
  await page.evaluate(()=>{window.__qaSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY)throw new Error('quota');return window.__qaSetItem.call(this,k,v)}});
  page.once('dialog',d=>d.accept());await page.locator('#imageTray [data-picture]').click();assert.equal(await page.locator('#imageTray img').getAttribute('src'),pictureSrc);assert.equal(await page.locator('#storyBody').inputValue(),pictureBody);assert.equal(await page.locator('#coverImage').inputValue(),'0');assert.deepEqual(await persistedPicture(),pictureBefore,'failed deletion keeps persisted picture draft');
  assert.ok((await page.locator('#draftStatus').textContent()).includes('Не удалось сохранить'));
+ const savedCopy=page.waitForEvent('download');await page.locator('#rescueFull').click();const rescueCopy=await savedCopy,rescueRaw=fs.readFileSync(await rescueCopy.path(),'utf8'),rescueData=JSON.parse(rescueRaw);assert.equal(rescueData.kind,'story-draft');assert.equal(rescueData.draft.body,pictureBody);assert.equal(rescueData.draft.rich.images[0],pictureSrc);assert.equal(rescueData.draft.rich.coverImage,0);
  await page.evaluate(()=>{Storage.prototype.setItem=window.__qaSetItem});
  page.once('dialog',d=>d.accept());await page.locator('#imageTray [data-picture]').click();assert.equal(await page.locator('#imageTray img').count(),0);assert.equal(await page.locator('#coverImage').inputValue(),'-1');assert.equal(await page.locator('#storyBody').inputValue(),pictureBody.replaceAll('[[рисунок:1]]',''));
  const pictureAfter=await persistedPicture();assert.equal(pictureAfter.rich.images[0],null);assert.equal(pictureAfter.rich.coverImage,-1);assert.equal(pictureAfter.body,pictureBody.replaceAll('[[рисунок:1]]',''));
@@ -759,6 +760,10 @@ const server=http.createServer((req,res)=>{
  await page.evaluate(raw=>localStorage.setItem(ART_GALLERY,raw),savedGallery);
 
  await page.keyboard.press('Escape');
+ const beforeRescue=await page.evaluate(()=>JSON.parse(localStorage.getItem(KEY)));
+ await page.evaluate(()=>backup());await page.locator('#importFile').setInputFiles({name:'draft.json',mimeType:'application/json',buffer:Buffer.from(rescueRaw)});await page.locator('#cancelRestore').click();assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem(KEY))),beforeRescue);
+ await page.locator('#importFile').setInputFiles({name:'draft.json',mimeType:'application/json',buffer:Buffer.from(rescueRaw)});await page.locator('#confirmDraftRescue').click();await page.locator('#storyBody').waitFor({state:'visible'});assert.equal(await page.locator('#storyBody').inputValue(),rescueData.draft.body);
+ const restoredRescue=await page.evaluate(()=>JSON.parse(localStorage.getItem(KEY)));assert.deepEqual(restoredRescue.stories,beforeRescue.stories);assert.deepEqual(restoredRescue.familyPublished,beforeRescue.familyPublished);for(const [k,v] of Object.entries(beforeRescue.drafts))assert.deepEqual(restoredRescue.drafts[k],v);assert.deepEqual(restoredRescue.draft.rich,rescueData.draft.rich);await page.locator('#saveStoryNow').click();
  const archiveFixture=await page.evaluate(()=>{
  const book={id:'archive-test-book',title:'Тестовая книга',body:'Сохранённый текст.',theme:'Винни-Пух',author:OWN,icon:'📖'};
  if(!commitLibrary({...data,stories:[...data.stories,book]}))throw Error('fixture save');
