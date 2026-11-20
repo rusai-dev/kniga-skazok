@@ -334,3 +334,8 @@ Attention tasks now use four colours at levels 0–1 and six at levels 2–3, wi
 ### Follow-up acceptance for 1.5.89
 
 Pre-release audit caught a regression: quarter-hour and interactive clock rendering depended on literal stroke colors in SVG replacement regexes. Render both hands directly from hour/minute values, preserving the new colors. Added coordinate assertions for 144 five-minute clock positions, 160 interactive models and 200 generated quarter-hour questions. Data literacy now alternates four contexts (books, cones, postcards, bookmarks) on four levels, using tables and charts; 800 generated tasks independently recomputed from the displayed values. Full dependency-free regression passed against the modified code in the connector execution environment. CI and physical iPad remain separate acceptance gates.
+
+
+## Candidate 1.5.90 — science knowledge transfer
+
+Added one alternate applied question with an explanation to each of the 20 existing science topics. First visit remains unchanged; the concluding question on repeat visits rotates between the original and the new context (done % 3), while the existing first recall question, progress records, illustrations and session length remain unchanged. Regression verifies all 20 alternate questions and their rotation; full dependency-free suite passed before PR. Educational impact and physical iPad behavior remain unverified. No new resources or storage schema changes.
