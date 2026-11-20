@@ -33,7 +33,7 @@ const server=http.createServer((req,res)=>{
    await page.goto(url);
    await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});await navigator.serviceWorker.ready});
    await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
-   await page.waitForFunction(async()=>!(await caches.keys()).includes('skazki-shell-1.5.98'));
+   await page.waitForFunction(async()=>{const keys=await caches.keys();return !keys.includes('skazki-shell-1.5.98')&&!keys.includes('skazki-shell-1.5.99')});
    const retained=await page.evaluate(()=>caches.keys());assert.ok(!retained.includes('skazki-shell-1.5.99'));for(const name of ['skazki-shell-1.5.100','skazki-shell-1.5.101','skazki-shell-1.5.102','skazki-shell-1.5.103','skazki-shell-v2','unrelated-cache'])assert.ok(retained.includes(name),'retained '+name);
    const artPath='./assets/books/andersen-pea-bed.webp';
    assert.equal(await page.evaluate(async()=>{const c=await caches.open('skazki-book-art-v1');return (await c.keys()).length}),0,'no book art is precached');
