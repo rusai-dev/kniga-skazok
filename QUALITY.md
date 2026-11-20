@@ -280,3 +280,18 @@ Moves the explicit family publish action next to the personal publish controls; 
 ### 1.5.81 follow-up — family themes
 
 The parent-facing shelf shows actual themes from published books only, with counts and filters, explicit theme labels inside book cards and opened books. Filtering persists across refresh while theme still exists; falls back to all if removed. No extra data transmitted, no archive/key changes, no draft exposure. Regression cases cover grouping, missing theme, counts; browser cases use synthetic books and simulate new publication. Startup 995123 bytes under 1 MB. Browser and physical device acceptance pending.
+
+
+## Candidate 1.5.82 — lightweight release polling and encrypted family test
+
+Routine same-version release check now reads release.json (21 bytes) instead of downloading index.html (888311 bytes). The network manifest is not precached; a missing/malformed manifest falls back to HTML, and a newer manifest triggers full HTML verification before reload. Existing unsaved-editor guards remain. Browser tests verify manifest/HTML/worker consistency, same-version fast path, staged release safety, fallback, and a simulated encrypted family archive update while CDN returns an older revision. No private data, network credentials, art or storage changes. Startup shell 995789 bytes under 1 MB, not a reduction in initial source size; savings apply to repeat version checks. Regression passed; real device timing and browser CI pending.
+
+
+## Candidate 1.5.83 — white and turquoise interface
+
+Implements the six specified colours, white paper, quiet cards, clear turquoise primary controls, focus and calm surfaces for home, writing, library, learning, drawing chrome and family. 456 CSS rules adjusted; excludes artwork, authored covers, canvas, swatches, diagrams and feedback states from bulk adjustment. Added targeted home/editor/family/reading/lesson rules. Retains optional evening reading mode and existing author colours. Fix attempted for prior WebKit failure by injecting fetcher into simulated archive check instead of replacing global fetch. No storage migrations, image changes or dependencies. Startup 999199 bytes, regression passed; visual screenshots/physical device and browser CI pending.
+
+
+### 1.5.83 palette cascade correction
+
+Both browser engines detected stale root palette overrides in the computed family interface. Removed 21 duplicate legacy CSS custom-property declarations, retained one shared root palette and unified surface tokens. Existing strict computed-style test retained, regression additionally checks that old ink definitions cannot override the theme. Startup 998872 bytes. Awaiting browser acceptance before release.
