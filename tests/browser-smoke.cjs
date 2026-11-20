@@ -39,8 +39,8 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.100')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
-   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.100');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.101')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
+   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.101');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -82,6 +82,10 @@ const server=http.createServer((req,res)=>{
  await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('повторяется'));
  await page.locator('#ideaStage').selectOption('middle');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('мешает'));
  for(const [stage,word] of [['scene','место действия'],['dialogue','Два героя'],['words','Прошептал']]){await page.locator('#ideaStage').selectOption(stage);await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes(word));const first=await page.locator('#ideaText').textContent();await page.locator('#ideaStory').click();assert.notEqual(await page.locator('#ideaText').textContent(),first)}
+ assert.equal(await page.locator('#writerWords').evaluate(e=>e.open),false);await page.locator('#writerWords summary').click();await page.locator('#writerWordSelect').selectOption('сказал');
+ assert.equal(await page.locator('.writer-word-card').count(),3);assert.ok((await page.locator('#writerWordCards').textContent()).includes('Прошептал'));
+ await page.locator('#writerWordSelect').selectOption('увидел');assert.equal(await page.locator('.writer-word-card').count(),2);assert.ok((await page.locator('#writerWordCards').textContent()).includes('Разглядел'));
+ await page.locator('#writerWordSelect').selectOption('');assert.equal(await page.locator('.writer-word-card').count(),0);
  assert.equal(await page.locator('#storyBody').inputValue(),original,'guidance never modifies story');assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),originalLibrary,'guidance never writes library');await page.keyboard.press('Escape');
  const beforeDrafts=await page.evaluate(()=>JSON.stringify(data));
  await page.evaluate(()=>{const a={author:OWN,theme:'Лес',title:'Лесной черновик',body:'Текст один'},b={author:OWN,theme:'Море',title:'Морской черновик',body:'Текст два'};data.drafts={...data.drafts,[draftKey(OWN,'Лес')]:a,[draftKey(OWN,'Море')]:b};const story={id:'qa-edit-own',author:OWN,theme:'Лес',title:'Готовая история',body:'Старый текст'};data.stories=[...data.stories,story];data.edits={...data.edits,[story.id]:{...story,title:'Новая редакция',body:'Новый текст'}};});
