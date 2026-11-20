@@ -53,7 +53,7 @@ const server=http.createServer((req,res)=>{
  }
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
- page.on('pageerror',e=>errors.push(e.message));
+ page.on('pageerror',e=>errors.push(e.stack||e.message));
  const initialBookRequests=[];const trackBooks=req=>{if(new URL(req.url()).pathname.includes('/assets/books/'))initialBookRequests.push(req.url())};page.on('request',trackBooks);
  await page.goto(url+'#author=own&theme=');
  assert.equal(await page.evaluate(()=>location.hash),'','legacy shelf URL should be cleaned');
@@ -71,6 +71,8 @@ const server=http.createServer((req,res)=>{
  await page.locator('#topics button').filter({hasText:'Путешествия'}).click();assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);assert.ok((await page.locator('#shelfTitle').textContent()).includes('Путешествия'));
  await page.locator('#libraryFilters summary').click();await page.locator('#moreThemes').click();assert.ok(await page.locator('#topics button.active').isVisible());
  await page.locator('#authors .author').filter({hasText:'Пушкин'}).click();assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);
+ assert.ok(await page.locator('#books .shelf-volume').count()>=2,'classic author shelf renders multiple volumes');
+ await page.locator('#books .shelf-volume').nth(1).click();assert.ok(await page.locator('#modal').isVisible(),'second classic author volume opens');await page.keyboard.press('Escape');
  await page.locator('#home').click();
  assert.ok(await page.locator('.home-art').first().evaluate(e=>getComputedStyle(e).backgroundImage.includes('/assets/ui/home-sprite-1548.webp')));
  const homePalette=await page.evaluate(()=>({bg:getComputedStyle(document.body).backgroundColor,writer:getComputedStyle($('homeWrite')).backgroundColor,ink:getComputedStyle($('homeWrite')).color}));assert.deepEqual(homePalette,{bg:'rgb(244, 251, 250)',writer:'rgb(230, 246, 244)',ink:'rgb(23, 60, 62)'},'turquoise home remains unchanged');assert.equal(await page.locator('#homeCreate').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(240, 233, 250)','creative entrance uses lavender');assert.equal(await page.locator('#homeDrafts').evaluate(e=>getComputedStyle(e).color),'rgb(90, 50, 138)','draft entry uses dark violet');

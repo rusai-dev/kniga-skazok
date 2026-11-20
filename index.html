@@ -871,7 +871,7 @@ function render(){
  if(searching){const found=data.stories.filter(book=>storySearchMatches(book,query));$('showAll').hidden=true;$('bookSearchNote').textContent='Поиск по всем твоим сказкам · '+found.length+' найдено';$('count').textContent=found.length+' '+plural(found.length,['сказка','сказки','сказок']);$('books').innerHTML='';for(const book of found)$('books').append(card(book));if(!found.length){const empty=document.createElement('p');empty.className='empty';empty.textContent='Пока не нашли. Попробуй одно слово из названия или нажми ×, чтобы увидеть все сказки.';$('books').append(empty)}$('topics').scrollTop=topicScroll;$('authors').scrollLeft=authorScroll;showStorage();return}
  if(!mine&&authors.some(x=>x.id===a.id)){
   const list=readyAuthorBooks(a.id).filter(b=>(!selectedTheme||b.theme===selectedTheme)&&(!query||(b.title+' '+b.pages.join(' ')).toLocaleLowerCase('ru').includes(query)));
-  $('showAll').hidden=!selectedTheme;$('count').textContent=list.length+' '+plural(list.length,['книжка','книжки','книжек']);$('books').innerHTML=list.map(bookShelfCard).join('')||'<p class="empty">На этой полке пока нет готовых книг. Выбери другого автора или «Добрые сказки».</p>';
+  $('showAll').hidden=!selectedTheme;$('count').textContent=list.length+' '+plural(list.length,['книжка','книжки','книжек']);const snapshot=readingShelfSnapshot();$('books').innerHTML=list.map(b=>bookShelfCard(b,snapshot)).join('')||'<p class="empty">На этой полке пока нет готовых книг. Выбери другого автора или «Добрые сказки».</p>';
   $('books').querySelectorAll('[data-story]').forEach(btn=>btn.onclick=()=>readingOpen(btn.dataset.story,undefined,'Все сказки',readingAuthor(list[0])));
   $('topics').scrollTop=topicScroll;$('authors').scrollLeft=authorScroll;showStorage();return;
  }
@@ -3104,6 +3104,7 @@ function readingFilterBooks(filter,author,query,snapshot){
   return (filter==='Все сказки'||(filter==='Продолжаю'?readerShelfState(b,snapshot?.history,snapshot?.progress)==='started':filter==='Прочитано'?readerShelfState(b,snapshot?.history,snapshot?.progress)==='finished':filter==='Любимые'?favorites.has(b.id):readingTopics(b,favorites.has(b.id)).includes(filter)))&&(!author||readingAuthor(b)===author)
  })
 }
+function readingShelfSnapshot(){return {history:readerHistory(),progress:readingProgress(),favorites:new Set(readingFavorites())}}
 function bookShelfCard(b,snapshot){
  const status=readerShelfState(b,snapshot?.history,snapshot?.progress),fav=snapshot?snapshot.favorites.has(b.id):readingFavorites().includes(b.id);
  return '<button type="button" class="reading-book shelf-volume" data-story="'+esc(b.id)+'">'+readingCoverFor(b)+'<span class="volume-author">'+esc(readingAuthor(b))+'</span><span class="volume-meta">'+(b.credit==='Оригинальная сказка читальни'?'Новая история':'Полный текст')+(fav?' · ♥':'')+'</span><span class="reading-resume">'+(status==='finished'?'Читать ещё раз':status==='started'?'Продолжить чтение':'Читать')+'</span></button>'
@@ -3117,7 +3118,7 @@ function readingShelf(filter='Все сказки',author='',query=''){
  let limit=12;
  function update(reset=true){
   if(reset)limit=12;
-  const snapshot={history:readerHistory(),progress:readingProgress(),favorites:new Set(readingFavorites())};
+  const snapshot=readingShelfSnapshot();
   const list=readerOrdered(readingFilterBooks(filter,author,query,snapshot),snapshot.history,snapshot.progress);
   const searching=!!normalizedStorySearch(query);$('readingClear').hidden=!searching;$('readingCount').textContent=(searching?'Найдено: ':'')+list.length+' '+plural(list.length,['книжка','книжки','книжек']);
   $('readingGrid').innerHTML=list.slice(0,limit).map(b=>bookShelfCard(b,snapshot)).join('')||'<p class="reading-empty">'+(searching?'Не нашли такую сказку. Попробуй другое слово или нажми ×.':'На этой полке пока нет книг. Выбери другую полку.')+'</p>';$('readingMore').hidden=list.length<=limit;$('modalBody').querySelectorAll('[data-quick]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.quick===filter)));

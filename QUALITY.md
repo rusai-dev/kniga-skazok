@@ -413,3 +413,7 @@ A raw CDN 404 is no longer sufficient to declare an archive absent. The independ
 ### 1.5.104 follow-up — combined acceptance and truthful empty shelf
 
 Retargeted #62 to main to run the mandatory browser checks on the combined #60–62 candidate; original branch base and main have identical Git trees. On a failed refresh, the empty shelf explicitly says a fresh list has not been retrieved, and populated shelves keep cached books. Full dependency-free regression and six isolated viewer states passed; additional browser fixture tests empty/populated shelves. HTML 940247 bytes; no data key or format changes. No physical device or live family data tested. Merge only after green CI on this exact candidate.
+
+### 1.5.104 release blocker — classic author shelf
+
+CI 44719128356 passed regression but failed Chromium and WebKit with snapshot.favorites.has undefined. Array.map(bookShelfCard) implicitly supplied the array index as the new snapshot parameter. Both shelf routes now use a shared readingShelfSnapshot and explicitly pass it per book. Regression exercises the real author mapping expression with three books and verifies distinct reading states and favorites; browser smoke opens a second Pushkin book, with stack traces retained. Full dependency-free regression passed. HTML 940247 → 940363 bytes; no storage or archive changes. Browser rerun required before release.
