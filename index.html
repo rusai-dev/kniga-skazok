@@ -3787,7 +3787,7 @@ async function ghWriterTick(s){
   let prior=null;try{prior=JSON.parse(fget(stateKey)||'null')}catch(e){}
   const decision=ghDecision(serialized,JSON.stringify(remote.books),remote.sha,prior);
   if(decision==='conflict'){fstatus('В архиве другая версия. Перезапись заблокирована, книги сохранены на iPad.');return}
-  if(decision==='current'){if(remote.sha)fput(stateKey,JSON.stringify({sha:remote.sha}));s.ghSaved=serialized;confirmed=true;fstatus(remote.sha?'Архив GitHub · '+local.length+' книг сохранено':'Архив готов. Опубликуй первую сказку.');return}
+  if(decision==='current'){if(remote.sha){fstatus('Проверяем семейный архив без аккаунта GitHub…');const publicCopy=await ghPublicAPI(s);if(fam!==s)return;if(!publicCopy||publicCopy.revision!==remote.revision||JSON.stringify(publicCopy.books)!==serialized)throw Error('public verification pending');fput(stateKey,JSON.stringify({sha:remote.sha}));fstatus('Проверено без входа в GitHub · '+local.length+' книг доступны по семейной ссылке')}else{fstatus('Архив готов. Опубликуй первую сказку.')}s.ghSaved=serialized;confirmed=true;return}
   const revision=remote.revision+1;
   const packet=await fseal(s.key,{type:'github-archive',revision,books:local});
   if(fam!==s)return;
