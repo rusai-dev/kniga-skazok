@@ -570,3 +570,8 @@ Compared the editable source directly against accepted 1.5.126 main: all 36 reco
 ## Candidate 1.5.128 — night chapter echo experiment
 
 Chapter 2: optional 1–5 m model, prediction before explanation, outbound/return path 2d, reset, buttons/slider and direct pointer dragging with cancellation. Previous 1.5.127 main ba103ab. CI 44780297375 regression passed; both browsers stopped because a pre-existing generic SVG assertion matched both chapter art and new model. Correct its scope and add direct pointer drag coverage. Initial source 976929 → 982961 B, reserve 17039 B. Full isolated regression passed. No artwork replacement, storage changes, extra resource or real family archive access. Browser CI and physical device performance pending. No learning-effect claim.
+
+
+## Candidate 1.5.131 — reversible full-screen drawing
+
+Child can enlarge the existing 720x480 drawing in both standalone and story illustration workspaces using a labelled 44px toggle, then return with the same control or Escape. Full-screen uses available viewport; hides surrounding panels while keeping brush, eraser, quick color, undo/redo. Save and gallery remain in the normal workspace. Intrinsic canvas, pixel contents, outline, history, storage format and existing drawing behavior unchanged. No new assets or dependencies. Existing isolated regression passed; browser tests added for actual toggle, unchanged pixels, rotation, undo/redo and Escape. Physical iPad and hardware memory/latency not verified. Publish only after mandatory green CI.
