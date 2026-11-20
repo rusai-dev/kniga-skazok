@@ -11,6 +11,10 @@ console.log('INITIAL SOURCE BYTES',initialBytes);
 const release=JSON.parse(fs.readFileSync(path.join(root,'release.json'),'utf8')).version;
 assert.ok(fs.readFileSync(path.join(root,'index.html'),'utf8').includes('<footer>Книга сказок · версия '+release+'</footer>'),'manifest matches HTML');
 assert.ok(fs.readFileSync(path.join(root,'sw.js'),'utf8').includes("const REV='"+release+"'"),'manifest matches worker');
+const entry=fs.readFileSync(path.join(root,'index.html'),'utf8');
+assert.ok(entry.includes("const APP_RELEASE='"+release+"'"),'runtime release must match manifest');
+for(const asset of initialFiles.slice(1))assert.ok(entry.includes(asset+'?v='+release+'"'),'versioned core URL mismatched: '+asset);
+
 const server=http.createServer((req,res)=>{
  const name=new URL(req.url,'http://127.0.0.1').pathname;
  const file=path.resolve(root,'.'+(name==='/'?'/index.html':name));
@@ -213,6 +217,16 @@ const server=http.createServer((req,res)=>{
  await page.locator('#sequenceReset').click();
  for(const i of storyOrder)await page.locator('#sequenceChoices [data-answer="'+i+'"]').click();
  await page.locator('#sequenceCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
+ await page.evaluate(()=>{const v=studyState('measure');v.n=1;v.level=3;studySave('measure',v);studyOpen('math','measure')});
+ assert.equal(await page.locator('#studyPicture [data-ruler-ribbon]').count(),2);
+ assert.ok(await page.locator('#studyPicture svg').isVisible());
+ const rulerAnswer=await page.evaluate(()=>numberQuestion('measure',1,3).answer);
+ await page.locator('#studyNumber').fill(rulerAnswer);await page.locator('#studyCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
+ await page.evaluate(()=>{const v=studyState('measure');v.n=5;v.level=3;studySave('measure',v);studyOpen('math','measure')});
+ assert.equal(await page.locator('#studyPicture [data-ruler-ribbon]').count(),2);
+ assert.ok((await page.locator('#studyQuestion').textContent()).includes('вместе'));
+ const rulerTotal=await page.evaluate(()=>numberQuestion('measure',5,3).answer);
+ await page.locator('#studyNumber').fill(rulerTotal);await page.locator('#studyCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
  await page.evaluate(()=>{const v=studyState('geometry');v.n=1;v.level=3;studySave('geometry',v);studyOpen('math','geometry')});
  assert.equal(await page.locator('#studyPicture [data-geometry-rect]').count(),1);
  assert.equal(await page.locator('#studyPicture svg text').filter({hasText:/^\?$/}).count(),2);
@@ -245,6 +259,15 @@ const server=http.createServer((req,res)=>{
  await page.locator('#spatialUndo').click();assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 0');
  await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();assert.ok(await page.locator('#spatialCheck').isDisabled());
  await page.locator('#studyNext').click();assert.equal(await page.locator('#studySpatial').isVisible(),false);
+ await page.keyboard.press('Escape');await page.evaluate(()=>{let v=studyState("logic-order");v.n=1;v.level=3;studySave("logic-order",v);studyOpen("logic","order")});
+ assert.equal(await page.locator('#studySpatial').getAttribute('data-kind'),'mirror');assert.equal(await page.locator('#spatialControls button').count(),9);
+ const mirrorAnswer=await page.evaluate(()=>spatialQuestion(1,3).spatial.solution);
+ await page.locator('#spatialControls [data-spatial="'+mirrorAnswer[0]+'"]').click();
+ assert.equal(await page.locator('#spatialControls [aria-pressed="true"]').count(),1);
+ await page.locator('#spatialReset').click();assert.equal(await page.locator('#spatialControls [aria-pressed="true"]').count(),0);
+ await page.locator('#spatialCheck').click();assert.ok((await page.locator('#studyFeedback').textContent()).includes('Проверь'));
+ for(const i of mirrorAnswer)await page.locator('#spatialControls [data-spatial="'+i+'"]').click();
+ await page.locator('#spatialCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
  await page.keyboard.press('Escape');await page.evaluate(()=>{let v=studyState("logic-order");v.n=7;v.level=3;studySave("logic-order",v);studyOpen("logic","order")});
  assert.equal(await page.locator('#studyChoices button').count(),4);assert.ok(await page.locator('#studyPicture svg').isVisible());assert.equal((await page.locator('#studyQuestion').textContent()).match(/вправо|влево|вверх|вниз/g).length,4);
  const coordinateAnswer=await page.evaluate(()=>academySpatial(7,3).answer);await page.locator('#studyChoices').getByRole('button',{name:coordinateAnswer,exact:true}).click();assert.ok(await page.locator('#studyNext').isVisible());assert.ok((await page.locator('#studyFeedback').textContent()).includes('Маршрут:'));

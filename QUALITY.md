@@ -421,3 +421,19 @@ CI 44719128356 passed regression but failed Chromium and WebKit with snapshot.fa
 ### 1.5.104 CI environment fix
 
 Run 44719882395 Chromium failed before browser launch: ubuntu-latest resolved to Ubuntu 26.04 and apt could not locate required fonts. Pin both jobs to Ubuntu 24.04 and refresh apt indexes before Playwright installs browser dependencies. Retain all regression and browser checks without reducing coverage. Browser rerun is mandatory; this change does not alter application resources or stored data.
+
+## Candidate 1.5.105 — measuring lengths on a ruler
+
+Existing measurement practice alternates numerical word problems and original multicolor centimetre-scale diagrams. Level 0 reads from zero; level 1 begins at a nonzero mark; levels 2–3 also compare two independently placed ribbons labelled A/B, with no answer printed. Accessible descriptions give endpoints rather than results, and diagrams explicitly note they are schematic. Existing typed-answer flow, skill identifiers, spaced review and scoring unchanged. Full regression passed with 1,600 independent SVG checks including 400 comparisons; browser interaction added. HTML 940363 → 943247 bytes; no assets or dependencies. Physical device and learning outcomes remain unverified. Suggested off-screen transfer: measure a pencil from zero and then from another mark, compare both results.
+
+### 1.5.105 consolidated ruler tasks
+
+PR #63 independently introduced combined-length tasks. Retain #64's five-color diagrams, schematic label and older text exercises; incorporate combined length at level 3 without duplicating generators or releases. Regression covers 1,600 diagrams (300 differences, 100 sums), plus browser scenarios for both. Separate audit of 8,000 coordinate questions reconstructed each route from its actual text and checked bounds, options and endpoint (0 shortened routes). HTML 943247 → 943473 bytes. No new user data changes. #62 merged after mandatory checks; #64 to main for fresh CI.
+
+### 1.5.105 — construct mirror reflections
+
+The existing spatial workshop now interleaves advanced reflection tasks with coordinate tracking, rotating figures and finding routes. Child toggles nine labeled cells to construct a mirror image across a vertical axis; color never replaces cell labels. The learner's selection, reset, wrong-answer guidance, correct response, solution and adaptive scoring use the existing workshop; no new screen or data key. Tested 400 independent reflected patterns (200 distinct patterns, 5 colors), plus spatial suite and browser case. HTML 943473 → 946770 bytes, initial 950186 of 1,000,000. Candidate #64 had no workflow after retargeting; this substantive commit triggers mandatory CI. Physical iPad and learning outcome remain unverified. Transfer: draw a pattern on graph paper, fold along the axis and recreate its mirror.
+
+### 1.5.105 — correct release identity and cache URLs
+
+CI 44722963246 passed regression but both browsers failed with destroyed execution context on navigation (Chromium line 36; WebKit line 64). Source inspection confirmed stale APP_RELEASE and four stale core URL versions, despite matching footer, release.json and worker. The app would detect its own release as newer and replace the location again. Align all five references with 1.5.105. Add preflight checks of actual runtime identity and all versioned core URLs, in addition to manifest, footer and worker. Keep actual browser and offline tests intact. No change to size or storage schema. Full dependency-free regression passed. Browser rerun required.

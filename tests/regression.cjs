@@ -214,7 +214,7 @@ function verify(html){
  };
  const coordinateTests=new Function('fget','fput','childArt','esc',source+'\nreturn ('+coordinateTestCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);assert(coordinateTests===4000,'coordinate coverage');
  const spatialTestCode=function(){
- let count=0,mazes=0,rotations=0;
+ let count=0,mazes=0,rotations=0,mirrors=0;
  for(let l=0;l<4;l++)for(let n=0;n<180;n++){
   const q=spatialQuestion(n,l);if(!q){if([3,5].includes(n%6))throw Error("missing spatial");continue}const m=q.spatial;
   if(!spatialValid(m,m.solution)||spatialValid(m,m.initial)||spatialValid(m,[])||!spatialArt(m,m.solution).endsWith("</svg>"))throw Error("spatial validity "+n);
@@ -224,11 +224,18 @@ function verify(html){
    if(dist[m.goal]!==m.solution.length-1||m.walls.includes(m.start)||m.walls.includes(m.goal)||spatialValid(m,[m.start,m.goal]))throw Error("maze shortest");
    if(l===3&&(dist[m.goal]<=8||m.walls.length!==8))throw Error("advanced maze has no detour");
    let s=m.initial;for(let i=1;i<m.solution.length;i++){const d=spatialNeighbors(m,s.at(-1)).find(p=>p.i===m.solution[i]).d;s=spatialMove(m,s,d)}if(!spatialValid(m,s))throw Error("move");mazes++;
+  }else if(m.kind==="mirror"){
+   const expected=m.cells.map(i=>Math.floor(i/3)*3+2-i%3).sort((a,b)=>a-b);
+   if(String(expected)!==String(m.solution)||spatialValid(m,[...expected.slice(1)])||spatialValid(m,expected.map(()=>expected[0])))throw Error("mirror geometry");
+   let s=m.initial;for(const d of expected)s=spatialMove(m,s,d);
+   if(!spatialValid(m,s)||spatialValid(m,spatialMove(m,s,expected[0]))||spatialMove(m,s,9)!==s)throw Error("mirror construction");
+   mirrors++;
   }else {if(new Set([0,1,2,3].map(i=>JSON.stringify(spatialRotate(m.cells,i)))).size!==4||!spatialValid(m,[m.delta])||spatialValid(m,[(m.delta+1)%4])||spatialMove(m,m.initial,2)!==m.initial)throw Error("rotation symmetry");rotations++}
   count++;
- }return {count,mazes,rotations};
+ }return {count,mazes,rotations,mirrors};
  };
  const spatialTests=new Function('fget','fput','childArt','esc',source+'\nreturn ('+spatialTestCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
+ const mirrorCases=new Function('fget','fput','childArt','esc',source+'\nlet count=0;const tones=new Set(),patterns=new Set();for(let l=2;l<4;l++)for(let n=1;n<2400;n+=12){const m=spatialQuestion(n,l).spatial;const reflected=m.cells.map(i=>{const row=Math.floor(i/3),col=i%3;return row*3+2-col}).sort((a,b)=>a-b);if(String(m.solution)!==String(reflected)||!spatialValid(m,reflected)||spatialValid(m,[...reflected,reflected[0]]))throw Error("reflection");const art=spatialArt(m,reflected);if((art.match(/data-mirror-side="source"/g)||[]).length!==9||(art.match(/data-mirror-side="answer"/g)||[]).length!==9)throw Error("mirror art");tones.add(m.tone);patterns.add(String(m.cells));count++}if(tones.size!==5||patterns.size<35)throw Error("mirror diversity");return {count,patterns:patterns.size,colors:tones.size};')(()=>null,()=>true,()=>'',s=>s);
  const spatialNodes=new Map(),spatialStore=new Map();
  function spatialNode(id){if(!spatialNodes.has(id)){const x={id,hidden:false,disabled:false,textContent:'',value:'',dataset:{},children:[],querySelectorAll(){return this.children},setAttribute(){}};Object.defineProperty(x,'innerHTML',{set(v){this.markup=v;this.children=[...v.matchAll(/data-spatial="(\d+)"/g)].map(m=>({dataset:{spatial:m[1]}}))}});spatialNodes.set(id,x)}return spatialNodes.get(id)}
  const spatialUICode=function(){
@@ -334,6 +341,19 @@ function verify(html){
  };
  const moneyVisualCases=new Function('fget','fput','childArt','esc',source+'\nreturn ('+moneyVisualCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);assert(moneyVisualCases===560,'money visual coverage');
 
+ const rulerCode=function(){
+  let count=0,compares=0,totals=0;const colors=new Set();
+  for(let l=0;l<4;l++)for(let n=0;n<800;n++){
+   const q=numberQuestion('measure',n,l);if(n%4>=2){if(q.picture?.includes('data-ruler-ribbon'))throw Error('old tasks displaced');continue}
+   const rows=[...q.picture.matchAll(/data-ruler-ribbon="([АБ])" x1="(\d+)" x2="(\d+)" y1="(\d+)" y2="(\d+)" stroke="(#[0-9A-F]+)"/g)];
+   const lens=rows.map(([,label,x1,x2,y1,y2,c],i)=>{const a=(+x1-36)/24,b=(+x2-36)/24;colors.add(c);if(label!==['А','Б'][i]||!Number.isInteger(a)||!Number.isInteger(b)||a<0||b>12||b-a<2||y1!==y2||!q.picture.includes('Лента '+label+': от '+a+' до '+b)||l===0&&a!==0||l>0&&i===0&&a===0)throw Error('ruler coordinates/description');return b-a});
+   const two=l>=2&&n%4===1,total=l===3&&n%8===5;if(rows.length!==(two?2:1)||Number(q.answer)!==(two?(total?lens[0]+lens[1]:Math.abs(lens[0]-lens[1])):lens[0])||two&&lens[0]===lens[1])throw Error('ruler answer');
+   if(total){if(!q.q.includes('вместе'))throw Error('ruler total prompt');totals++}else if(two){if(!q.q.includes('различаются'))throw Error('ruler comparison prompt');compares++}count++;
+  }
+  if(colors.size!==5||count!==1600||compares!==300||totals!==100)throw Error('ruler variety');
+  return {count,compares,totals};
+ };
+ const rulerCases=new Function('fget','fput','childArt','esc',source+'\nreturn ('+rulerCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
  const geometryCode=function(){
   let count=0,inverses=0;const fills=new Set(),variants=new Set();
   for(let l=0;l<4;l++)for(let n=0;n<400;n++){
@@ -373,6 +393,6 @@ function verify(html){
  let wordAlternatives=0;assert(wordWorkshop.storyWordBank.length===14&&new Set(wordWorkshop.storyWordBank.map(x=>x[0])).size===14,'word bank diversity');for(const [word,...rows] of wordWorkshop.storyWordBank){assert(rows.length>=2&&rows.length<=3&&rows.every(x=>x.length===3&&x.every(s=>typeof s==='string'&&s.length>2))&&new Set(rows.map(x=>x[0])).size===rows.length,'word examples');assert(wordWorkshop.storyWordChoices(word).length===rows.length&&wordWorkshop.storyWordMarkup(word).split('class="writer-word-card"').length-1===rows.length,'word cards');wordAlternatives+=rows.length}
  assert(wordWorkshop.storyWordChoices('missing').length===0&&wordWorkshop.storyWordMarkup('')===''&&wordWorkshop.storyWordMarkup('<script>')==='','unknown word safe');assert(html.includes('id="writerWords"')&&!html.includes('id="writerWords" open')&&html.includes("['ideaStage','writerWordSelect','newChapterTitle','bookPreviewChapter']"),'optional word choice excluded from draft');
  const lazyCheck=new Function(between('function lazyReadingBank(make){','const comprehensionKey=')+'return {readingComprehension,readingGlossary,readingInference,readingQuestions}')();assert(!lazyCheck.readingComprehension.loaded()&&!lazyCheck.readingGlossary.loaded()&&!lazyCheck.readingInference.loaded(),'reading banks deferred');const testQuestions=lazyCheck.readingQuestions({id:'lantern-friends'});assert(testQuestions.length===3&&lazyCheck.readingComprehension.loaded()&&lazyCheck.readingInference.loaded()&&!lazyCheck.readingGlossary.loaded(),'questions only loaded when needed');assert(lazyCheck.readingGlossary()===lazyCheck.readingGlossary(),'memoized glossary');
- return {wordAlternatives,storyLanguageCases,attentionRules,natureSpaceCases,newLabs,geometryCases,moneyVisualCases,chapterCases:16,planFields:6,ideaCount,stepwise,personalSearch,lessonSubjects,lessonNavigation,artModeNavigation,accessibility,placePanels,seedTest,directLibrary:true,landingCases:landingCases.length,homeCheck,outcomeCases,outcomeArchive,spatialTests,spatialUI,gap,gapArchive,models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+ return {mirrorCases,rulerCases,wordAlternatives,storyLanguageCases,attentionRules,natureSpaceCases,newLabs,geometryCases,moneyVisualCases,chapterCases:16,planFields:6,ideaCount,stepwise,personalSearch,lessonSubjects,lessonNavigation,artModeNavigation,accessibility,placePanels,seedTest,directLibrary:true,landingCases:landingCases.length,homeCheck,outcomeCases,outcomeArchive,spatialTests,spatialUI,gap,gapArchive,models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}
