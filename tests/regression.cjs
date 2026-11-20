@@ -328,6 +328,30 @@ function verify(html){
   if(contexts.size!==4)throw Error("purchase variety");return count;
  };
  const moneyVisualCases=new Function('fget','fput','childArt','esc',source+'\nreturn ('+moneyVisualCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);assert(moneyVisualCases===560,'money visual coverage');
- return {moneyVisualCases,chapterCases:16,planFields:6,ideaCount,stepwise,personalSearch,lessonSubjects,lessonNavigation,artModeNavigation,accessibility,placePanels,seedTest,directLibrary:true,landingCases:landingCases.length,homeCheck,outcomeCases,outcomeArchive,spatialTests,spatialUI,gap,gapArchive,models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+
+ const geometryCode=function(){
+  let count=0,inverses=0;const fills=new Set(),variants=new Set();
+  for(let l=0;l<4;l++)for(let n=0;n<400;n++){
+   const q=numberQuestion("geometry",n,l),svg=q.picture;
+   if(l<2){
+    const points=svg.match(/points="([^"]+)"/)[1].split(' '),vertices=points.length;
+    if(vertices<3||vertices>(l===0?4:6)||new Set(points).size!==vertices||Number(q.answer)!==vertices)throw Error("polygon count");
+    fills.add(svg.match(/fill="([^"]+)"/)[1]);variants.add(points.join(' '));
+   }else{
+    const [_,x,y,W,H]=svg.match(/<rect data-geometry-rect="" x="([^"]+)" y="([^"]+)" width="([^"]+)" height="([^"]+)"/).map(Number);
+    const w=W/20,h=H/20;
+    if(!Number.isInteger(w)||!Number.isInteger(h)||w<2||w>9||h<2||h>6||x<0||y<0||x+W>320||y+H>260)throw Error("invalid proportional rectangle");
+    const inverse=l===3&&n%2===1;
+    if(Number(q.answer)!==(inverse?h:2*(w+h)))throw Error("geometry answer");
+    if(inverse){if(!q.q.includes(' '+2*(w+h)+' см')||(svg.match(/>\?<\/text>/g)||[]).length!==2||!svg.includes('вертикальные стороны неизвестны'))throw Error("inverse geometry labels");inverses++}
+    else if(!svg.includes('вертикальные стороны по '+h+' см'))throw Error("rectangle label");
+   }
+   count++;
+  }
+  if(fills.size!==6||variants.size<10||inverses!==200)throw Error("geometry diversity");
+  return {count,inverses};
+ };
+ const geometryCases=new Function('fget','fput','childArt','esc',source+'\nreturn ('+geometryCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);assert(geometryCases.count===1600,'geometry coverage');
+ return {geometryCases,moneyVisualCases,chapterCases:16,planFields:6,ideaCount,stepwise,personalSearch,lessonSubjects,lessonNavigation,artModeNavigation,accessibility,placePanels,seedTest,directLibrary:true,landingCases:landingCases.length,homeCheck,outcomeCases,outcomeArchive,spatialTests,spatialUI,gap,gapArchive,models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}

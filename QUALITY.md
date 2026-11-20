@@ -364,3 +364,8 @@ Coordinate questions progress from one to four non-repeating moves by level. Six
 ## Candidate 1.5.95 — colourful money constructions
 
 Four stable, labelled denomination panels in blue, green, amber and violet, larger high-contrast digits on schematic tokens, explicit counts, and four rotating purchase contexts. No change to payment targets, accepted combinations, progress keys, scoring or private data. All existing tests and 560 additional mixed and maximum-capacity SVG cases passed in the dependency-free regression runner; contrast checks cover token digits and category labels. Browser interaction added for exact payment and visible denomination palette. HTML 910949 → 911430 bytes; no new assets or dependencies. Browser CI, physical iPad and learning outcomes remain separate acceptance gates.
+
+
+## Candidate 1.5.96 — visual geometry reasoning
+
+Explicit geometry generator for all four levels. Rotated and stretched polygons with six fills teach sides and vertices; proportional rectangles label opposite pairs in purple and blue; level 3 alternates direct perimeter and inverse unknown-side problems. Interactive constructions keep existing constraints and scoring, with the same side-pair colors. 1,600 independent geometry checks including 200 inverse tasks passed alongside the full dependency-free regression. HTML 911430 → 914150 bytes; no new assets, libraries or data keys. Browser CI and physical device acceptance pending. The diagrams are schematic, not physical centimetres.
