@@ -290,3 +290,8 @@ Routine same-version release check now reads release.json (21 bytes) instead of 
 ## Candidate 1.5.83 — white and turquoise interface
 
 Implements the six specified colours, white paper, quiet cards, clear turquoise primary controls, focus and calm surfaces for home, writing, library, learning, drawing chrome and family. 456 CSS rules adjusted; excludes artwork, authored covers, canvas, swatches, diagrams and feedback states from bulk adjustment. Added targeted home/editor/family/reading/lesson rules. Retains optional evening reading mode and existing author colours. Fix attempted for prior WebKit failure by injecting fetcher into simulated archive check instead of replacing global fetch. No storage migrations, image changes or dependencies. Startup 999199 bytes, regression passed; visual screenshots/physical device and browser CI pending.
+
+
+### 1.5.83 palette cascade correction
+
+Both browser engines detected stale root palette overrides in the computed family interface. Removed 21 duplicate legacy CSS custom-property declarations, retained one shared root palette and unified surface tokens. Existing strict computed-style test retained, regression additionally checks that old ink definitions cannot override the theme. Startup 998872 bytes. Awaiting browser acceptance before release.
