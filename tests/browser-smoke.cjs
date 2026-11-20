@@ -191,6 +191,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#memBack').click();
  await page.evaluate(()=>{const v=studyState('language-sentences');v.n=1;v.level=2;studySave('language-sentences',v);studyOpen('language','sentences')});
  assert.ok(await page.locator('#studySequence').isVisible());assert.equal(await page.locator('#sequenceRules').isVisible(),false);
+ const storyCards=await page.locator('#sequenceChoices button').evaluateAll(nodes=>nodes.map(n=>({height:n.getBoundingClientRect().height,color:getComputedStyle(n).backgroundColor})));assert.ok(storyCards.every(s=>s.height>=44));assert.equal(new Set(storyCards.map(s=>s.color)).size,storyCards.length);
  const storyOrder=await page.evaluate(()=>languageQuestion('sentences',1,2).sequence.solution);
  for(const i of storyOrder.slice().reverse())await page.locator('#sequenceChoices [data-answer="'+i+'"]').click();
  await page.locator('#sequenceCheck').click();assert.ok((await page.locator('#studyFeedback').textContent()).includes('Проверь ход событий'));
