@@ -376,7 +376,12 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-art-gallery-v1')),null);
  const loadedAssets=await page.evaluate(async()=>{const sources=[...Object.values(SKAZKI_CLASSIC_ART),...Object.values(SKAZKI_ART_155),...Object.values(SKAZKI_ANDERSEN_ART)].map(x=>x.src).concat(Object.values(premiumArt));await Promise.all(sources.map(async src=>{if(!src.startsWith('./assets/books/'))throw Error('not external: '+src);const img=new Image();img.src=src;await img.decode();if(img.naturalWidth<180||img.naturalHeight<180)throw Error('invalid artwork '+src)}));return new Set(sources).size});assert.equal(loadedAssets,14,'all externalized artwork must decode');
- assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
+ await page.evaluate(()=>{document.body.classList.add('family-view');$('familyViewer').hidden=false;window.__familyQA={books:[{id:'a',title:'Лесная сказка',theme:'Лес',body:'Жил ёжик.',icon:'📖'},{id:'b',title:'Морская сказка',theme:'Море',body:'Жила рыбка.',icon:'📖'},{id:'c',title:'Вторая лесная сказка',theme:'Лес',body:'Жила лиса.',icon:'📖'}],received:true};fdraw(window.__familyQA)});
+ assert.equal(await page.locator('#familyThemeButtons button').count(),3);assert.equal(await page.locator('.family-book').count(),3);
+ await page.getByRole('button',{name:'Лес (2)',exact:true}).click();assert.equal(await page.locator('.family-book').count(),2);assert.equal(await page.getByRole('button',{name:'Лес (2)',exact:true}).getAttribute('aria-pressed'),'true');
+ await page.locator('.family-book').first().click();assert.equal(await page.locator('#familyReading .family-theme-label').textContent(),'Тема: Лес');await page.locator('#familyBack').click();
+ await page.evaluate(()=>{window.__familyQA.books.push({id:'d',title:'Третья лесная сказка',theme:'Лес',body:'Новый текст.',icon:'📖'});fdraw(window.__familyQA)});assert.equal(await page.locator('.family-book').count(),3);assert.ok(await page.getByRole('button',{name:'Лес (3)',exact:true}).isVisible());
+ await page.getByRole('button',{name:'Все сказки (4)',exact:true}).click();assert.equal(await page.locator('.family-book').count(),4);assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }
  }finally{if(browser)await browser.close();server.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

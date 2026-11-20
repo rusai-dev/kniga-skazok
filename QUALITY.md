@@ -275,3 +275,8 @@ Previous 1.5.80 PR browser run failed because the chapter selector matched two d
 ## Candidate 1.5.81 — family delivery visibility and freshness
 
 Moves the explicit family publish action next to the personal publish controls; private drafts/private shelf remain private. Reader polls raw encrypted archive every 5 seconds while visible, wakes on focus/return/online, provides a manual refresh and revision/count status. Rate-limited public API freshness check (90 seconds automatic when raw revision is not newer, 15 seconds manual) mitigates stale CDN responses. Host retries pending delivery every 10 seconds and sends changed publication list immediately after a successful in-flight write. Explicit resync control; existing conflict guard and encryption unchanged. No changes to archive data, credentials or keys. Regression passed; browser checks required. Startup 993005 bytes under 1 MB. Cross-device timing depends on connectivity, GitHub and iPad foreground; actual family secret and private contents not inspected.
+
+
+### 1.5.81 follow-up — family themes
+
+The parent-facing shelf shows actual themes from published books only, with counts and filters, explicit theme labels inside book cards and opened books. Filtering persists across refresh while theme still exists; falls back to all if removed. No extra data transmitted, no archive/key changes, no draft exposure. Regression cases cover grouping, missing theme, counts; browser cases use synthetic books and simulate new publication. Startup 995123 bytes under 1 MB. Browser and physical device acceptance pending.
