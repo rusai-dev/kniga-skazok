@@ -374,3 +374,8 @@ Explicit geometry generator for all four levels. Rotated and stretched polygons 
 ## Candidate 1.5.97 — water and air investigations
 
 Two interactive investigations in existing science topics: evaporation, cloud formation and rainfall; air occupying space in an inverted cup and escaping as bubbles when tilted. Three labeled color diagrams per topic; no simulated timing or visible-water-vapor claims. The labs reuse the existing reveal-after-prediction and next-question workflow, with no new screen, persistence keys or external resources. Expanded regression covers 21 states and seven lab interactions, plus six new diagram checks. Full dependency-free suite passed; browser scenarios extended. HTML 914150 → 918342 bytes. Physical iPad, real-world learning and deployment remain unverified.
+
+
+## Candidate 1.5.98 — lunar phases and honey-making investigations
+
+Two additional existing science lessons now include three-state labelled SVG models. The Moon diagram separates fixed solar illumination and a schematic orbit from the Earth-view disk and explicitly distinguishes ordinary phases from eclipses. The honey model follows nectar collection, processing and storage, without implying all bee species produce honey. Reuses the existing lesson flow and progress keys. Full dependency-free regression passed (27 lab states, nine interaction paths, six additional nature/space checks), browser cases extended. No new assets or dependencies. HTML 918337 → 924096 bytes. Actual device usability, learning benefit, publication and browser CI remain separate gates.
