@@ -39,8 +39,8 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.94')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
-   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.94');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.95')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
+   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.95');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -171,6 +171,13 @@ const server=http.createServer((req,res)=>{
  await page.locator('#modelReset').click();assert.equal(await page.locator('#modelValue0').textContent(),'0');
  assert.equal(await page.locator('#modelArt [data-ten-rod]').count(),0);
  await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();assert.ok(await page.locator('#modelCheck').isDisabled());await page.locator('#studyNext').click();assert.equal(await page.locator('#studyModel').isVisible(),false);
+ await page.evaluate(()=>{const v=studyState('money');v.n=0;v.level=0;studySave('money',v);studyOpen('math','money')});
+ assert.equal(await page.locator('#modelArt [data-coin-panel]').count(),4);
+ const coinColors=await page.locator('#modelArt [data-coin-panel]').evaluateAll(nodes=>nodes.map(x=>x.getAttribute('fill')));assert.equal(new Set(coinColors).size,4);
+ const payment=await page.evaluate(()=>mathModelQuestion('money',0,0).model.solution);
+ for(let i=0;i<4;i++)for(let j=0;j<payment[i];j++)await page.locator('[data-model-i="'+i+'"][data-model-d="1"]').click();
+ for(let i=0;i<4;i++)assert.equal(await page.locator('#modelArt [data-coin="'+[1,2,5,10][i]+'"]').count(),payment[i]);
+ await page.locator('#modelCheck').click();assert.ok(await page.locator('#studyNext').isVisible());assert.ok((await page.locator('#studyFeedback').textContent()).startsWith('Верно!'));
  await page.keyboard.press('Escape');await page.locator('#homeLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
  assert.equal(await page.locator('[data-academy] .fairy-art').count(),6);
