@@ -305,10 +305,17 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#studyChoices button').count(),4);assert.ok(await page.locator('#studyPicture svg').isVisible());assert.equal((await page.locator('#studyQuestion').textContent()).match(/вправо|влево|вверх|вниз/g).length,4);
  const coordinateAnswer=await page.evaluate(()=>academySpatial(7,3).answer);await page.locator('#studyChoices').getByRole('button',{name:coordinateAnswer,exact:true}).click();assert.ok(await page.locator('#studyNext').isVisible());assert.ok((await page.locator('#studyFeedback').textContent()).includes('Маршрут:'));
  await page.keyboard.press('Escape');await page.locator('#childWorld').click();
- assert.equal(await page.locator('[data-area]').count(),4);
+ assert.equal(await page.locator('[data-area]').count(),5);
  await page.locator('[data-area="1"]').click();
- assert.equal(await page.locator('.explore-grid [data-world]').count(),7);
- await page.locator('[data-world="bee"]').click();
+ assert.equal(await page.locator('.explore-grid [data-world]').count(),9);
+ for(const [area,id] of [[1,'bat-echo'],[1,'bat-life'],[4,'egypt-nile'],[4,'egypt-writing']]){
+  await page.locator('[data-area="'+area+'"]').click();await page.locator('.explore-grid [data-world="'+id+'"]').click();
+  assert.ok(await page.locator('#worldIllustration svg').isVisible());
+  for(let step=0;step<3;step++){assert.ok((await page.locator('#worldQuestion').textContent()).length>10);await page.locator('#worldUnsure').click();if(step<2)await page.locator('#worldNext').click();}
+  assert.ok(await page.locator('#worldTask').isVisible());assert.ok(await page.evaluate(id=>JSON.parse(localStorage.getItem('skazki-world-mastery-v1'))[id].done===1,id));
+  await page.locator('#worldBack').click();
+ }
+ await page.locator('[data-area="1"]').click();await page.locator('[data-world="bee"]').click();
  await page.locator('#worldBack').click();
  assert.equal(await page.locator('[data-area="1"]').getAttribute('aria-pressed'),'true');
  await page.locator('[data-area="0"]').click();await page.locator('[data-world="day"]').click();
