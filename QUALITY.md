@@ -349,3 +349,8 @@ Expand the existing writer helper to seven topics (28 prompts), including sensor
 ## Candidate 1.5.92 — family archive rollback protection
 
 Persist the highest verified GitHub archive revision in a separate per-room localStorage key, retaining the existing books-array cache and publication format. Reject older revisions after reopening the reader and on sequential checks in another tab; explicitly show stale-archive status. Write the revision before the cache; if either storage write fails, the previous durable books remain available and the current in-memory result is labelled unsaved. Equal revision can retry cache writes and refresh changed content. New verified empty archives remain valid. Legacy caches without revision metadata establish their watermark on first successful verification. Simultaneous tab writes are not guaranteed atomic; no real family archive was altered. Full dependency-free regression passed; physical-device and live family invitation latency unverified.
+
+
+## Candidate 1.5.93 — family paginated reading
+
+Reuse the personal adaptive full-screen reading component in the anonymous family viewer. Family-specific offsets are scoped to the archive room and book; no changes to publication payload or book format. Family preview retains the current edition when other books arrive. The fullscreen reader keeps its opened edition until closed; withdrawal closes the reader. Add browser checks for long stories, paging, saved location, and unrelated archive updates. Full dependency-free regression passed. Browser CI and physical iPad remain separate gates; no real archive modified. Size and reading-position storage are local only.
