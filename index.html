@@ -2832,7 +2832,7 @@ function editor(bid,fromGallery=null){
  $('ideaStage').onchange=()=>{ideaIndex=0;$('ideaText').hidden=true;};
  $('loadText').onclick=()=>$('storyFile').click();
  $('storyFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>2000000)throw Error('size');const text=await readText(file);if($('storyForm')!==form)return;if(body.value.trim()&&!confirm('Заменить текущий текст?'))return;body.value=text;if(!$('storyTitle').value.trim())$('storyTitle').value=file.name.replace(/\.txt$/i,'');draft();toast('Текст загружен.')}catch(e){toast('Выбери TXT-файл до 2 МБ.')}};
- form.addEventListener('input',e=>{if(e.target?.closest('.literacy'))return;draft()});$('storyTheme').addEventListener('change',draft);
+ form.addEventListener('input',e=>{if(e.target?.closest('.literacy')||e.target?.id==='ideaStage')return;draft()});$('storyTheme').addEventListener('change',draft);
  $('cancel').onclick=()=>{draft();if(!storageOK){if(!confirm('Черновик не удалось записать. Закрыть редактор?'))return}closeModal();render()};
  form.onsubmit=e=>{e.preventDefault();if(busy)return;if(form.dataset.drawingDirty==='yes'){toast('Сначала вставь рисунок в сказку или закрой рисунок.');return}const b=snapshot();b.title=b.title.trim();b.body=b.body.trim();if(!b.title||!b.body){toast('Напиши название и текст сказки.');return}
   const book={...previous,...b,id:previous?.id||id(),icon:b.icon||themeOf(b.theme)?.icon||'📖'};
