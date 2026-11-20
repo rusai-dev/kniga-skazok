@@ -280,3 +280,8 @@ Moves the explicit family publish action next to the personal publish controls; 
 ### 1.5.81 follow-up — family themes
 
 The parent-facing shelf shows actual themes from published books only, with counts and filters, explicit theme labels inside book cards and opened books. Filtering persists across refresh while theme still exists; falls back to all if removed. No extra data transmitted, no archive/key changes, no draft exposure. Regression cases cover grouping, missing theme, counts; browser cases use synthetic books and simulate new publication. Startup 995123 bytes under 1 MB. Browser and physical device acceptance pending.
+
+
+## Candidate 1.5.82 — lightweight release polling and encrypted family test
+
+Routine same-version release check now reads release.json (21 bytes) instead of downloading index.html (888311 bytes). The network manifest is not precached; a missing/malformed manifest falls back to HTML, and a newer manifest triggers full HTML verification before reload. Existing unsaved-editor guards remain. Browser tests verify manifest/HTML/worker consistency, same-version fast path, staged release safety, fallback, and a simulated encrypted family archive update while CDN returns an older revision. No private data, network credentials, art or storage changes. Startup shell 995789 bytes under 1 MB, not a reduction in initial source size; savings apply to repeat version checks. Regression passed; real device timing and browser CI pending.

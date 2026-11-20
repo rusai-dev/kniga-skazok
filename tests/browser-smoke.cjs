@@ -8,6 +8,9 @@ const initialFiles=['index.html','classic-art-153.js','classic-art-155.js','ande
 const initialBytes=initialFiles.reduce((n,name)=>n+fs.statSync(path.join(root,name)).size,0);
 assert.ok(initialBytes<=1000000,'initial source budget exceeded: '+initialBytes);
 console.log('INITIAL SOURCE BYTES',initialBytes);
+const release=JSON.parse(fs.readFileSync(path.join(root,'release.json'),'utf8')).version;
+assert.ok(fs.readFileSync(path.join(root,'index.html'),'utf8').includes('<footer>Книга сказок · версия '+release+'</footer>'),'manifest matches HTML');
+assert.ok(fs.readFileSync(path.join(root,'sw.js'),'utf8').includes("const REV='"+release+"'"),'manifest matches worker');
 const server=http.createServer((req,res)=>{
  const name=new URL(req.url,'http://127.0.0.1').pathname;
  const file=path.resolve(root,'.'+(name==='/'?'/index.html':name));
@@ -36,7 +39,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.81')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.82')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -381,7 +384,25 @@ const server=http.createServer((req,res)=>{
  await page.getByRole('button',{name:'Лес (2)',exact:true}).click();assert.equal(await page.locator('.family-book').count(),2);assert.equal(await page.getByRole('button',{name:'Лес (2)',exact:true}).getAttribute('aria-pressed'),'true');
  await page.locator('.family-book').first().click();assert.equal(await page.locator('#familyReading .family-theme-label').textContent(),'Тема: Лес');await page.locator('#familyBack').click();
  await page.evaluate(()=>{window.__familyQA.books.push({id:'d',title:'Третья лесная сказка',theme:'Лес',body:'Новый текст.',icon:'📖'});fdraw(window.__familyQA)});assert.equal(await page.locator('.family-book').count(),3);assert.ok(await page.getByRole('button',{name:'Лес (3)',exact:true}).isVisible());
- await page.getByRole('button',{name:'Все сказки (4)',exact:true}).click();assert.equal(await page.locator('.family-book').count(),4);assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
+ await page.getByRole('button',{name:'Все сказки (4)',exact:true}).click();assert.equal(await page.locator('.family-book').count(),4);
+ const releaseCases=await page.evaluate(async()=>{
+  const paths=[],mock=(version,actual)=>async url=>{const name=new URL(url).pathname.split('/').pop();paths.push(name);return name==='release.json'?{ok:version!==null,json:async()=>({version})}:{ok:true,text:async()=>'<footer>Книга сказок · версия '+actual+'</footer>'}};
+  const current=await fetchReleaseVersion(APP_RELEASE,mock(APP_RELEASE,APP_RELEASE)),unchanged=paths.splice(0);
+  const staged=await fetchReleaseVersion(APP_RELEASE,mock('9.9.9',APP_RELEASE)),unready=paths.splice(0);
+  const newer=await fetchReleaseVersion(APP_RELEASE,mock('9.9.9','9.9.9')),ready=paths.splice(0);
+  const fallback=await fetchReleaseVersion(APP_RELEASE,mock(null,APP_RELEASE)),legacy=paths.splice(0);
+  return {current,unchanged,staged,unready,newer,ready,fallback,legacy,app:APP_RELEASE}
+ });
+ assert.equal(releaseCases.current,releaseCases.app);assert.deepEqual(releaseCases.unchanged,['release.json']);assert.equal(releaseCases.staged,releaseCases.app);assert.deepEqual(releaseCases.unready,['release.json','index.html']);assert.equal(releaseCases.newer,'9.9.9');assert.deepEqual(releaseCases.ready,['release.json','index.html']);assert.deepEqual(releaseCases.legacy,['release.json','index.html']);
+ const synced=await page.evaluate(async()=>{
+  const credentials=await fcredentials('a'.repeat(64)),s={...credentials,ghRevision:1,ghAPICheck:0};
+  const old=[{id:'old',title:'Старая сказка',theme:'Лес',body:'Лес',icon:'📖'}],updated=[...old,{id:'new',title:'Новая сказка',theme:'Море',body:'Море',icon:'📖'}];
+  async function envelope(revision,books){const p=await fseal(s.key,{type:'github-archive',revision,books});return JSON.stringify({version:1,revision,iv:p.iv,cipher:cloudEncode(p.cipher)})}
+  const raw=await envelope(1,old),fresh=await envelope(2,updated),encoded=cloudEncode(new TextEncoder().encode(fresh)),original=window.fetch;
+  let requests=[];window.fetch=async(input,options)=>{const url=String(input);if(url.startsWith('https://raw.githubusercontent.com/'+GH_REPO+'/')){requests.push('cdn');return {ok:true,status:200,text:async()=>raw}}if(url.startsWith(GH_API+'/contents/')){requests.push('api');return {ok:true,status:200,json:async()=>({type:'file',encoding:'base64',content:encoded})}}return original(input,options)};
+  try{const received=await ghReadPublic(s,true);return {revision:received.revision,theme:received.books[1]?.theme,requests}}finally{window.fetch=original}
+ });assert.deepEqual(synced,{revision:2,theme:'Море',requests:['cdn','api']},'encrypted archive refresh defeats stale CDN response');
+ assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }
  }finally{if(browser)await browser.close();server.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
