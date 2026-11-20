@@ -449,3 +449,7 @@ Before: a single image-removal click immediately mutated editor images/text and 
 ## Candidate 1.5.108 — accessible multicolor spatial practice
 
 Darken blue and orange mirror colors, retain five distinguishable task colors, show an explicit checkmark on selected controls. The main spatial and seed-lab action uses the shared teal token instead of a low-contrast green gradient. Added 90 rendered SVG label/background contrast checks and browser assertions for the selection mark and primary button. HTML 948443 → 948615 bytes. No new assets, learning progress or data schema changes. Candidate depends on #66; merge only after all mandatory checks on the combined branch. Physical iPad and learning outcomes remain unverified.
+
+### 1.5.108 — transactional TXT import and consolidated acceptance
+
+TXT import previously replaced open prose and reported success even after a failed draft write. Now reject empty input and stale text/title, guard drawing/upload, retain the original as an existing-format private edition before replacing nonempty prose, refuse replacement when edition capacity is insufficient, restore text/title/selection/versions on write failure, and show success only after storage confirms. Browser tests use synthetic files for cancel, quota failure, successful version preservation and blank input. No new data key. HTML 948615 → 949989 bytes. Combined PR #67 targets main; require all browser and regression checks on the combined commit, not just earlier #66. WebKit #66 was cancelled during dependency installation and retried.

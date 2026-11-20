@@ -3439,7 +3439,28 @@ function editor(bid,fromGallery=null,ownTheme=null,ownKey=null){
  $('quickIdea').onclick=()=>{$('quickIdeaText').textContent=storyQuickIdea(!!body.value.trim(),quickIdeaIndex++);$('quickIdeaCard').hidden=false;$('quickIdea').setAttribute('aria-expanded','true');$('quickIdea').textContent='Ещё идея'};
  $('quickIdeaClose').onclick=()=>{$('quickIdeaCard').hidden=true;$('quickIdea').setAttribute('aria-expanded','false');$('quickIdea').textContent='Нужна идея?';$('quickIdea').focus()};
  $('loadText').onclick=()=>$('storyFile').click();
- $('storyFile').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{if(file.size>2000000)throw Error('size');const text=await readText(file);if($('storyForm')!==form)return;if(body.value.trim()&&!confirm('Заменить текущий текст?'))return;body.value=text;if(!$('storyTitle').value.trim())$('storyTitle').value=file.name.replace(/\.txt$/i,'');draft();toast('Текст загружен.')}catch(e){toast('Выбери TXT-файл до 2 МБ.')}};
+ $('storyFile').onchange=async e=>{
+  const file=e.target.files[0];e.target.value='';if(!file)return;
+  if(busy||form.dataset.drawingDirty==='yes'){toast('Сначала закончи работу с рисунком.');return}
+  const initialBody=body.value,initialTitle=$('storyTitle').value;
+  try{
+   if(file.size>2000000)throw Error('size');const text=await readText(file);
+   if($('storyForm')!==form||activeDialog!=='editor')return;
+   if(busy||form.dataset.drawingDirty==='yes'||body.value!==initialBody||$('storyTitle').value!==initialTitle){toast('Сказка изменилась. Выбери файл ещё раз.');return}
+   if(!text.trim()){toast('Этот файл пуст. Твоя сказка не изменена.');return}
+   if(text===initialBody){toast('Этот текст уже открыт.');return}
+   const previousVersions=versions,start=body.selectionStart,end=body.selectionEnd;
+   if(initialBody.trim()){
+    const next=editionSave(versions,snapshot());
+    if(!next){toast('Нет места для прежнего варианта. Открой новую сказку для файла.');return}
+    if(!confirm('Заменить текст? Прежний вариант сохранится в разделе «Мои версии сказки».'))return;
+    versions=next;
+   }
+   body.value=text;if(!initialTitle.trim())$('storyTitle').value=file.name.replace(/\.txt$/i,'');
+   if(!draft()){versions=previousVersions;body.value=initialBody;$('storyTitle').value=initialTitle;body.setSelectionRange(start,end);draft();toast('Не удалось сохранить файл. Прежний текст возвращён.');return}
+   renderVersions();toast('Текст загружен и сохранён.');
+  }catch(e){if($('storyForm')===form&&activeDialog==='editor')toast('Выбери TXT-файл до 2 МБ.')}
+ };
  form.addEventListener('input',e=>{if(e.target?.closest('.literacy')||['ideaStage','writerWordSelect','newChapterTitle','bookPreviewChapter'].includes(e.target?.id))return;draft()});$('storyTheme').addEventListener('change',draft);
  $('rescueDraft').onclick=()=>exportDraftText(snapshot());
  $('saveStoryNow').onclick=()=>{if(!draft())return;closeModal(true);render()};
