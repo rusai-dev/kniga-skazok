@@ -108,6 +108,26 @@ const server=http.createServer((req,res)=>{
   await page.locator('#storybookHome').waitFor({state:'visible'});assert.deepEqual(errors,[],'no runtime errors with older API set');
   console.log('PASS all six home destinations with older JavaScript API set');
  }finally{await legacy.close()}
+ // Navigation must work before optional book artwork scripts finish loading.
+ for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
+  const ctx=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'block'});let unblock;const gate=new Promise(r=>unblock=r);const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  try{
+   await page.route(/\/(classic-art-153|classic-art-155|andersen-art-156)\.js\?v=/,async route=>{await gate;await route.abort()});
+   await page.goto(url,{waitUntil:'commit'});await page.locator('#startNotice').waitFor({state:'hidden',timeout:10000});
+   for(const [entry,target,back] of [['homeMath','academyBack','academyBack'],['homeLogic','academyBack','academyBack'],['childWorld','worldHome','worldHome'],['homeBooks','libraryHome','home'],['homeCreate','creativeHome','home'],['readingEntry','modal','close']]){
+    await page.locator('#'+entry).tap();await page.locator('#'+target).waitFor({state:'visible'});await page.locator('#'+back).tap();await page.locator('#storybookHome').waitFor({state:'visible'});assert.equal(await page.locator('#modal').isVisible(),false,'no modal left after '+entry);
+   }
+   await page.locator('#homeWrite').tap();await page.locator('#storyBody').fill('Проверка навигации.');await page.locator('#saveStoryNow').tap();await page.locator('#modal').waitFor({state:'hidden'});assert.ok(await page.locator('#storybookHome').isVisible());
+   assert.deepEqual(errors,[]);console.log('PASS touch home routes before optional artwork loads',viewport);
+   // Simulate stale HTML after an attempted upgrade. A newer manifest/HTML is available,
+   // but the current URL already records that attempt. No reload should be triggered.
+   await page.evaluate(()=>{const u=new URL(location.href);u.searchParams.set('_release','9.9.9');history.replaceState(null,'',u.href);window.__qaStillHere=true});
+   await page.route('**/release.json?*',route=>route.fulfill({contentType:'application/json',body:'{"version":"9.9.9"}'}));
+   await page.route('**/index.html?_check=*',route=>route.fulfill({contentType:'text/html',body:'<footer>Книга сказок · версия 9.9.9</footer>'}));
+   await page.evaluate(()=>checkRelease(true));assert.ok(await page.locator('#releaseNotice').isVisible());assert.equal(await page.evaluate(()=>window.__qaStillHere),true);assert.ok((await page.locator('#releaseText').textContent()).includes('пока не загрузилось'));
+   await page.locator('#homeMath').tap();await page.locator('#academyBack').tap();
+  }finally{unblock();await ctx.close()}
+ }
  // Separate touch-enabled contexts: follow public entry buttons, not internal artRoom().
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
   for(const mode of ['free','story']){
