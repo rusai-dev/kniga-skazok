@@ -255,6 +255,15 @@ const server=http.createServer((req,res)=>{
  await page.locator('#spatialUndo').click();assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 0');
  await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();assert.ok(await page.locator('#spatialCheck').isDisabled());
  await page.locator('#studyNext').click();assert.equal(await page.locator('#studySpatial').isVisible(),false);
+ await page.keyboard.press('Escape');await page.evaluate(()=>{let v=studyState("logic-order");v.n=1;v.level=3;studySave("logic-order",v);studyOpen("logic","order")});
+ assert.equal(await page.locator('#studySpatial').getAttribute('data-kind'),'mirror');assert.equal(await page.locator('#spatialControls button').count(),9);
+ const mirrorAnswer=await page.evaluate(()=>spatialQuestion(1,3).spatial.solution);
+ await page.locator('#spatialControls [data-spatial="'+mirrorAnswer[0]+'"]').click();
+ assert.equal(await page.locator('#spatialControls [aria-pressed="true"]').count(),1);
+ await page.locator('#spatialReset').click();assert.equal(await page.locator('#spatialControls [aria-pressed="true"]').count(),0);
+ await page.locator('#spatialCheck').click();assert.ok((await page.locator('#studyFeedback').textContent()).includes('Проверь'));
+ for(const i of mirrorAnswer)await page.locator('#spatialControls [data-spatial="'+i+'"]').click();
+ await page.locator('#spatialCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
  await page.keyboard.press('Escape');await page.evaluate(()=>{let v=studyState("logic-order");v.n=7;v.level=3;studySave("logic-order",v);studyOpen("logic","order")});
  assert.equal(await page.locator('#studyChoices button').count(),4);assert.ok(await page.locator('#studyPicture svg').isVisible());assert.equal((await page.locator('#studyQuestion').textContent()).match(/вправо|влево|вверх|вниз/g).length,4);
  const coordinateAnswer=await page.evaluate(()=>academySpatial(7,3).answer);await page.locator('#studyChoices').getByRole('button',{name:coordinateAnswer,exact:true}).click();assert.ok(await page.locator('#studyNext').isVisible());assert.ok((await page.locator('#studyFeedback').textContent()).includes('Маршрут:'));

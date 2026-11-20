@@ -429,3 +429,7 @@ Existing measurement practice alternates numerical word problems and original mu
 ### 1.5.105 consolidated ruler tasks
 
 PR #63 independently introduced combined-length tasks. Retain #64's five-color diagrams, schematic label and older text exercises; incorporate combined length at level 3 without duplicating generators or releases. Regression covers 1,600 diagrams (300 differences, 100 sums), plus browser scenarios for both. Separate audit of 8,000 coordinate questions reconstructed each route from its actual text and checked bounds, options and endpoint (0 shortened routes). HTML 943247 → 943473 bytes. No new user data changes. #62 merged after mandatory checks; #64 to main for fresh CI.
+
+### 1.5.105 — construct mirror reflections
+
+The existing spatial workshop now interleaves advanced reflection tasks with coordinate tracking, rotating figures and finding routes. Child toggles nine labeled cells to construct a mirror image across a vertical axis; color never replaces cell labels. The learner's selection, reset, wrong-answer guidance, correct response, solution and adaptive scoring use the existing workshop; no new screen or data key. Tested 400 independent reflected patterns (200 distinct patterns, 5 colors), plus spatial suite and browser case. HTML 943473 → 946770 bytes, initial 950186 of 1,000,000. Candidate #64 had no workflow after retargeting; this substantive commit triggers mandatory CI. Physical iPad and learning outcome remain unverified. Transfer: draw a pattern on graph paper, fold along the axis and recreate its mirror.

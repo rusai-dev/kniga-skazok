@@ -455,6 +455,7 @@ dialog:not(.reading-focus):not(.drawing-focus){width:min(820px,calc(100% - 24px)
 #spatialArt svg{display:block;height:min(35vh,260px);width:100%;margin:auto}#spatialStatus{margin:2px 0;color:var(--muted);font:650 16px/1.3 system-ui}
 #spatialControls{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 #spatialControls button{min-width:64px;min-height:54px;border:1px solid var(--line);border-radius:14px;background:var(--soft);color:var(--ink);font:700 23px/1.2 system-ui;padding:8px 15px}
+.spatial-studio[data-kind=mirror] #spatialControls{display:grid;grid-template-columns:repeat(3,minmax(44px,68px));gap:5px}.spatial-studio[data-kind=mirror] #spatialControls button{min-width:44px;min-height:44px;font-size:16px;padding:8px;border:1px solid #587176}.spatial-studio[data-kind=mirror] #spatialControls button[aria-pressed=true]{background:#6D3AA8;color:white;box-shadow:inset 0 0 0 2px white}
 #spatialControls button:disabled{opacity:.45}#spatialUndo[hidden]{display:none!important}
 .spatial-studio .model-actions{justify-content:center}
 @media(max-width:540px){#spatialControls button{min-width:54px;min-height:48px;font-size:20px;padding:8px 10px}}
@@ -2067,7 +2068,12 @@ function spatialShortest(m){
 }
 function spatialRotate(cells,turns){return cells.map(([x,y])=>{for(let i=0;i<turns;i++)[x,y]=[2-y,x];return [x,y]}).sort((a,b)=>a[1]-b[1]||a[0]-b[0])}
 const spatialFigures=[[[0,0],[0,1],[0,2],[1,2]],[[0,0],[1,0],[1,1],[1,2]],[[0,0],[1,0],[2,0],[0,1],[1,1]],[[0,0],[1,0],[1,1],[2,1],[2,2]]];
+function spatialMirror(n,l){
+ const cells=academyShuffle(Array.from({length:9},(_,i)=>i),n+197).slice(0,l===2?4:5).sort((a,b)=>a-b),solution=cells.map(i=>Math.floor(i/3)*3+2-i%3).sort((a,b)=>a-b);
+ return {...aq('Дорисуй зеркальное отражение узора справа от пунктирной линии. Нажимай клетки с нужными буквами и числами.','Зеркальный узор','Клетки должны быть на той же высоте и на таком же расстоянии от линии, как в зеркале.','У каждой клетки слева есть отражение справа на той же строке: ближняя к линии остаётся ближней, дальняя — дальней.'),spatial:{kind:'mirror',cells,solution,initial:[],tone:academyPick(n,201,0,4)}};
+}
 function spatialQuestion(n,l){
+ if(l>=2&&n%12===1)return spatialMirror(n,l);
  if(n%6!==3&&n%6!==5)return null;
  const p=(s,min,max)=>academyPick(n,s,min,max);
  if(n%6===5){
@@ -2088,15 +2094,25 @@ function spatialQuestion(n,l){
 }
 function spatialValid(m,s){
  if(!Array.isArray(s)||!s.length)return false;
+ if(m.kind==='mirror')return s.length===m.solution.length&&new Set(s).size===s.length&&s.every(i=>Number.isInteger(i)&&m.solution.includes(i));
  if(m.kind==='rotate')return s.length===1&&Number.isInteger(s[0])&&s[0]===m.delta;
  return s[0]===m.start&&s.at(-1)===m.goal&&new Set(s).size===s.length&&s.every((v,i)=>Number.isInteger(v)&&(i===0||spatialNeighbors(m,s[i-1]).some(p=>p.i===v)))&&(!m.short||s.length===m.solution.length);
 }
 function spatialMove(m,s,d){
+ if(m.kind==='mirror'){
+  if(!Array.isArray(s)||!Number.isInteger(d)||d<0||d>8)return s;
+  return (s.includes(d)?s.filter(i=>i!==d):[...s,d]).sort((a,b)=>a-b);
+ }
  if(!Number.isInteger(d)||d<0||d>3)return s;
  if(m.kind==='rotate')return d>1?s:[(s[0]+(d===0?3:1))%4];
  if(!Array.isArray(s)||!s.length)return s;const p=spatialNeighbors(m,s.at(-1)).find(p=>p.d===d);if(!p||s.includes(p.i)||s.at(-1)===m.goal)return s;return [...s,p.i];
 }
 function spatialArt(m,s){
+ if(m.kind==='mirror'){
+  const palette=['#3979C1','#B45F20','#69439A','#298052','#B94065'],c=palette[m.tone],label=i=>'АБВ'[i%3]+(Math.floor(i/3)+1);
+  const grid=(offset,selected,ref)=>Array.from({length:9},(_,i)=>{const x=offset+i%3*40,y=51+Math.floor(i/3)*40;return '<rect data-mirror-side="'+ref+'" data-cell="'+i+'" x="'+x+'" y="'+y+'" width="38" height="38" rx="5" fill="'+(selected.includes(i)?c:'#FFFFFF')+'" stroke="#587176"/><text x="'+(x+19)+'" y="'+(y+24)+'" text-anchor="middle" fill="'+(selected.includes(i)?'#FFFFFF':'#173C3E')+'" font-size="14">'+label(i)+'</text>'}).join('');
+  return '<svg viewBox="0 0 292 192" role="img" aria-label="'+esc('Узор слева: '+m.cells.map(label).join(', ')+'. Справа выбраны: '+(s.map(label).join(', ')||'нет клеток'))+'"><rect width="292" height="192" rx="14" fill="#F4FBFA"/><path d="M146 33V181" stroke="#6D3AA8" stroke-width="3" stroke-dasharray="5 5"/><g fill="#173C3E" font-size="14" text-anchor="middle" font-weight="700"><text x="72" y="27">Узор</text><text x="220" y="27">Твоё отражение</text></g>'+grid(12,m.cells,'source')+grid(160,s,'answer')+'</svg>';
+ }
  if(m.kind==='rotate'){
   const art=(cells,x,fill)=>cells.map(([a,b])=>'<rect x="'+(x+a*36)+'" y="'+(27+b*36)+'" width="34" height="34" rx="6" fill="'+fill+'" stroke="#526e61" stroke-width="1.4"/>').join('');
   const grid=x=>Array.from({length:9},(_,i)=>'<rect x="'+(x+i%3*36)+'" y="'+(27+Math.floor(i/3)*36)+'" width="34" height="34" rx="6" fill="#fffdf6" stroke="#ded6c4"/>').join('');
@@ -2114,6 +2130,7 @@ function spatialArt(m,s){
 }
 function spatialControls(m){
  const b=(i,label,aria)=>'<button type="button" data-spatial="'+i+'" aria-label="'+aria+'">'+label+'</button>';
+ if(m.kind==='mirror')return Array.from({length:9},(_,i)=>'<button type="button" data-spatial="'+i+'" aria-pressed="false" aria-label="Клетка '+('АБВ'[i%3]+(Math.floor(i/3)+1))+'">'+('АБВ'[i%3]+(Math.floor(i/3)+1))+'</button>').join('');
  return m.kind==='rotate'?b(0,'↶ Влево','Повернуть влево')+b(1,'Вправо ↷','Повернуть вправо'):spatialDirections.map(([label,aria],i)=>b(i,label,aria)).join('');
 }
 
@@ -2454,8 +2471,8 @@ studyOpen=function(type,skill='patterns'){
   const m=q.spatial;if(!m)return;
   $('studySpatial').dataset.kind=m.kind;if(initial)$('spatialControls').innerHTML=spatialControls(m);
   $('spatialArt').innerHTML=spatialArt(m,spatialState);
-  $('spatialStatus').textContent=m.kind==='maze'?'Шагов: '+(spatialState.length-1):'После поворота нажми «Проверить».';
-  $('spatialControls').querySelectorAll('button').forEach(b=>{const d=Number(b.dataset.spatial);b.disabled=finished||spatialMove(m,spatialState,d)===spatialState;b.onclick=()=>{if(finished||!q.spatial)return;spatialState=spatialMove(m,spatialState,d);renderSpatial()}});
+  $('spatialStatus').textContent=m.kind==='maze'?'Шагов: '+(spatialState.length-1) :m.kind==='mirror'?'Выбрано клеток: '+spatialState.length+'. Нажми «Проверить», когда узор готов.':'После поворота нажми «Проверить».';
+  $('spatialControls').querySelectorAll('button').forEach(b=>{const d=Number(b.dataset.spatial);b.disabled=finished||spatialMove(m,spatialState,d)===spatialState;if(m.kind==='mirror')b.setAttribute?.('aria-pressed',String(spatialState.includes(d)));b.onclick=()=>{if(finished||!q.spatial)return;spatialState=spatialMove(m,spatialState,d);renderSpatial()}});
   $('spatialUndo').hidden=m.kind!=='maze';$('spatialUndo').disabled=finished||spatialState.length===1;
   $('spatialReset').disabled=finished||spatialState.join()===m.initial.join();$('spatialCheck').disabled=finished;
  }
