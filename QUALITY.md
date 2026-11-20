@@ -300,3 +300,13 @@ Both browser engines detected stale root palette overrides in the computed famil
 ## Candidate 1.5.84 — identical binary UI sprites and startup headroom
 
 After successful 1.5.83 release, moved two embedded WebP sprites to assets/ui/home-sprite-1548.webp and assets/ui/learning-sprite-1536.webp without re-encoding. CSS coordinates and drawing content unchanged; no JS dependencies or storage changes. Both sprites remain in the versioned offline shell, with MIME check on install and decoding tests while offline. Added computed palette checks for home and writing. Startup source budget 889044 bytes (was 998872); separate binary images 82386 bytes, combined 971430 bytes (saving 27442 uncompressed bytes; compressed transfer/latency and peak memory not measured). Images are needed on main and learning screens; do not claim they are all deferred. Full regression passed; browser CI required before publication.
+
+
+## Candidate 1.5.85 — visible publication edition and safer deletion
+
+Private author book cards and reader now distinguish private, selected-for-family and changed public snapshots. The comparison excludes private plans/versions/edits through fbook; selection is explicitly not a delivery confirmation. Moved publish action near the title; reader and library update after share/unshare. Changed deletion to transactional commitLibrary, retaining the story if storage fails and triggering archive sync on successful removal. No migration, automatic publication or archive/key change. Updated theme meta colour. Added regression and browser fixtures for all three states. Startup source 891105 bytes, including UI sprites 973491 bytes. Regression passed; browser acceptance and real-device tests pending.
+
+
+### 1.5.85 follow-up — safe release polling and constructed number patterns
+
+Previous WebKit run failed on intermittent access-control errors during periodic release fetches. Automatic checks are restricted to safe idle states, at most once per minute; removed repeated modal-close polling and abort in-flight check on pagehide. Actual network fetch explicitly uses window.fetch. No browser errors suppressed. Numeric logic patterns now require typed answers rather than three alternatives; visual shape patterns remain choices. Existing four levels, explanatory hints and independent completion tracking retained. Added 800 numeric pattern correctness cases and browser answer test. Source 891530 bytes; regression passed; CI required.
