@@ -851,11 +851,17 @@ function artScene(ctx,scene,hero,outline,seed){
 }
 function artFill(pixels,w,h,x,y,rgba,barrier=null){
  x=Math.floor(x);y=Math.floor(y);if(x<0||x>=w||y<0||y>=h)return false;
- if(barrier?.[y*w+x])return false;const start=(y*w+x)*4,original=Array.from(pixels.subarray(start,start+4));
- if(original.every((v,i)=>v===rgba[i]))return false;
- const seen=new Uint8Array(w*h),queue=new Int32Array(w*h);let head=0,tail=0;queue[tail++]=y*w+x;seen[y*w+x]=1;
- while(head<tail){const n=queue[head++],p=n*4;if(barrier?.[n]||!original.every((v,i)=>Math.abs(pixels[p+i]-v)<=12))continue;pixels.set(rgba,p);
-  const col=n%w;for(const m of [col>0?n-1:-1,col<w-1?n+1:-1,n>=w?n-w:-1,n+w<w*h?n+w:-1])if(m>=0&&!seen[m]){seen[m]=1;queue[tail++]=m}
+ const root=y*w+x;if(barrier?.[root])return false;
+ const start=root*4,r=pixels[start],g=pixels[start+1],b=pixels[start+2],a=pixels[start+3];
+ if(r===rgba[0]&&g===rgba[1]&&b===rgba[2]&&a===rgba[3])return false;
+ const size=w*h,seen=new Uint8Array(size),queue=new Int32Array(size);let head=0,tail=1;queue[0]=root;seen[root]=1;
+ while(head<tail){const n=queue[head++],p=n*4;if((barrier&&barrier[n])||Math.abs(pixels[p]-r)>12||Math.abs(pixels[p+1]-g)>12||Math.abs(pixels[p+2]-b)>12||Math.abs(pixels[p+3]-a)>12)continue;
+  pixels[p]=rgba[0];pixels[p+1]=rgba[1];pixels[p+2]=rgba[2];pixels[p+3]=rgba[3];
+  const col=n%w;
+  let m=n-1;if(col>0&&!seen[m]){seen[m]=1;queue[tail++]=m}
+  m=n+1;if(col<w-1&&!seen[m]){seen[m]=1;queue[tail++]=m}
+  m=n-w;if(n>=w&&!seen[m]){seen[m]=1;queue[tail++]=m}
+  m=n+w;if(m<size&&!seen[m]){seen[m]=1;queue[tail++]=m}
  }
  return true;
 }
