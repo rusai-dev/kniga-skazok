@@ -1009,7 +1009,7 @@ function coverPalette(name){
 function coverArt(b){
  const rich=richMeta(b),src=rich.coverImage>=0?rich.images[rich.coverImage]:null;
  const palette=coverPalette(rich.cover);
- return '<div class="custom-cover" style="background:'+palette[0]+';border-color:'+palette[1]+';color:'+palette[2]+'"><div class="cover-picture">'+(src?'<img alt="Рисунок автора" src="'+src+'">':sceneArt(b.theme,b.icon||themeOf(b.theme)?.icon||'📖'))+'</div><div class="cover-caption">'+esc(b.title||'Моя сказка')+'</div></div>';
+ return '<div class="custom-cover" style="background:'+palette[0]+';border-color:'+palette[1]+';color:'+palette[2]+'"><div class="cover-picture">'+(src?'<img alt="Иллюстрация обложки" src="'+src+'">':sceneArt(b.theme,b.icon||themeOf(b.theme)?.icon||'📖'))+'</div><div class="cover-caption">'+esc(b.title||'Моя сказка')+'</div></div>';
 }
 function brushWidths(){return [4,11,24]}
 function drawingJPEG(canvas){
@@ -1677,13 +1677,14 @@ function storyPictureRemoval(body,rich,i){
  return {body:rich.markup?body.split('[[рисунок:'+(i+1)+']]').join(''):body,rich:{...rich,images,coverImage:rich.coverImage===i?-1:rich.coverImage}};
 }
 function storyPictureMove(body,rich,i,cursor){
- if(!rich.markup||!Number.isInteger(i)||i<0||i>=5||!rich.images[i])return null;
- const marker='[[рисунок:'+(i+1)+']]',at=body.indexOf(marker);if(at<0||body.indexOf(marker,at+marker.length)>=0)return null;
+ if(!Number.isInteger(i)||i<0||i>=5||!rich.images[i])return null;
+ const marker='[[рисунок:'+(i+1)+']]',at=body.indexOf(marker);if(!rich.markup&&/(\[\[рисунок:[1-5]\]\]|\*\*[^*\n]+\*\*|_[^_\n]+_|^## [^\n]+)/m.test(body))return null;
+ if(at>=0&&body.indexOf(marker,at+marker.length)>=0)return null;
  const caret=Math.max(0,Math.min(body.length,Number.isInteger(cursor)?cursor:body.length));
- if(caret>=at&&caret<=at+marker.length)return null;
+ if(at>=0&&caret>=at&&caret<=at+marker.length)return null;
  const lineEnd=body.indexOf('\n',caret),rawPos=lineEnd<0?body.length:lineEnd;
- if(rawPos>=at&&rawPos<at+marker.length)return null;
- const text=body.slice(0,at)+body.slice(at+marker.length),pos=rawPos>at?rawPos-marker.length:rawPos;
+ if(at>=0&&rawPos>=at&&rawPos<at+marker.length)return null;
+ const text=at<0?body:body.slice(0,at)+body.slice(at+marker.length),pos=at>=0&&rawPos>at?rawPos-marker.length:rawPos;
  const prefix=text.slice(0,pos),suffix=text.slice(pos),insert=(prefix.endsWith('\n')||!prefix?'':'\n')+marker+(suffix.startsWith('\n')||!suffix?'':'\n');
  return {body:prefix+insert+suffix,position:prefix.length+insert.length};
 }
@@ -3606,13 +3607,13 @@ function editor(bid,fromGallery=null,ownTheme=null,ownKey=null){
  function tray(){
   $('pictureMoveHint').hidden=!rich.images.some(Boolean);if(!rich.images[rich.coverImage])rich.coverImage=-1;
   $('coverImage').innerHTML='<option value="-1">Картинка по теме</option>'+rich.images.map((src,i)=>src?'<option value="'+i+'">Картинка '+(i+1)+'</option>':'').join('');$('coverImage').value=String(rich.coverImage);
-  $('imageTray').innerHTML=rich.images.map((src,i)=>src?'<div><img src="'+src+'" alt="Рисунок '+(i+1)+'"><small>Рисунок '+(i+1)+'</small><button type="button" data-picture="'+i+'" aria-label="Удалить рисунок '+(i+1)+'">×</button><button type="button" class="cover-choice" data-cover-pic="'+i+'">На обложку</button><button type="button" class="cover-choice" data-move-pic="'+i+'">После абзаца</button></div>':'').join('');
+  $('imageTray').innerHTML=rich.images.map((src,i)=>src?'<div><img src="'+src+'" alt="Рисунок '+(i+1)+'"><small>Рисунок '+(i+1)+'</small><button type="button" data-picture="'+i+'" aria-label="Удалить рисунок '+(i+1)+'">×</button><button type="button" class="cover-choice" data-cover-pic="'+i+'">На обложку</button><button type="button" class="cover-choice" data-move-pic="'+i+'">В текст</button></div>':'').join('');
   $('imageTray').querySelectorAll('[data-cover-pic]').forEach(btn=>btn.onclick=()=>chooseCover('coverImage',Number(btn.dataset.coverPic)));
   $('imageTray').querySelectorAll('[data-move-pic]').forEach(btn=>btn.onclick=()=>{
    if(busy||form.dataset.drawingDirty==='yes')return;
    const old=body.value,start=body.selectionStart,end=body.selectionEnd,next=storyPictureMove(old,rich,Number(btn.dataset.movePic),start);
-   if(!next){toast('Поставь курсор в другой абзац сказки.');return}
-   body.value=next.body;if(!draft()){body.value=old;body.setSelectionRange(start,end);draft();toast('Перенос не сохранён. Рисунок остался на прежнем месте.');return}
+   if(!next){toast('Поставь курсор в другой абзац или проверь знаки оформления.');return}
+   const markup=rich.markup;body.value=next.body;rich.markup=true;if(!draft()){body.value=old;rich.markup=markup;body.setSelectionRange(start,end);draft();toast('Перенос не сохранён. Рисунок остался на прежнем месте.');return}
    body.focus();body.setSelectionRange(next.position,next.position);body.scrollIntoView({block:'center'});toast('Рисунок перенесён после абзаца.');
   });
   $('imageTray').querySelectorAll('[data-picture]').forEach(btn=>btn.onclick=()=>{
@@ -3662,7 +3663,7 @@ function editor(bid,fromGallery=null,ownTheme=null,ownKey=null){
     const original=rich,prior=rich.coverImage;busy=true;btn.disabled=true;$('publishStory').disabled=true;
     try{
      const response=await fetch(path+'-504-v1.webp');if(!response.ok)throw Error('image');
-     const src=await imageForStory(await response.blob());if($('storyForm')!==form||!$('modal').hasAttribute('open')||rich!==original||rich.coverImage!==prior)return;
+     const src=await imageForStory(await response.blob());if($('storyForm')!==form||!$('modal').hasAttribute('open')||rich!==original||rich.coverImage!==prior||form.dataset.drawingDirty==='yes')return;
      const old=[...rich.images];let i=old.indexOf(src);if(i<0)i=old.findIndex(x=>!x);if(i<0)i=old.length;if(i>=5)throw Error('limit');
      rich.images[i]=src;rich.coverImage=i;tray();
      if(!draft()){rich.images=old;rich.coverImage=prior;tray();draft();toast('Обложка не изменена: не удалось сохранить.');return}
