@@ -39,6 +39,7 @@ const server=http.createServer((req,res)=>{
    assert.equal(await page.evaluate(async()=>{const c=await caches.open('skazki-book-art-v1');return (await c.keys()).length}),0,'no book art is precached');
    await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();localStorage.setItem('skazki-reading-size-v1','28')},artPath);
    assert.equal(await page.evaluate(async path=>!!await (await caches.open('skazki-book-art-v1')).match(new URL(path,location.href).href),artPath),true,'viewed art cached');
+   assert.equal(await page.evaluate(async()=>!!await (await caches.open('skazki-shell-1.5.101')).match(new URL('classic-art-153.js?v=1.5.101',location.href).href)),true,'previous version retained before offline');
    await ctx.setOffline(true);assert.equal(await page.evaluate(async()=>await (await fetch('./classic-art-153.js?v=1.5.101')).text()),'/* previous core */');await page.reload();
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
