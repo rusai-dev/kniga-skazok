@@ -469,3 +469,7 @@ Two new three-state interactive schematic models in existing discovery lessons. 
 ### 1.5.111 acceptance correction
 
 Run 44739698365: regression passed, Chromium and WebKit rejected the Nile channel visibility assertion. An SVG horizontal stroked path has zero geometric height for the visibility check. Use a positive-area rounded water rectangle (same 9-unit thickness) and verify visible geometry and actual fill. Added end-to-end themed prompt selection and author-text preservation. No data changes. Re-run full CI before merging.
+
+## Candidate 1.5.112 — family archive consistency and truthful status
+
+Reject a different book payload claiming the same revision as an already verified in-memory archive; keep the current list and cached books. Preserve recovery on reload after failed cache write (received not yet true). Distinguish authenticated archive write/current equality from anonymous verification; if verification fails, advertise pending public reading rather than a failed write. Synthetic regression and browser conflict checks; no real family data, network writes, credentials or storage format changes. HTML 968083 → 968539 bytes. Mandatory CI pending; depends on #70. Real family delivery delay not verified.
