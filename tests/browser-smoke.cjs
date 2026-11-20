@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.77')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.78')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -70,6 +70,7 @@ const server=http.createServer((req,res)=>{
  assert.ok(await page.evaluate(()=>document.getElementById('storyBody').compareDocumentPosition(document.getElementById('storyTheme'))&Node.DOCUMENT_POSITION_FOLLOWING),'writing before settings');
 
  const original=await page.locator('#storyBody').inputValue(),originalLibrary=await page.evaluate(()=>localStorage.getItem(KEY));
+ assert.equal(await page.locator('#quickIdeaCard').isVisible(),false);await page.locator('#quickIdea').click();assert.ok(await page.locator('#quickIdeaCard').isVisible());const firstIdea=await page.locator('#quickIdeaText').textContent();await page.locator('#quickIdea').click();assert.notEqual(await page.locator('#quickIdeaText').textContent(),firstIdea);await page.locator('#quickIdeaClose').click();assert.equal(await page.locator('#quickIdeaCard').isVisible(),false);assert.equal(await page.locator('#storyBody').inputValue(),original);assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),originalLibrary,'quick ideas never modify drafts');
  await page.locator('#previewStory').click();assert.ok(await page.locator('#bookPreview').isVisible());await page.locator('#previewStory').click();assert.equal(await page.locator('#bookPreview').isVisible(),false);
  await page.locator('#writerExtras > summary').click();await page.locator('.story-guide summary').click();
  await page.locator('#ideaStage').selectOption('revise');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('Прочитай начало'));
