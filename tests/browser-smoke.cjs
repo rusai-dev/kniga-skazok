@@ -128,6 +128,28 @@ const server=http.createServer((req,res)=>{
    await page.locator('#homeMath').tap();await page.locator('#academyBack').tap();
   }finally{unblock();await ctx.close()}
  }
+ // Simulate Safari's reduced visual viewport; not a physical keyboard test.
+ for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
+  const ctx=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  try{
+   await page.goto(url);await page.locator('#homeWrite').tap();const body=page.locator('#storyBody');const value='Длинная сказка о звёздах.\n'.repeat(30);await body.fill(value);
+   const height=viewport.height===768?300:480;
+   const fit=await page.evaluate(({height})=>{
+    const body=$('storyBody');body.focus();body.setSelectionRange(body.value.length,body.value.length);writerViewportFit({height,offsetTop:12,scale:1});
+    const r=id=>{const b=$(id).getBoundingClientRect();return {top:b.top,bottom:b.bottom,height:b.height}};
+    return {modal:r('modal'),text:r('storyBody'),save:r('saveStoryNow'),done:r('writerDoneTyping'),title:r('storyTitle'),tools:r('writerExtras'),focused:document.activeElement===body,selection:body.selectionStart,value:body.value}
+   },{height});
+   assert.ok(fit.modal.top>=11&&fit.modal.bottom<=height+13,'dialog fits the visible viewport');assert.ok(fit.text.height>=100&&fit.text.bottom<=fit.save.top&&fit.save.bottom<=height+13&&fit.done.bottom<=height+13,'text and both actions remain above keyboard '+JSON.stringify(fit));assert.equal(fit.title.height,0);assert.equal(fit.tools.height,0);assert.equal(fit.focused,true);assert.equal(fit.selection,value.length);assert.equal(fit.value,value);
+   const safe=await page.evaluate(({height,value})=>{
+    const body=$('storyBody'),original=Storage.prototype.setItem;body.focus();
+    try{Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return original.call(this,k,v)};body.value=value+'Конец.';body.dispatchEvent(new Event('input',{bubbles:true}));writerViewportFit({height,offsetTop:0,scale:1});$('saveStoryNow').click();return {open:$('modal').hasAttribute('open'),value:body.value,rescue:!$('rescueDraft').hidden&&$('rescueDraft').getBoundingClientRect().height>0,failed:$('storyForm').dataset.saveFailed==='yes'}}finally{Storage.prototype.setItem=original;body.value=value;body.dispatchEvent(new Event('input',{bubbles:true}))}
+   },{height,value});assert.deepEqual(safe,{open:true,value:value+'Конец.',rescue:true,failed:true},'a failed compact save leaves the full text and rescue action available');
+   const restored=await page.evaluate(()=>{writerViewportFit({height:innerHeight,offsetTop:0,scale:1});return !$('storyForm').classList.contains('keyboard-writing')&&$('writerExtras').getBoundingClientRect().height>0});assert.ok(restored,'tools restored when keyboard closes');
+   await page.locator('#storyTitle').fill('Звёзды');const titleFit=await page.evaluate(height=>{writerViewportFit({height,offsetTop:0,scale:1});return {visible:$('storyTitle').getBoundingClientRect().height>0,focus:document.activeElement===$('storyTitle')}},height);assert.deepEqual(titleFit,{visible:true,focus:true});
+   await page.evaluate(()=>{ $('writerDoneTyping').click();writerViewportFit({height:innerHeight,offsetTop:0,scale:1})});assert.equal(await body.inputValue(),value);
+   await page.locator('#saveStoryNow').tap();await page.locator('#modal').waitFor({state:'hidden'});await page.reload();await page.locator('#homeWrite').tap();assert.equal(await page.locator('#storyBody').inputValue(),value);assert.equal(await page.locator('#storyTitle').inputValue(),'Звёзды');assert.deepEqual(errors,[]);console.log('PASS compact writing visual viewport and draft recovery',viewport);
+  }finally{await ctx.close()}
+ }
  // Separate touch-enabled contexts: follow public entry buttons, not internal artRoom().
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
   for(const mode of ['free','story']){
