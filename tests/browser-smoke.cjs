@@ -29,18 +29,18 @@ const server=http.createServer((req,res)=>{
   const ctx=await browser.newContext({serviceWorkers:'allow'}),page=await ctx.newPage();
   try{
    await page.goto(new URL('release.json',url).href);
-   await page.evaluate(async()=>{const names=['skazki-shell-1.5.98','skazki-shell-1.5.99','skazki-shell-1.5.100','skazki-shell-1.5.101','skazki-shell-1.5.103','skazki-shell-v2','unrelated-cache'];for(const name of names)await caches.open(name);const old=await caches.open('skazki-shell-1.5.101');await old.put(new URL('classic-art-153.js?v=1.5.101',location.href).href,new Response('/* previous core */'));});
+   await page.evaluate(async()=>{const names=['skazki-shell-1.5.98','skazki-shell-1.5.99','skazki-shell-1.5.100','skazki-shell-1.5.101','skazki-shell-1.5.102','skazki-shell-1.5.104','skazki-shell-v2','unrelated-cache'];for(const name of names)await caches.open(name);const old=await caches.open('skazki-shell-1.5.102');await old.put(new URL('classic-art-153.js?v=1.5.102',location.href).href,new Response('/* previous core */'));});
    await page.goto(url);
    await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});await navigator.serviceWorker.ready});
    await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
-   await page.waitForFunction(async()=>{const keys=await caches.keys();return !keys.includes('skazki-shell-1.5.98')&&!keys.includes('skazki-shell-1.5.99')});
-   const retained=await page.evaluate(()=>caches.keys());assert.ok(!retained.includes('skazki-shell-1.5.99'));for(const name of ['skazki-shell-1.5.100','skazki-shell-1.5.101','skazki-shell-1.5.103','skazki-shell-1.5.103','skazki-shell-v2','unrelated-cache'])assert.ok(retained.includes(name),'retained '+name);
+   await page.waitForFunction(async()=>{const keys=await caches.keys();return !keys.includes('skazki-shell-1.5.98')&&!keys.includes('skazki-shell-1.5.99')&&!keys.includes('skazki-shell-1.5.100')});
+   const retained=await page.evaluate(()=>caches.keys());assert.ok(!retained.includes('skazki-shell-1.5.99'));for(const name of ['skazki-shell-1.5.101','skazki-shell-1.5.102','skazki-shell-1.5.103','skazki-shell-1.5.104','skazki-shell-v2','unrelated-cache'])assert.ok(retained.includes(name),'retained '+name);
    const artPath='./assets/books/andersen-pea-bed.webp';
    assert.equal(await page.evaluate(async()=>{const c=await caches.open('skazki-book-art-v1');return (await c.keys()).length}),0,'no book art is precached');
    await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();localStorage.setItem('skazki-reading-size-v1','28')},artPath);
    assert.equal(await page.evaluate(async path=>!!await (await caches.open('skazki-book-art-v1')).match(new URL(path,location.href).href),artPath),true,'viewed art cached');
-   assert.equal(await page.evaluate(async()=>!!await (await caches.open('skazki-shell-1.5.101')).match(new URL('classic-art-153.js?v=1.5.101',location.href).href)),true,'previous version retained before offline');
-   await ctx.setOffline(true);assert.equal(await page.evaluate(async()=>await (await fetch('./classic-art-153.js?v=1.5.101')).text()),'/* previous core */');await page.reload();
+   assert.equal(await page.evaluate(async()=>!!await (await caches.open('skazki-shell-1.5.102')).match(new URL('classic-art-153.js?v=1.5.102',location.href).href)),true,'previous version retained before offline');
+   await ctx.setOffline(true);assert.equal(await page.evaluate(async()=>await (await fetch('./classic-art-153.js?v=1.5.102')).text()),'/* previous core */');await page.reload();
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
