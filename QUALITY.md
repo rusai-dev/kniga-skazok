@@ -310,3 +310,8 @@ Private author book cards and reader now distinguish private, selected-for-famil
 ### 1.5.85 follow-up — safe release polling and constructed number patterns
 
 Previous WebKit run failed on intermittent access-control errors during periodic release fetches. Automatic checks are restricted to safe idle states, at most once per minute; removed repeated modal-close polling and abort in-flight check on pagehide. Actual network fetch explicitly uses window.fetch. No browser errors suppressed. Numeric logic patterns now require typed answers rather than three alternatives; visual shape patterns remain choices. Existing four levels, explanatory hints and independent completion tracking retained. Added 800 numeric pattern correctness cases and browser answer test. Source 891530 bytes; regression passed; CI required.
+
+
+## Candidate 1.5.86 — draft rescue and coherent violet accents
+
+PR #42 passed regression, Chromium and WebKit and merged before this candidate. Failed saves keep the editor open and offer raw UTF-8 text export; TXT does not include image bytes. Added centralized lavender/violet tokens for creative home entrances, optional writer tools, logic card, family theme labels and violet learning tile. White writing paper, turquoise primary actions, authored covers and drawings are unchanged. No schema changes. HTML 890668 → 892229 bytes. Updated release manifest and offline shell version together. Added computed-style checks in browser smoke; CI and actual deployment required. No physical iPad or runtime performance measurement claimed.
