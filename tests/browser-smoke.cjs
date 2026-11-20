@@ -84,7 +84,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#homeMath').click();assert.equal(await page.locator('[data-academy]').count(),12);assert.equal(await page.locator('#close').isVisible(),false);await page.locator('#academyBack').click();
  await page.locator('#homeLogic').click();assert.equal(await page.locator('[data-academy]').count(),6);await page.locator('#academyBack').click();
  const writeRect=await page.locator('#homeWrite').boundingBox();assert.ok(writeRect.y>=0&&writeRect.y+writeRect.height<=viewport.height,'author entry fits first screen');
- await page.locator('#homeWrite').click();assert.ok(await page.locator('#storyForm').isVisible());assert.equal(await page.locator('#storyTitle').getAttribute('required'),null);assert.equal(await page.locator('#writerExtras').evaluate(e=>e.open),false);assert.equal(await page.locator('#drawStory').isVisible(),false);assert.equal(await page.locator('#studioEffectPane canvas').count(),0,'no preview canvases during free writing');assert.ok(await page.locator('#publishStory').isVisible());
+ await page.locator('#homeWrite').click();assert.ok(await page.locator('#storyForm').isVisible());assert.equal(await page.locator('#storyTitle').getAttribute('required'),null);assert.equal(await page.locator('#writerExtras').evaluate(e=>e.open),false);assert.equal(await page.locator('#drawStory').isVisible(),false);assert.equal(await page.locator('#studioEffectPane canvas').count(),0,'no preview canvases during free writing');assert.equal(await page.locator('#lessonPicture svg').count(),0,'no lesson SVG during free writing');assert.ok(await page.locator('#publishStory').isVisible());
  assert.ok(await page.evaluate(()=>document.getElementById('storyTitle').compareDocumentPosition(document.getElementById('storyBody'))&Node.DOCUMENT_POSITION_FOLLOWING));
  assert.ok(await page.evaluate(()=>document.getElementById('storyBody').compareDocumentPosition(document.getElementById('storyTheme'))&Node.DOCUMENT_POSITION_FOLLOWING),'writing before settings');
 
@@ -383,7 +383,7 @@ const server=http.createServer((req,res)=>{
  await page.keyboard.press('Escape');
  await page.evaluate(()=>artRoom());
  await page.locator('#drawingCanvas').waitFor({state:'visible'});
- assert.equal(await page.locator('#lessonSubject option').count(),9);
+ assert.equal(await page.locator('#lessonSubject option').count(),9);assert.equal(await page.locator('#lessonPicture svg').count(),0,'no lesson SVG in free drawing');
  assert.equal(await page.locator('#premiumColoring img').getAttribute('src'),null,'premium art must not be requested when drawing opens');
  // P0/P1: all three real workshop modes, final lesson step and history.
  await page.locator('[data-art-mode="color"]').click();
@@ -454,7 +454,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await pixelState(),colored,'lesson navigation must not modify child drawing');
  await page.locator('[data-art-mode="free"]').click();
  assert.equal(await page.locator('[data-tool="brush"]').getAttribute('aria-pressed'),'true');
- assert.equal(await pixelState(),colored,'switching modes must keep image');
+ assert.equal(await pixelState(),colored,'switching modes must keep image');assert.equal(await page.locator('#lessonPicture svg').count(),0,'closed lesson SVG removed');await page.locator('[data-art-mode="lesson"]').click();assert.equal(await page.locator('#lessonPicture [data-lesson-stage]').count(),5,'reopened lesson resumes current step');assert.equal(await pixelState(),colored,'reopened lesson preserves canvas');await page.locator('[data-art-mode="free"]').click();
  assert.equal(await page.locator('#drawingColors button:visible').count(),16);
  assert.equal(await page.locator('#studioEffects').isVisible(),false);
  await page.locator('#paletteMore').click();assert.equal(await page.locator('#drawingColors button:visible').count(),72);await page.locator('#paletteMore').click();
