@@ -39,8 +39,8 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.96')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
-   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.96');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.97')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
+   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.97');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -224,10 +224,12 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#dayExperiment').isVisible(),false);
  await page.locator('#worldUnsure').click();await page.locator('#dayRotate').click();await page.locator('#dayRotate').click();
  assert.ok((await page.locator('.day-model-label').textContent()).includes('Ночь'));
- for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float'],[0,'ice'],[2,'sound']]){
+ for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float'],[0,'ice'],[2,'sound'],[0,'rain'],[2,'air']]){
   await page.locator('#worldBack').click();await page.locator('[data-area="'+area+'"]').click();await page.locator('[data-world="'+id+'"]').click();
   assert.equal(await page.locator('#worldLab').isVisible(),false);
   await page.locator('#worldUnsure').click();assert.ok(await page.locator('#worldLab').isVisible());
+  const sizes=await page.locator('#worldLabControls button').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return {w:r.width,h:r.height}}));assert.ok(sizes.every(s=>s.w>=44&&s.h>=44),'lab touch targets');
+  assert.ok(await page.locator('#worldLabModel svg[role="img"][aria-label]').isVisible());
   const first=await page.locator('#worldLabLabel').textContent();
   await page.locator('[data-lab="2"]').click();
   assert.notEqual(await page.locator('#worldLabLabel').textContent(),first);
