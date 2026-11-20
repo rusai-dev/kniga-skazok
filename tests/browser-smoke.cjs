@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.80')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.81')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -103,7 +103,7 @@ const server=http.createServer((req,res)=>{
  assert.ok(await page.evaluate(()=>{const b=data.stories.find(x=>x.title==='Лисёнок и друзья');return b?.body==='Жил маленький лисёнок.\n\n## В лесу\nОн нашёл друга.\n\n## Возвращение\nОни вернулись домой.'&&b.rich?.markup&&b.plan?.hero==='Лисёнок'&&!('plan' in fbook(b))}),'private notes preserved but not shared');
  await page.evaluate(()=>{const b=data.stories.find(x=>x.title==='Лисёнок и друзья');reader(b.id)});await page.locator('#ownReadPages').click();await page.locator('#ownReadText').waitFor();assert.ok((await page.locator('#ownReadText').textContent()).includes('Жил маленький лисёнок.'));assert.equal(await page.locator('#ownReadText').evaluate(el=>el.scrollHeight<=el.clientHeight+1),true);await page.locator('#ownReadBack').click();assert.ok(await page.locator('#editStory').isVisible());await page.keyboard.press('Escape');
  await page.locator('#home').click();
- await page.locator('#homeNewStory').click();assert.equal(await page.locator('#storyTitle').inputValue(),'');await page.locator('#storyBody').fill('Свободно написанная сказка.');await page.locator('#publishStory').click();assert.ok(await page.evaluate(()=>data.stories.some(b=>b.title==='Сказка без названия'&&b.body==='Свободно написанная сказка.')));await page.locator('#home').click();
+ await page.locator('#homeNewStory').click();assert.ok(await page.locator('#publishFamily').isVisible(),'family publication visible without extra tools');assert.equal(await page.locator('#storyTitle').inputValue(),'');await page.locator('#storyBody').fill('Свободно написанная сказка.');await page.locator('#publishStory').click();assert.ok(await page.evaluate(()=>data.stories.some(b=>b.title==='Сказка без названия'&&b.body==='Свободно написанная сказка.')));await page.locator('#home').click();
  await page.locator('#homeWrite').click();assert.ok(await page.locator('#storyForm').isVisible(),'resume directly without chooser');await page.keyboard.press('Escape');
  await page.evaluate(raw=>{if(!commitLibrary(JSON.parse(raw)))throw Error('restore fixture')},beforeDrafts);
  await page.locator('#homeCreate').click();assert.ok(await page.locator('#creativeHome').isVisible());assert.equal(await page.locator('#storybookHome').isVisible(),false);
