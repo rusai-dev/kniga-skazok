@@ -565,3 +565,8 @@ Dependent on 1.5.126 (d827046). Keep all 36 catalog records available offline on
 ### 1.5.127 acceptance follow-up
 
 Compared the editable source directly against accepted 1.5.126 main: all 36 records match exactly. Source size measured across all five actual files: 992368 → 976929 B. Strengthen automated codec cases (empty catalog, Cyrillic, supplementary Unicode, markup/script delimiters, whitespace, deterministic output, reserved-token rejection). Browser CI must verify full decoded catalog against editable source while offline, lazy initialization and back-to-shelf navigation. Full isolated regression and 5 codec cases passed; no runtime code or image changes in this follow-up. No CI run was available on f670c72 at review; new head requires all mandatory checks before merge.
+
+
+## Owner-approved quality-first performance policy
+
+See docs/performance-budget.md: no artificial total content cap, unchanged startup/resource gates, optional 800–850 KB optimization goal, image quality and user data protected, physical-device targets explicitly unverified. 1.5.127 accepted via PR #88 after all three required jobs passed. Documentation-only; no runtime, data migration or version change.
