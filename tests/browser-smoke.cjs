@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.69')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.70')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -52,7 +52,14 @@ const server=http.createServer((req,res)=>{
  assert.ok(await page.locator('#homeFox img').evaluate(async e=>{await e.decode();return e.naturalWidth>180}));
  const last=await page.locator('#homeBooks').boundingBox();assert.ok(last.y>=0&&last.y+last.height<=viewport.height,'personal books must fit first screen');
  await page.locator('#homeBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);
- await page.locator('#libraryFilters summary').click();assert.ok(await page.locator('#authors').isVisible());await page.locator('#libraryFilters summary').click();await page.locator('#home').click();
+ await page.locator('#libraryFilters summary').click();assert.ok(await page.locator('#authors').isVisible());
+ const geometry=await page.evaluate(()=>{const r=id=>document.getElementById(id).getBoundingClientRect();const topic=r('topics'),author=r('authors'),search=r('bookSearch'),visible=[...document.querySelectorAll('#topics button')].filter(b=>getComputedStyle(b).display!=='none');return {searchAbove:search.bottom<=topic.top,authorsBelow:author.top>=topic.bottom,unclipped:visible.every(b=>{const x=b.getBoundingClientRect();return x.top>=topic.top-1&&x.bottom<=topic.bottom+1&&x.left>=topic.left-1&&x.right<=topic.right+1&&x.height>=44}),count:visible.length}});
+ assert.deepEqual(geometry,{searchAbove:true,authorsBelow:true,unclipped:true,count:7},'compact, fully visible library filters');
+ await page.locator('#moreThemes').click();assert.ok(await page.locator('#topics button:visible').count()>7);
+ await page.locator('#topics button').filter({hasText:'Путешествия'}).click();assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);assert.ok((await page.locator('#shelfTitle').textContent()).includes('Путешествия'));
+ await page.locator('#libraryFilters summary').click();await page.locator('#moreThemes').click();assert.ok(await page.locator('#topics button.active').isVisible());
+ await page.locator('#authors .author').filter({hasText:'Пушкин'}).click();assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);
+ await page.locator('#home').click();
  assert.ok(await page.locator('.home-art').first().evaluate(e=>getComputedStyle(e).backgroundImage.includes('data:image/webp;base64,')));
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  await page.locator('#homeMath').click();assert.equal(await page.locator('[data-academy]').count(),12);assert.equal(await page.locator('#close').isVisible(),false);await page.locator('#academyBack').click();
@@ -66,8 +73,10 @@ const server=http.createServer((req,res)=>{
  // P0: personal search must find a persisted book outside its selected topic/author.
  await page.evaluate(()=>{const book={id:'qa-personal-search',title:'Ёжик и северное сияние',body:'Светлячок нашёл волшебный фонарь.',theme:'Винни-Пух',author:OWN,icon:'📖'};if(!commitLibrary({...data,stories:[...data.stories,book]}))throw Error('personal search fixture');});
  await page.locator('#homeBooks').click();
+ await page.locator('#libraryFilters summary').click();assert.ok(await page.locator('#topics button').filter({hasText:'Винни-Пух'}).isVisible(),'used theme visible');
  await page.evaluate(()=>chooseTheme('Море'));
- await page.locator('#bookSearch').fill('ежик фонарь');
+ await page.locator('#libraryFilters summary').click();
+ await page.locator('#bookSearch').fill('ежик фонарь');assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false,'search collapses filters');
  assert.equal(await page.locator('#books .book-title').count(),1);
  assert.equal(await page.locator('#books .book-title').textContent(),'Ёжик и северное сияние');
  assert.ok(await page.locator('#clearBookSearch').isVisible());
