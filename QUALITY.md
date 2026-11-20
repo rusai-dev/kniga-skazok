@@ -295,3 +295,8 @@ Implements the six specified colours, white paper, quiet cards, clear turquoise 
 ### 1.5.83 palette cascade correction
 
 Both browser engines detected stale root palette overrides in the computed family interface. Removed 21 duplicate legacy CSS custom-property declarations, retained one shared root palette and unified surface tokens. Existing strict computed-style test retained, regression additionally checks that old ink definitions cannot override the theme. Startup 998872 bytes. Awaiting browser acceptance before release.
+
+
+## Candidate 1.5.84 — identical binary UI sprites and startup headroom
+
+After successful 1.5.83 release, moved two embedded WebP sprites to assets/ui/home-sprite-1548.webp and assets/ui/learning-sprite-1536.webp without re-encoding. CSS coordinates and drawing content unchanged; no JS dependencies or storage changes. Both sprites remain in the versioned offline shell, with MIME check on install and decoding tests while offline. Added computed palette checks for home and writing. Startup source budget 889044 bytes (was 998872); separate binary images 82386 bytes, combined 971430 bytes (saving 27442 uncompressed bytes; compressed transfer/latency and peak memory not measured). Images are needed on main and learning screens; do not claim they are all deferred. Full regression passed; browser CI required before publication.

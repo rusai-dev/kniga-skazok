@@ -1,9 +1,10 @@
 /* Versioned offline shell; lazy artwork cache. Never modify user storage. */
 'use strict';
-const REV='1.5.83',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
+const REV='1.5.84',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
 const ROOT=new URL('./',self.registration.scope).href,INDEX=new URL('index.html',ROOT).href;
 const LEGACY_CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css'].map(name=>new URL(name,ROOT).href);
-const CORE=LEGACY_CORE.map(url=>url+'?v='+REV);
+const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1536.webp'].map(name=>new URL(name,ROOT).href);
+const CORE=[...LEGACY_CORE.map(url=>url+'?v='+REV),...UI_SPRITES];
 const ART=new Set(['andersen-pea-bed.webp','andersen-pea-journey.webp','andersen-pea-morning.webp','andersen-pea-rain.webp','classic-cinder-1.jpg','classic-cinder-11.jpg','classic-cinder-3.jpg','classic-cinder-7.jpg','historic-pea-morning.jpg','historic-sunny.jpg','historic-wind1.jpg','historic-wind2.jpg','premium-coloring.png','premium-storybook.webp'].map(name=>new URL('assets/books/'+name,ROOT).href));
 async function fresh(url){return fetch(url,{cache:'no-store',credentials:'same-origin'})}
 function isHTML(r){return r.ok&&/text\/html/i.test(r.headers.get('content-type')||'')}
@@ -13,7 +14,7 @@ async function save(name,key,r){try{await (await caches.open(name)).put(key,r.cl
 async function sameRelease(r){return isHTML(r)&&(await r.clone().text()).includes('<footer>Книга сказок · версия '+REV+'</footer>')}
 self.addEventListener('install',event=>event.waitUntil((async()=>{
  const responses=await Promise.all([INDEX,...CORE].map(fresh));
- if(!await sameRelease(responses[0])||responses.slice(1).some(r=>!r.ok))throw Error('Incomplete release');
+ if(!await sameRelease(responses[0])||responses.slice(1).some(r=>!r.ok)||responses.slice(-UI_SPRITES.length).some(r=>!isImage(r)))throw Error('Incomplete release');
  const cache=await caches.open(CACHE);
  await Promise.all([INDEX,...CORE].map((url,i)=>cache.put(url,responses[i])));
  await self.skipWaiting();
