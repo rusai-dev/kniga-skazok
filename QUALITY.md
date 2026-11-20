@@ -330,3 +330,7 @@ Classification tasks now use six named figure colours (turquoise, violet, yellow
 ## Candidate 1.5.89 — multicolour learning models
 
 Attention tasks now use four colours at levels 0–1 and six at levels 2–3, with every colour shown in each board, controlled distractors and the same number of correct cells (3 or 4). Existing progress and memory rules stay unchanged. Shape-pattern illustrations use distinct natural red, blue, green and yellow; math clocks have blue hour and red minute hands, chart columns differ in colour, polygons vary in fill by side count. Regression independently recomputes answers and checks all colours and SVG fills on 400 attention boards. No new assets or dependencies. Physical-device visuals and learning outcomes remain unverified.
+
+### Follow-up acceptance for 1.5.89
+
+Pre-release audit caught a regression: quarter-hour and interactive clock rendering depended on literal stroke colors in SVG replacement regexes. Render both hands directly from hour/minute values, preserving the new colors. Added coordinate assertions for 144 five-minute clock positions, 160 interactive models and 200 generated quarter-hour questions. Data literacy now alternates four contexts (books, cones, postcards, bookmarks) on four levels, using tables and charts; 800 generated tasks independently recomputed from the displayed values. Full dependency-free regression passed against the modified code in the connector execution environment. CI and physical iPad remain separate acceptance gates.
