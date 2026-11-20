@@ -344,7 +344,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#dayExperiment').isVisible(),false);
  await page.locator('#worldUnsure').click();await page.locator('#dayRotate').click();await page.locator('#dayRotate').click();
  assert.ok((await page.locator('.day-model-label').textContent()).includes('Ночь'));
- for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float'],[0,'ice'],[2,'sound'],[0,'rain'],[2,'air'],[0,'moon'],[1,'bee'],[5,'bat-echo'],[4,'egypt-nile']]){
+ for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float'],[0,'ice'],[2,'sound'],[0,'rain'],[2,'air'],[0,'moon'],[1,'bee'],[5,'bat-echo'],[4,'egypt-nile'],[4,'egypt-writing']]){
   await page.locator('#worldBack').click();await page.locator('[data-area="'+area+'"]').click();await page.locator('[data-world="'+id+'"]').click();
   assert.equal(await page.locator('#worldLab').isVisible(),false);
   await page.locator('#worldUnsure').click();assert.ok(await page.locator('#worldLab').isVisible());
@@ -354,10 +354,12 @@ const server=http.createServer((req,res)=>{
   const first=await page.locator('#worldLabLabel').textContent();
   if(id==='bat-echo')assert.equal(await page.locator('[data-echo-wall="0"]').getAttribute('x'),'160');
   if(id==='egypt-nile')assert.equal(await page.locator('[data-nile-channel]').count(),0);
+  if(id==='egypt-writing'){const code=page.locator('#worldLabModel svg');assert.ok((await code.textContent()).includes('Луна · лес · луна'));await page.locator('[data-lab="1"]').click();assert.ok((await code.textContent()).includes('Ключ неизвестен'));assert.ok((await code.textContent()).includes('? · ? · ?'));await page.locator('[data-lab="0"]').click();}
   await page.locator('[data-lab="2"]').click();
   assert.notEqual(await page.locator('#worldLabLabel').textContent(),first);
   if(id==='bat-echo')assert.equal(await page.locator('[data-echo-wall="2"]').getAttribute('x'),'280');
   if(id==='egypt-nile'){const channel=page.locator('[data-nile-channel]');assert.ok(await channel.isVisible());assert.ok(await channel.evaluate(el=>{const b=el.getBBox();return b.width>0&&b.height>0&&getComputedStyle(el).fill==='rgb(62, 145, 195)'}),'visible water channel with positive area');}
+  if(id==='egypt-writing')assert.ok((await page.locator('#worldLabModel svg').textContent()).includes('Лес · луна · лес'));
   assert.equal(await page.locator('[data-lab="2"]').getAttribute('aria-pressed'),'true');
   await page.locator('#worldNext').click();assert.equal(await page.locator('#worldLab').isVisible(),false);
  }
