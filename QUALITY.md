@@ -555,3 +555,13 @@ PR #86 passed regression, Chromium and WebKit (44775192738), merged at e449747. 
 ## Candidate 1.5.126 — cold home CI correction
 
 CI 44775953162: regression passed, both browser jobs failed at the cold hidden-shelf check (6 buttons found). Root cause: static placeholder markup (four topic buttons and two author buttons), not runtime shelf construction. Remove those placeholders and the inactive mock new-page button; library entry still uses existing render, all data unchanged. Tighten browser check to include every book/hero child and confirm cold direct writing does not allocate reading catalog. Full regression passed in isolated JS execution; browser tests syntax checked. Source 992885 → 992368 bytes; total 6549 B below 1.5.125, reserve 7632. No data keys or artwork changes. Browser CI required again. No physical iPad or actual delivery verification.
+
+
+## Candidate 1.5.127 — lossless offline literary catalog
+
+Dependent on 1.5.126 (d827046). Keep all 36 catalog records available offline on first use rather than introduce a network dependency for reading. Build-only deterministic word dictionary: editable original content/reading-catalog.json, generator tools/pack-reading-catalog.cjs, lazily decoded generated block in index.html. Full decoded records including ordering, IDs, scenes, text and metadata exactly equal to original; generation checked by regression. No new runtime downloads or dependencies; no storage schema, graphic assets or writing/publication changes. Catalog block 97986 → 82547 B; initial source 992368 → 976929 B; reserve 23071 B. Full isolated regression passed; browser test adds first-use offline reading and forbids editable source download. Browser CI pending. Source size improvement is not a measured hardware speedup; compression tradeoff versus genuine deferred transfer requires device measurement. Further modular extraction remains open.
+
+
+### 1.5.127 acceptance follow-up
+
+Compared the editable source directly against accepted 1.5.126 main: all 36 records match exactly. Source size measured across all five actual files: 992368 → 976929 B. Strengthen automated codec cases (empty catalog, Cyrillic, supplementary Unicode, markup/script delimiters, whitespace, deterministic output, reserved-token rejection). Browser CI must verify full decoded catalog against editable source while offline, lazy initialization and back-to-shelf navigation. Full isolated regression and 5 codec cases passed; no runtime code or image changes in this follow-up. No CI run was available on f670c72 at review; new head requires all mandatory checks before merge.
