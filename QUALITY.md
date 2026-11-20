@@ -687,3 +687,6 @@ Single-draft recoverable JSON for failed saves, private additive restore via exi
 
 ## Package 01 candidate 1.5.154
 #118 1.5.153 passed all three CI jobs and merged 7c24012cc2a0a148239ee90791c6da482b42bbc0. A08: persist personal/family reader font size in existing bookmark, legacy compatible, no changes to book or publication. 998965 B startup source, syntax and isolated validation passed, CI pending. Real Pages/iPad/family archive verification outstanding.
+
+
+1.5.155 candidate: emergency PNG export when drawing persistence or insertion fails; no storage schema change, canvas remains open. 999499 B / 1M. New browser scenario; syntax passed. Exact CI pending, base #119 must be accepted first.
