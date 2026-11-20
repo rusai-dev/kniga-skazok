@@ -250,3 +250,8 @@ Optional six-field notebook inside the author editor: character, traits, place, 
 ## Candidate 1.5.76 — child-authored chapters and preview
 
 Optional editor chapter panel appends a named chapter to the end of existing text without replacing any authored prose; derives chapter navigation and individual-chapter preview from existing ## heading format. Entire-book preview remains the default. Legacy plain text not interpreted as headings; potentially ambiguous plain markup is not converted by the new append action. No new storage keys, no change to published/exported format or existing drawings. Regression passed 16 chapter partition cases and append/escaping guards; browser checks verify chapter text, navigation, preview, no writes during selection and publication. Startup 972984 bytes under 1 MB. This is chapter-based preview, not automatic page fitting; physical iPad and browser acceptance pending.
+
+
+## Candidate 1.5.77 — free writing first
+
+Direct entry resumes a draft or opens a blank editor without a required selection. Separate New Story and My Drafts actions; use an available theme without overwriting an existing draft. Neutral My Stories theme preferred. Title is optional; body-only publication uses a neutral title. Save, preview and publish beside body; all planning/design/spelling tools behind a closed optional section, drawing panel outside it. No migration or new dependencies. Registration of optional literacy scan is deferred while extras closed. Regression passed and browser scenarios exercise direct entry, hidden extras, title-free writing and existing draft retention. Initial source 975008 bytes under 1 MB. Theme-based draft capacity unchanged; browser and physical-device acceptance pending.
