@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.78')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.79')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -85,6 +85,8 @@ const server=http.createServer((req,res)=>{
  await page.locator('#storyTitle').fill('Проверка сохранения');await page.locator('#storyBody').fill('Мой текст остаётся открыт.');
  assert.ok((await page.locator('#draftStatus').textContent()).includes('Не удалось сохранить'));await page.keyboard.press('Escape');assert.ok(await page.locator('#storyForm').isVisible());await page.locator('#close').click();assert.ok(await page.locator('#storyForm').isVisible());assert.equal(await page.locator('#storyBody').inputValue(),'Мой текст остаётся открыт.');
  await page.evaluate(()=>{Storage.prototype.setItem=window.__qaSetItem});await page.locator('#saveStoryNow').click();assert.equal(await page.locator('#modal').isVisible(),false);assert.ok(await page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem(KEY)).drafts).some(d=>d.body==='Мой текст остаётся открыт.')));
+ await page.locator('#homeNewStory').click();assert.equal(await page.locator('#storyBody').inputValue(),'');assert.equal(await page.locator('#storyTheme').inputValue(),'Мои истории');await page.locator('#storyTitle').fill('Вторая свободная сказка');await page.locator('#storyBody').fill('Другой текст в той же теме.');await page.locator('#saveStoryNow').click();
+ await page.reload();await page.locator('#homeDrafts').click();await page.locator('[data-own-draft]').filter({hasText:'Проверка сохранения'}).click();assert.equal(await page.locator('#storyBody').inputValue(),'Мой текст остаётся открыт.');await page.keyboard.press('Escape');await page.locator('#homeDrafts').click();await page.locator('[data-own-draft]').filter({hasText:'Вторая свободная сказка'}).click();assert.equal(await page.locator('#storyBody').inputValue(),'Другой текст в той же теме.');await page.locator('#publishStory').click();assert.ok(await page.evaluate(()=>Object.values(data.drafts).some(d=>d.title==='Проверка сохранения')),'publishing one draft does not delete another');await page.locator('#home').click();
  await page.locator('#homeNewStory').click();assert.equal(await page.locator('#storyBody').inputValue(),'');
  await page.locator('#writerExtras > summary').click();await page.locator('.story-notebook summary').click();await page.locator('[data-story-plan="hero"]').fill('Лисёнок');await page.locator('[data-story-plan="wish"]').fill('Найти друзей');
  assert.equal(await page.locator('#storyBody').inputValue(),'','notes never insert prose');await page.locator('#saveStoryNow').click();
