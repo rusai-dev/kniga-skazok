@@ -2,6 +2,7 @@
 function verify(html){
  const assert=(ok,why)=>{if(!ok)throw Error(why)};
  const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];assert(scripts.length,'main script');for(const m of scripts)new Function(m[1]);
+ const cacheStatus=html.slice(html.indexOf('function ghPublicCache('),html.indexOf('async function ghViewerTick('));assert(cacheStatus.includes('const cached=fput(s.cache,JSON.stringify(s.books))')&&cacheStatus.includes('не сохранено на устройстве')&&cacheStatus.includes('if(cached){fput(FAMILY_READER,s.secret)'), 'family cache persistence status');
  const between=(a,b)=>{const i=html.indexOf(a),j=html.indexOf(b,i+1);assert(i>=0&&j>i,'missing '+a);return html.slice(i,j)};
  const books=new Function(html.split('\n').filter(x=>x.startsWith('const readingBooks=')||x.startsWith('readingBooks.push(')||x.startsWith('readingBooks.unshift(')).join('\n')+"\nreturn readingBooks.filter(b=>(b.full&&b.scenes?.length===b.pages.length)||b.verse||b.credit==='Оригинальная сказка читальни');")();
  const paging=new Function('books',between('function readingRanges(','function readingOffsets(')+
