@@ -245,3 +245,8 @@ Shows unfinished edits of the child's already saved books alongside new drafts, 
 ## Candidate 1.5.75 — private story planning notebook
 
 Optional six-field notebook inside the author editor: character, traits, place, wish, obstacle/action, ending. Notes are written by the child; no generated prose or compulsory fields. Autosave supports notes-only drafts; chooser uses hero name when title is empty. Bounded notes are retained in the existing library and portable archive, deliberately excluded by family fbook and story text export. Legacy drafts open without notes; no migration or new keys. Added regression checks for normalization, HTML escaping and archive retention, browser lifecycle for notes-only draft/reload/publish/privacy. Startup 968423 bytes under 1 MB. Browser/physical iPad and learning outcomes pending.
+
+
+## Candidate 1.5.76 — child-authored chapters and preview
+
+Optional editor chapter panel appends a named chapter to the end of existing text without replacing any authored prose; derives chapter navigation and individual-chapter preview from existing ## heading format. Entire-book preview remains the default. Legacy plain text not interpreted as headings; potentially ambiguous plain markup is not converted by the new append action. No new storage keys, no change to published/exported format or existing drawings. Regression passed 16 chapter partition cases and append/escaping guards; browser checks verify chapter text, navigation, preview, no writes during selection and publication. Startup 972984 bytes under 1 MB. This is chapter-based preview, not automatic page fitting; physical iPad and browser acceptance pending.
