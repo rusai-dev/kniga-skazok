@@ -504,6 +504,34 @@ const server=http.createServer((req,res)=>{
  for(const tool of ['fill','pick'])assert.equal(await page.locator('[data-tool="'+tool+'"]').isVisible(),true,'active tools remain visible');
  const edge=await expand.boundingBox(),paper=await drawingView.boundingBox();assert.ok(edge.y+edge.height<=paper.y+1,'expand control must never cover pixels');
 
+ // The professional palette must work on the same full-screen drawing.
+ const pro=page.locator('#studioProPane'),proButton=page.locator('#studioPro');
+ await proButton.click();assert.ok(await pro.isVisible());assert.equal(await page.locator('#proEffect option').count(),29);
+ await page.locator('#proPalette').selectOption('all');assert.equal(await page.locator('#proSwatches button').count(),72);
+ await page.locator('#proPalette').selectOption('warm');assert.equal(await page.locator('#proSwatches button').count(),8);
+ const setValue=async(id,value)=>page.locator('#'+id).evaluate((e,v)=>{e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}))},value);
+ await setValue('proColor','#ff0000');await setValue('proSecond','#0000ff');await setValue('proRatio','50');
+ assert.equal(await page.locator('#proMixSample').getAttribute('title'),'#800080');await page.locator('#proMix').click();
+ assert.equal(await page.locator('#drawingFullColor').inputValue(),'#800080');
+ assert.equal(await page.locator('#proShades button').count(),7);
+ await setValue('proWidth','40');await setValue('proOpacity','30');await page.locator('#proEffect').selectOption('solid');
+ const lightPreview=await page.locator('#proPreview').evaluate(c=>c.toDataURL());
+ await setValue('proOpacity','100');assert.notEqual(await page.locator('#proPreview').evaluate(c=>c.toDataURL()),lightPreview);
+ await setValue('proOpacity','30');await page.locator('#studioProClose').click();assert.ok(!await pro.isVisible());
+ const pixel=async()=>drawingView.evaluate(c=>Array.from(c.getContext('2d').getImageData(360,240,1,1).data));
+ await drawingView.click();const faded=await pixel();assert.ok(faded[1]>100&&faded[1]<253,'transparent stroke changes actual pixels');await page.locator('#drawingUndo').click();assert.deepEqual(await drawSnapshot(),blankDrawing);
+ await proButton.click();await setValue('proOpacity','100');await page.locator('#studioProClose').click();await drawingView.click();assert.deepEqual(await pixel(),[128,0,128,255],'opaque mixed pigment on paper');await page.locator('#drawingUndo').click();assert.deepEqual(await drawSnapshot(),blankDrawing);
+ // Check each new effect uses the real renderer, not merely a label.
+ for(const kind of ['gouache','ink','spray']){
+  await proButton.click();await page.locator('#proEffect').selectOption(kind);await page.locator('#studioProClose').click();
+  await drawingView.click();assert.notEqual((await drawSnapshot()).pixels,blankDrawing.pixels,kind+' paints');await page.locator('#drawingUndo').click();assert.deepEqual(await drawSnapshot(),blankDrawing);
+ }
+ await proButton.click();await page.locator('#proEffect').selectOption('solid');await setValue('proWidth','40');await page.locator('#proPressure').check();await page.locator('#studioProClose').click();
+ const pen=async pressure=>drawingView.evaluate((c,pressure)=>{const r=c.getBoundingClientRect(),opts={pointerId:50,pointerType:'pen',pressure,clientX:r.x+r.width/2,clientY:r.y+r.height/2,bubbles:true};c.dispatchEvent(new PointerEvent('pointerdown',opts));c.dispatchEvent(new PointerEvent('pointerup',opts));const d=c.getContext('2d').getImageData(370,240,1,1).data;return Array.from(d)},pressure);
+ const thin=await pen(.2);await page.locator('#drawingUndo').click();const thick=await pen(1);assert.notDeepEqual(thin,thick,'pen pressure changes painted width');await page.locator('#drawingUndo').click();
+ // Restore simple-mode defaults before existing drawing suite.
+ await proButton.click();await page.locator('#proPressure').uncheck();await setValue('proWidth','11');await setValue('proOpacity','100');await setValue('proColor','#344b3d');await page.keyboard.press('Escape');assert.ok(!await pro.isVisible());assert.equal(await expand.getAttribute('aria-pressed'),'true');
+ assert.deepEqual(await drawSnapshot(),blankDrawing);console.log('PASS professional palette, mixed pigment, opacity, effects and synthetic pen pressure');
  const detail=page.locator('#drawingDetail'),pan=page.locator('#drawingPan');
  if(await detail.getAttribute('aria-pressed')==='false')await detail.click();
  await pan.click();assert.equal(await pan.getAttribute('aria-pressed'),'true');
