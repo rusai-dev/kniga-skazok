@@ -465,3 +465,7 @@ Four new discovery lessons, six distinct question forms each, four original SVG 
 ## Candidate 1.5.111 — bat echo and Nile field models
 
 Two new three-state interactive schematic models in existing discovery lessons. Show only after first independent prediction or 'Пока не знаю'. Echo compares round-trip paths at constant sound speed; Nile compares near river, dry distant field and canal irrigation, not a historical map or real simulation. Add four optional themed writing prompts into existing creative toolbox, never insert text. Tests extend lab state and interaction count from 27/9 to 33/11, and browser assertions for near/far wall and channel presence. Existing progress, keys and author data unchanged. HTML 963784 → 968083 bytes; estimated initial source 971499 bytes. No libraries. Depends on #69. Mandatory CI and actual device timing/learning outcomes not verified.
+
+### 1.5.111 acceptance correction
+
+Run 44739698365: regression passed, Chromium and WebKit rejected the Nile channel visibility assertion. An SVG horizontal stroked path has zero geometric height for the visibility check. Use a positive-area rounded water rectangle (same 9-unit thickness) and verify visible geometry and actual fill. Added end-to-end themed prompt selection and author-text preservation. No data changes. Re-run full CI before merging.

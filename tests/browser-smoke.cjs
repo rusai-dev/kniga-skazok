@@ -95,6 +95,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#ideaStage').selectOption('revise');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('Прочитай начало'));
  await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('повторяется'));
  await page.locator('#ideaStage').selectOption('middle');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('мешает'));
+ const beforeIdea=await page.locator('#storyBody').inputValue();await page.locator('#ideaStage').selectOption('explore');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('Летучая мышка'));await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('Нила'));assert.equal(await page.locator('#storyBody').inputValue(),beforeIdea,'theme prompts do not alter author text');
  for(const [stage,word] of [['scene','место действия'],['dialogue','Два героя'],['words','Прошептал']]){await page.locator('#ideaStage').selectOption(stage);await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes(word));const first=await page.locator('#ideaText').textContent();await page.locator('#ideaStory').click();assert.notEqual(await page.locator('#ideaText').textContent(),first)}
  assert.equal(await page.locator('#writerWords').evaluate(e=>e.open),false);await page.locator('#writerWords summary').click();await page.locator('#writerWordSelect').selectOption('сказал');
  assert.ok(await page.locator('#writerWordSelect').evaluate(e=>e.getBoundingClientRect().height>=44));
@@ -335,7 +336,7 @@ const server=http.createServer((req,res)=>{
   await page.locator('[data-lab="2"]').click();
   assert.notEqual(await page.locator('#worldLabLabel').textContent(),first);
   if(id==='bat-echo')assert.equal(await page.locator('[data-echo-wall="2"]').getAttribute('x'),'280');
-  if(id==='egypt-nile')assert.ok(await page.locator('[data-nile-channel]').isVisible());
+  if(id==='egypt-nile'){const channel=page.locator('[data-nile-channel]');assert.ok(await channel.isVisible());assert.ok(await channel.evaluate(el=>{const b=el.getBBox();return b.width>0&&b.height>0&&getComputedStyle(el).fill==='rgb(62, 145, 195)'}),'visible water channel with positive area');}
   assert.equal(await page.locator('[data-lab="2"]').getAttribute('aria-pressed'),'true');
   await page.locator('#worldNext').click();assert.equal(await page.locator('#worldLab').isVisible(),false);
  }

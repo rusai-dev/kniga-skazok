@@ -2587,7 +2587,7 @@ function worldLabPicture(id,i){
  }
  if(id==='egypt-nile'){
   const x=i===0?115:230,wet=i!==1,field='<rect data-nile-field="'+i+'" x="'+(x-40)+'" y="51" width="80" height="87" rx="9" fill="'+(wet?'#a4c784':'#d5b17d')+'" stroke="'+(wet?'#527744':'#9c794c')+'" stroke-width="2"/>'+Array.from({length:4},(_,n)=>'<path d="M'+(x-28+n*18)+' 64v59" stroke="'+(wet?'#527744':'#9b7952')+'" stroke-width="4" stroke-linecap="round"/>').join('');
-  return wrap('#f4dfaf','<path d="M35 0Q60 42 30 89T35 180H63Q37 133 62 89T63 0Z" fill="#3e91c3"/>'+field+(i===2?'<path data-nile-channel="1" d="M53 93H190" stroke="#3e91c3" stroke-width="9" fill="none"/><path d="M135 93h32m-8-6 8 6-8 6" stroke="#173c3e" stroke-width="2.5" fill="none"/>':'')+'<g fill="#173c3e" font-size="13" font-weight="600" text-anchor="middle"><text x="48" y="24">Нил</text><text x="160" y="163">'+['Поле рядом с водой','Поле без полива','Вода по каналу'][i]+'</text></g>');
+  return wrap('#f4dfaf','<path d="M35 0Q60 42 30 89T35 180H63Q37 133 62 89T63 0Z" fill="#3e91c3"/>'+field+(i===2?'<rect data-nile-channel="1" x="53" y="88.5" width="137" height="9" rx="2" fill="#3e91c3"/><path d="M135 93h32m-8-6 8 6-8 6" stroke="#173c3e" stroke-width="2.5" fill="none"/>':'')+'<g fill="#173c3e" font-size="13" font-weight="600" text-anchor="middle"><text x="48" y="24">Нил</text><text x="160" y="163">'+['Поле рядом с водой','Поле без полива','Вода по каналу'][i]+'</text></g>');
  }
  if(id==='moon'){
   const [mx,my]=[[98,85],[153,30],[208,85]][i],phase=i===0?'':i===1?'<path d="M270 62A23 23 0 0 1 270 108Z" fill="#FFF0C6"/>':'<circle cx="270" cy="85" r="23" fill="#FFF0C6"/>';
