@@ -232,6 +232,25 @@ const server=http.createServer((req,res)=>{
  const textures=await page.evaluate(()=>{const outputs=[];for(const effect of ['solid','soft','marker','crayon','water']){const c=document.createElement('canvas');c.width=100;c.height=50;const cx=c.getContext('2d');studioStroke(cx,{x:15,y:25},{x:85,y:25},12,effect,'#bd3948');outputs.push(c.toDataURL())}return new Set(outputs).size});
  assert.equal(textures,5,'distinct brush strokes');
 
+ // All paint effects and stamp types must preserve the identical pixels with cropped vs full ink restore.
+ const inkEquivalence=await page.evaluate(()=>{
+  const make=()=>{const c=document.createElement('canvas');c.width=720;c.height=480;return c};
+  const layer=make(),lc=layer.getContext('2d');lc.strokeStyle='#40382f';lc.lineWidth=3;for(let x=0;x<720;x+=9){lc.beginPath();lc.moveTo(x,0);lc.lineTo(x,480);lc.stroke()}for(let y=0;y<480;y+=11){lc.beginPath();lc.moveTo(0,y);lc.lineTo(720,y);lc.stroke()}
+  const a=make(),b=make(),ca=a.getContext('2d'),cb=b.getContext('2d');let cases=0;
+  const kinds=['solid','soft','marker','crayon','water','pastel','rainbow','gold','silver','neon','glitter',...stampEffects];
+  for(const kind of kinds)for(const width of [4,11,24])for(const [from,to] of [[{x:0,y:0},{x:17,y:22}],[{x:350.2,y:240.7},{x:355.4,y:245.2}],[{x:710,y:470},{x:719,y:479}]]){
+   for(const c of [ca,cb]){c.fillStyle='#fffdf7';c.fillRect(0,0,720,480);c.drawImage(layer,0,0);if(stampEffects.has(kind))studioStamp(c,to.x,to.y,Math.max(8,width*.73),kind,'#bd3948');else studioStroke(c,from,to,width,kind,'#bd3948',120)}
+   ca.drawImage(layer,0,0);studioRestoreInk(cb,layer,from,to,width);
+   const x=ca.getImageData(0,0,720,480).data,y=cb.getImageData(0,0,720,480).data;
+   for(let i=0;i<x.length;i++)if(x[i]!==y[i])throw Error('ink mismatch '+kind+' '+width+' at '+i);
+   cases++;
+  }
+  return cases;
+ });
+ assert.ok(inkEquivalence>=180,'all ink restoration equivalence cases');
+ console.log('INK EQUIVALENCE CASES',inkEquivalence);
+
+
  await page.locator('[data-art-mode="lesson"]').click();
  assert.ok(await page.locator('#studioLessonPane').isVisible());
  await page.waitForFunction(()=>{const a=document.getElementById('studioSheet').getBoundingClientRect(),b=document.getElementById('studioExtras').getBoundingClientRect(),c=document.getElementById('drawingCanvas').getBoundingClientRect();return a.width>200&&a.height>130&&c.width>200&&c.height>130&&(a.right<=b.left+1||b.bottom<=a.top+1)});
