@@ -590,3 +590,13 @@ Base 1.5.133 bad36c9. Optional palette panel in normal and expanded canvas, six 
 ## Candidate 1.5.135 — responsive painter controls
 
 Base 1.5.134 caba1b3. Previous professional controls replaced up to 72 palette and 7 shade buttons for each slider/color adjustment, losing keyboard focus and repainting the same stroke preview on mix-ratio changes. Reuse existing buttons, update changed values and selection only, skip identical preview draws. No change to supported colors, effects, image buffers, drawings, drafts, archive or storage formats. Five-file initial source 997219 → 997576 B; cap unchanged. All isolated regression categories passed; browser tests assert retained element identity, focus, selection, and unchanged preview after mix-ratio update. Actual device latency, visual quality and family delivery unverified. Mandatory CI required before merge.
+
+
+## Candidate 1.5.136 — lazy creative-room artwork
+
+Requires PR #98 acceptance on compatible main. Three hidden creative-room SVG illustrations were built on every cold start before visiting the room. Construct them on first entry only and reuse them thereafter; existing artwork and navigation unchanged. No additional network requests, dependency or storage changes. Five-file source 997576 → 997710 B (unchanged 1 MB limit; 2290 B headroom). All 69 isolated regression categories pass. Browser assertions check zero hidden illustrations on cold home, all three on entry and identity on return. No measured physical iPad speedup or full network-size reduction; CI required. Next: structural source budget optimization without losing offline content.
+
+
+## Candidate 1.5.136 — compact catalog and rebased creative room
+
+Supersedes #99 after squash merge of #98 (base db2aca5). Three deferred creative-room illustrations remain exactly as in #99. Catalog dictionary first 768 tokens use two UTF-8 bytes instead of three; original characters in that interval are JSON-escaped losslessly before tokenizing. Source content, 19 books, illustrations, page text, progress, storage formats and offline single-file catalog retained. Packed block 82547 → 78287 B; five-file initial source 997576 → 993450 B, 6550 B reserve. Seven codec cases (including all 768 original characters, >768 dictionary words, script safety and literal escapes), 69 isolated regression categories passed; exact source catalog equality checked, generated block reproducible. No external resources or dependencies. Browser CI and deployment pending; actual cold network bytes, iPad time and memory unverified.
