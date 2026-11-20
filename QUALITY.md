@@ -344,3 +344,8 @@ Added one alternate applied question with an explanation to each of the 20 exist
 ## Candidate 1.5.91 — voluntary creative writing guidance
 
 Expand the existing writer helper to seven topics (28 prompts), including sensory scenes, dialogue, and four word-meaning contrasts. Quick ideas cycle through eight prompts for an empty draft and twenty for a nonempty draft; no extra required inputs, no automatic edits, no new data keys or network calls. Full dependency-free regression passed. Browser acceptance extends the existing proof that opening and cycling optional guidance leaves draft text and stored library unchanged. Physical iPad and educational benefit remain unverified.
+
+
+## Candidate 1.5.92 — family archive rollback protection
+
+Persist the highest verified GitHub archive revision in a separate per-room localStorage key, retaining the existing books-array cache and publication format. Reject older revisions after reopening the reader and on sequential checks in another tab; explicitly show stale-archive status. Write the revision before the cache; if either storage write fails, the previous durable books remain available and the current in-memory result is labelled unsaved. Equal revision can retry cache writes and refresh changed content. New verified empty archives remain valid. Legacy caches without revision metadata establish their watermark on first successful verification. Simultaneous tab writes are not guaranteed atomic; no real family archive was altered. Full dependency-free regression passed; physical-device and live family invitation latency unverified.
