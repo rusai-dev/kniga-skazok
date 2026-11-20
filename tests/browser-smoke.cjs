@@ -8,7 +8,9 @@ const initialFiles=['index.html','classic-art-153.js','classic-art-155.js','ande
 const initialBytes=initialFiles.reduce((n,name)=>n+fs.statSync(path.join(root,name)).size,0);
 assert.ok(initialBytes<=1000000,'initial source budget exceeded: '+initialBytes);
 console.log('INITIAL SOURCE BYTES',initialBytes);
-const server=http.createServer((req,res)=>{
+const release=fs.readFileSync(path.join(root,'release.txt'),'utf8').trim();assert.match(release,/^\d+\.\d+\.\d+$/);assert.equal(fs.readFileSync(path.join(root,'index.html'),'utf8').match(/const APP_RELEASE='([^']+)'/)[1],release,'release manifest must match code');
+let simulateOffline=false;const server=http.createServer((req,res)=>{
+ if(simulateOffline){res.writeHead(503);return res.end('offline fixture')}
  const name=new URL(req.url,'http://127.0.0.1').pathname;
  const file=path.resolve(root,'.'+(name==='/'?'/index.html':name));
  if(!file.startsWith(root+path.sep)||!fs.existsSync(file)||!fs.statSync(file).isFile()){res.writeHead(404);return res.end()}
@@ -297,5 +299,27 @@ const server=http.createServer((req,res)=>{
  const loadedAssets=await page.evaluate(async()=>{const sources=[...Object.values(SKAZKI_CLASSIC_ART),...Object.values(SKAZKI_ART_155),...Object.values(SKAZKI_ANDERSEN_ART)].map(x=>x.src).concat(Object.values(premiumArt));await Promise.all(sources.map(async src=>{if(!src.startsWith('./assets/books/'))throw Error('not external: '+src);const img=new Image();img.src=src;await img.decode();if(img.naturalWidth<180||img.naturalHeight<180)throw Error('invalid artwork '+src)}));return new Set(sources).size});assert.equal(loadedAssets,14,'all externalized artwork must decode');
  assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }
+
+ // Separate profile with the real service worker enabled; never touch production storage.
+ const offlineCtx=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'allow'});
+ try{
+ const offlinePage=await offlineCtx.newPage();await offlinePage.goto(url);
+ await offlinePage.waitForFunction(()=>!!navigator.serviceWorker.controller,{},{timeout:30000});
+ const pending=await offlinePage.evaluate(()=>caches.open('skazki-book-assets-v1').then(c=>c.keys()).then(a=>a.length));assert.equal(pending,0,'no eager book caching');
+ const requests=[];offlinePage.on('request',req=>requests.push(new URL(req.url()).pathname));
+ await offlinePage.evaluate(async()=>{while(releaseChecking)await new Promise(r=>setTimeout(r,20));await checkRelease(true)});
+ assert.ok(requests.includes('/release.txt'));assert.ok(!requests.includes('/index.html'),'release check downloads only the manifest');
+ const result=await offlinePage.evaluate(async()=>{
+ const first=SKAZKI_ANDERSEN_ART['pea-journey'].src;
+ const img=new Image();img.src=first;await img.decode();
+ const cache=await caches.open('skazki-book-assets-v1');
+ const cached=await cache.match(new URL(first,location.href).href);
+ localStorage.setItem('skazki-reading-size-v1','32');
+ return {cached:!!cached,count:(await cache.keys()).length};
+ });assert.deepEqual(result,{cached:true,count:1});
+ simulateOffline=true;await offlinePage.reload();await offlinePage.locator('#storybookHome').waitFor({state:'visible'});
+ const recovered=await offlinePage.evaluate(async()=>{const img=new Image();img.src=SKAZKI_ANDERSEN_ART['pea-journey'].src;await img.decode();return {width:img.naturalWidth,stored:localStorage.getItem('skazki-reading-size-v1')}});
+ assert.ok(recovered.width>180);assert.equal(recovered.stored,'32');console.log('PASS offline shell, lazy artwork cache, release manifest');
+ }finally{simulateOffline=false;await offlineCtx.close()}
  }finally{if(browser)await browser.close();server.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

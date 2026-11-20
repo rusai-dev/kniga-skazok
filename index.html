@@ -2934,7 +2934,7 @@ function newerRelease(remote,local){
 }
 function releaseFromHtml(html){
  const m=html.match(/<footer\b[^>]*>[^<]*?версия\s+(\d+\.\d+\.\d+)(?=[\s<])/i);
- return m?m[1]:''
+ return html.match(/\bconst APP_RELEASE=['"](\d+\.\d+\.\d+)['"]/)?.[1]||m?.[1]||''
 }
 function canAutoUpdate(){
  return storageOK&&!$('modal').hasAttribute('open')&&!query&&!document.hidden&&!$('familyReading')?.matches(':not([hidden])')&&!document.activeElement?.matches('input,textarea,select,[contenteditable=true]')&&!/^#(?:writer|cloudwriter)=/.test(location.hash)
@@ -2948,13 +2948,14 @@ function applyRelease(version,manual){
 }
 async function checkRelease(manual=false){
  if(window.__nativeMode||!/^https?:$/.test(location.protocol)||typeof fetch!=='function')return;
- if(releaseChecking)return;
- releaseChecking=true;
+ if(releaseChecking||(!manual&&Date.now()-releaseLastCheck<60000))return;
+ releaseChecking=true;releaseLastCheck=Date.now();
  try{
-  const url=new URL('index.html',location.href);url.searchParams.set('_check',String(Date.now()));
+  const url=new URL('release.txt',location.href);
   const response=await fetch(url.href,{cache:'no-store',credentials:'same-origin'});
   if(!response.ok)throw Error('network');
-  const remote=releaseFromHtml(await response.text());
+  const remote=(await response.text()).trim();
+  if(!/^\d+\.\d+\.\d+$/.test(remote))throw Error('invalid release');
   if(!remote)throw Error('version');
   if(newerRelease(remote,APP_RELEASE)){
     $('releaseNotice').hidden=false;$('releaseText').textContent='Доступна новая версия '+remote+'. Твои сказки останутся на устройстве.';
@@ -2964,12 +2965,12 @@ async function checkRelease(manual=false){
  }catch(e){if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
  finally{releaseChecking=false}
 }
-const APP_RELEASE='1.5.66';let releaseChecking=false;
+const APP_RELEASE='1.5.67';let releaseChecking=false,releaseLastCheck=0;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
  $('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);
  window.addEventListener('focus',()=>checkRelease());
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkRelease()});
- setInterval(()=>{if(!document.hidden)checkRelease()},30000);
+ setInterval(()=>{if(!document.hidden)checkRelease()},120000);
  $('modal').addEventListener('close',()=>setTimeout(()=>checkRelease(),800));
  window.addEventListener('online',()=>{checkRelease();if(fam?.role==='view'&&fam.ghReader)ghViewerTick(fam)});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&fam?.role==='view'&&fam.ghReader)ghViewerTick(fam)});
@@ -3048,8 +3049,8 @@ async function startLocalArchive(){
  }catch(e){archiveOK=false;showArchiveState()}
 }
 startLocalArchive();
-if(!window.__nativeMode&&location.protocol==='https:'&&'serviceWorker' in navigator){
- navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).then(reg=>{reg.update().catch(()=>{});window.addEventListener('focus',()=>reg.update().catch(()=>{}));document.addEventListener('visibilitychange',()=>{if(!document.hidden)reg.update().catch(()=>{})})}).catch(()=>{});
+if(!window.__nativeMode&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')&&'serviceWorker' in navigator){
+ navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).then(reg=>{let last=0;const updateWorker=()=>{if(Date.now()-last<60000)return;last=Date.now();reg.update().catch(()=>{})};updateWorker();window.addEventListener('focus',updateWorker);document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateWorker()})}).catch(()=>{});
  navigator.serviceWorker.addEventListener('controllerchange',()=>checkRelease());
 }
 if(!window.__nativeMode&&navigator.storage&&typeof navigator.storage.persist==='function'){
