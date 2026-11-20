@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.80')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.81')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -103,7 +103,7 @@ const server=http.createServer((req,res)=>{
  assert.ok(await page.evaluate(()=>{const b=data.stories.find(x=>x.title==='Лисёнок и друзья');return b?.body==='Жил маленький лисёнок.\n\n## В лесу\nОн нашёл друга.\n\n## Возвращение\nОни вернулись домой.'&&b.rich?.markup&&b.plan?.hero==='Лисёнок'&&!('plan' in fbook(b))}),'private notes preserved but not shared');
  await page.evaluate(()=>{const b=data.stories.find(x=>x.title==='Лисёнок и друзья');reader(b.id)});await page.locator('#ownReadPages').click();await page.locator('#ownReadText').waitFor();assert.ok((await page.locator('#ownReadText').textContent()).includes('Жил маленький лисёнок.'));assert.equal(await page.locator('#ownReadText').evaluate(el=>el.scrollHeight<=el.clientHeight+1),true);await page.locator('#ownReadBack').click();assert.ok(await page.locator('#editStory').isVisible());await page.keyboard.press('Escape');
  await page.locator('#home').click();
- await page.locator('#homeNewStory').click();assert.equal(await page.locator('#storyTitle').inputValue(),'');await page.locator('#storyBody').fill('Свободно написанная сказка.');await page.locator('#publishStory').click();assert.ok(await page.evaluate(()=>data.stories.some(b=>b.title==='Сказка без названия'&&b.body==='Свободно написанная сказка.')));await page.locator('#home').click();
+ await page.locator('#homeNewStory').click();assert.ok(await page.locator('#publishFamily').isVisible(),'family publication visible without extra tools');assert.equal(await page.locator('#storyTitle').inputValue(),'');await page.locator('#storyBody').fill('Свободно написанная сказка.');await page.locator('#publishStory').click();assert.ok(await page.evaluate(()=>data.stories.some(b=>b.title==='Сказка без названия'&&b.body==='Свободно написанная сказка.')));await page.locator('#home').click();
  await page.locator('#homeWrite').click();assert.ok(await page.locator('#storyForm').isVisible(),'resume directly without chooser');await page.keyboard.press('Escape');
  await page.evaluate(raw=>{if(!commitLibrary(JSON.parse(raw)))throw Error('restore fixture')},beforeDrafts);
  await page.locator('#homeCreate').click();assert.ok(await page.locator('#creativeHome').isVisible());assert.equal(await page.locator('#storybookHome').isVisible(),false);
@@ -376,7 +376,12 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-art-gallery-v1')),null);
  const loadedAssets=await page.evaluate(async()=>{const sources=[...Object.values(SKAZKI_CLASSIC_ART),...Object.values(SKAZKI_ART_155),...Object.values(SKAZKI_ANDERSEN_ART)].map(x=>x.src).concat(Object.values(premiumArt));await Promise.all(sources.map(async src=>{if(!src.startsWith('./assets/books/'))throw Error('not external: '+src);const img=new Image();img.src=src;await img.decode();if(img.naturalWidth<180||img.naturalHeight<180)throw Error('invalid artwork '+src)}));return new Set(sources).size});assert.equal(loadedAssets,14,'all externalized artwork must decode');
- assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
+ await page.evaluate(()=>{document.body.classList.add('family-view');$('familyViewer').hidden=false;window.__familyQA={books:[{id:'a',title:'Лесная сказка',theme:'Лес',body:'Жил ёжик.',icon:'📖'},{id:'b',title:'Морская сказка',theme:'Море',body:'Жила рыбка.',icon:'📖'},{id:'c',title:'Вторая лесная сказка',theme:'Лес',body:'Жила лиса.',icon:'📖'}],received:true};fdraw(window.__familyQA)});
+ assert.equal(await page.locator('#familyThemeButtons button').count(),3);assert.equal(await page.locator('.family-book').count(),3);
+ await page.getByRole('button',{name:'Лес (2)',exact:true}).click();assert.equal(await page.locator('.family-book').count(),2);assert.equal(await page.getByRole('button',{name:'Лес (2)',exact:true}).getAttribute('aria-pressed'),'true');
+ await page.locator('.family-book').first().click();assert.equal(await page.locator('#familyReading .family-theme-label').textContent(),'Тема: Лес');await page.locator('#familyBack').click();
+ await page.evaluate(()=>{window.__familyQA.books.push({id:'d',title:'Третья лесная сказка',theme:'Лес',body:'Новый текст.',icon:'📖'});fdraw(window.__familyQA)});assert.equal(await page.locator('.family-book').count(),3);assert.ok(await page.getByRole('button',{name:'Лес (3)',exact:true}).isVisible());
+ await page.getByRole('button',{name:'Все сказки (4)',exact:true}).click();assert.equal(await page.locator('.family-book').count(),4);assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }
  }finally{if(browser)await browser.close();server.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

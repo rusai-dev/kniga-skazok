@@ -270,3 +270,13 @@ Optional manual history of up to three editions (title, text and rich formatting
 ### 1.5.80 follow-up — personal reader and browser fix
 
 Previous 1.5.80 PR browser run failed because the chapter selector matched two details panels; explicit chapter ID resolves the ambiguity. Added optional page reading mode from the existing personal book reader. Text and inline emphasis/headings retain their visible content, authored images are shown in order on separate pages; no rewriting, automatic art or library migrations. Layout uses actual viewport text-height fitting, font controls, swipe and arrow navigation, with approximate position stored in existing reading-offset map under an own: prefix. Full original reader and export retained. Tests cover markup and missing images, browser entry/return and fitting. Regression passed; browser rerun pending. Startup 990846 bytes; limit unchanged. Very long stories may take time to measure; physical iPad/peak memory unmeasured.
+
+
+## Candidate 1.5.81 — family delivery visibility and freshness
+
+Moves the explicit family publish action next to the personal publish controls; private drafts/private shelf remain private. Reader polls raw encrypted archive every 5 seconds while visible, wakes on focus/return/online, provides a manual refresh and revision/count status. Rate-limited public API freshness check (90 seconds automatic when raw revision is not newer, 15 seconds manual) mitigates stale CDN responses. Host retries pending delivery every 10 seconds and sends changed publication list immediately after a successful in-flight write. Explicit resync control; existing conflict guard and encryption unchanged. No changes to archive data, credentials or keys. Regression passed; browser checks required. Startup 993005 bytes under 1 MB. Cross-device timing depends on connectivity, GitHub and iPad foreground; actual family secret and private contents not inspected.
+
+
+### 1.5.81 follow-up — family themes
+
+The parent-facing shelf shows actual themes from published books only, with counts and filters, explicit theme labels inside book cards and opened books. Filtering persists across refresh while theme still exists; falls back to all if removed. No extra data transmitted, no archive/key changes, no draft exposure. Regression cases cover grouping, missing theme, counts; browser cases use synthetic books and simulate new publication. Startup 995123 bytes under 1 MB. Browser and physical device acceptance pending.
