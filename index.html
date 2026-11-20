@@ -3760,7 +3760,9 @@ function ghPublicCache(s,remote){
  if(!remote||remote.revision<(s.ghRevision||0))return false;
  if(remote.revision===s.ghRevision){readerRecovery('ready');fstatus('Сказок: '+s.books.length+' · проверено '+new Date().toLocaleTimeString('ru-RU'));return true;}
  s.ghRevision=remote.revision;s.books=remote.books;s.received=true;fdraw(s);
- fput(s.cache,JSON.stringify(s.books));fput(FAMILY_READER,s.secret);fput(FAMILY_CONFIRMED,s.secret);readerRecovery('ready');fstatus('Сказок: '+s.books.length+' · обновлено '+new Date().toLocaleTimeString('ru-RU'));
+ const cached=fput(s.cache,JSON.stringify(s.books));
+ if(cached){fput(FAMILY_READER,s.secret);fput(FAMILY_CONFIRMED,s.secret)}
+ readerRecovery('ready');fstatus('Сказок: '+s.books.length+(cached?' · сохранено на устройстве':' · получено, но не сохранено на устройстве: освободите место или сделайте резервную копию')+' · '+new Date().toLocaleTimeString('ru-RU'));
  return true;
 }
 async function ghViewerTick(s,manual=false){
