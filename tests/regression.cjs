@@ -335,16 +335,16 @@ function verify(html){
  const moneyVisualCases=new Function('fget','fput','childArt','esc',source+'\nreturn ('+moneyVisualCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);assert(moneyVisualCases===560,'money visual coverage');
 
  const rulerCode=function(){
-  let count=0,compares=0;const colors=new Set();
+  let count=0,compares=0,totals=0;const colors=new Set();
   for(let l=0;l<4;l++)for(let n=0;n<800;n++){
    const q=numberQuestion('measure',n,l);if(n%4>=2){if(q.picture?.includes('data-ruler-ribbon'))throw Error('old tasks displaced');continue}
    const rows=[...q.picture.matchAll(/data-ruler-ribbon="([АБ])" x1="(\d+)" x2="(\d+)" y1="(\d+)" y2="(\d+)" stroke="(#[0-9A-F]+)"/g)];
    const lens=rows.map(([,label,x1,x2,y1,y2,c],i)=>{const a=(+x1-36)/24,b=(+x2-36)/24;colors.add(c);if(label!==['А','Б'][i]||!Number.isInteger(a)||!Number.isInteger(b)||a<0||b>12||b-a<2||y1!==y2||!q.picture.includes('Лента '+label+': от '+a+' до '+b)||l===0&&a!==0||l>0&&i===0&&a===0)throw Error('ruler coordinates/description');return b-a});
-   const compare=l>=2&&n%4===1;if(rows.length!==(compare?2:1)||Number(q.answer)!==(compare?Math.abs(lens[0]-lens[1]):lens[0])||compare&&lens[0]===lens[1])throw Error('ruler answer');
-   if(compare)compares++;count++;
+   const two=l>=2&&n%4===1,total=l===3&&n%8===5;if(rows.length!==(two?2:1)||Number(q.answer)!==(two?(total?lens[0]+lens[1]:Math.abs(lens[0]-lens[1])):lens[0])||two&&lens[0]===lens[1])throw Error('ruler answer');
+   if(total){if(!q.q.includes('вместе'))throw Error('ruler total prompt');totals++}else if(two){if(!q.q.includes('различаются'))throw Error('ruler comparison prompt');compares++}count++;
   }
-  if(colors.size!==5||count!==1600||compares!==400)throw Error('ruler variety');
-  return {count,compares};
+  if(colors.size!==5||count!==1600||compares!==300||totals!==100)throw Error('ruler variety');
+  return {count,compares,totals};
  };
  const rulerCases=new Function('fget','fput','childArt','esc',source+'\nreturn ('+rulerCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
  const geometryCode=function(){

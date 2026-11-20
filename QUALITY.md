@@ -425,3 +425,7 @@ Run 44719882395 Chromium failed before browser launch: ubuntu-latest resolved to
 ## Candidate 1.5.105 — measuring lengths on a ruler
 
 Existing measurement practice alternates numerical word problems and original multicolor centimetre-scale diagrams. Level 0 reads from zero; level 1 begins at a nonzero mark; levels 2–3 also compare two independently placed ribbons labelled A/B, with no answer printed. Accessible descriptions give endpoints rather than results, and diagrams explicitly note they are schematic. Existing typed-answer flow, skill identifiers, spaced review and scoring unchanged. Full regression passed with 1,600 independent SVG checks including 400 comparisons; browser interaction added. HTML 940363 → 943247 bytes; no assets or dependencies. Physical device and learning outcomes remain unverified. Suggested off-screen transfer: measure a pencil from zero and then from another mark, compare both results.
+
+### 1.5.105 consolidated ruler tasks
+
+PR #63 independently introduced combined-length tasks. Retain #64's five-color diagrams, schematic label and older text exercises; incorporate combined length at level 3 without duplicating generators or releases. Regression covers 1,600 diagrams (300 differences, 100 sums), plus browser scenarios for both. Separate audit of 8,000 coordinate questions reconstructed each route from its actual text and checked bounds, options and endpoint (0 shortened routes). HTML 943247 → 943473 bytes. No new user data changes. #62 merged after mandatory checks; #64 to main for fresh CI.

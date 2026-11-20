@@ -1808,11 +1808,11 @@ function rulerMeasureArt(ribbons){
 function rulerMeasureQuestion(n,l){
  const p=(s,min,max)=>academyPick(n,s,min,max),start=l===0?0:p(101,1,4),len=p(102,2,12-start),end=start+len;
  const first={start,end,label:'А',tone:p(103,0,4)},ribbons=[first],difference=l>=2&&n%4===1;
- if(!difference)return {...aq('Сколько сантиметров в длине ленты А?',len,start?'Посмотри, где начинается и заканчивается лента. Вычти начало из конца.':'Отсчитай деления от нуля до конца ленты.',end+' − '+start+' = '+len+' см.'),picture:rulerMeasureArt(ribbons)};
+ if(!difference)return {...aq('Какова длина ленты А в сантиметрах?',len,start?'Посмотри, где начинается и заканчивается лента. Вычти начало из конца.':'Отсчитай деления от нуля до конца ленты.',end+' − '+start+' = '+len+' см.'),picture:rulerMeasureArt(ribbons)};
  const otherStart=p(104,0,4),otherMax=12-otherStart,possible=Array.from({length:otherMax-1},(_,i)=>i+2).filter(v=>v!==len),other=possible[p(105,0,possible.length-1)],otherEnd=otherStart+other;
  ribbons.push({start:otherStart,end:otherEnd,label:'Б',tone:(first.tone+2)%5});
- const ans=Math.abs(len-other);
- return {...aq('На сколько сантиметров различаются длины лент А и Б?',ans,'Сначала найди длину каждой ленты: конец минус начало. Затем сравни длины.', 'А: '+end+' − '+start+' = '+len+' см. Б: '+otherEnd+' − '+otherStart+' = '+other+' см. '+Math.max(len,other)+' − '+Math.min(len,other)+' = '+ans+' см.'),picture:rulerMeasureArt(ribbons)};
+ const total=l===3&&n%8===5,ans=total?len+other:Math.abs(len-other);
+ return {...aq(total?'Сколько сантиметров составляют обе ленты вместе?':'На сколько сантиметров различаются длины лент А и Б?',ans,'Сначала найди длину каждой ленты: конец минус начало. '+(total?'Затем сложи длины.':'Затем сравни длины вычитанием.'), 'А: '+end+' − '+start+' = '+len+' см. Б: '+otherEnd+' − '+otherStart+' = '+other+' см. '+(total?len+' + '+other:Math.max(len,other)+' − '+Math.min(len,other))+' = '+ans+' см.'),picture:rulerMeasureArt(ribbons)};
 }
 
 function academyDataPicture(labels,values,chart,caption='Прочитанные книги',unit='Книги'){
