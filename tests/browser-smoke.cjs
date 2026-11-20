@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.67')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.68')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -195,7 +195,7 @@ const server=http.createServer((req,res)=>{
  await page.keyboard.press('Escape');
  await page.evaluate(()=>artRoom());
  await page.locator('#drawingCanvas').waitFor({state:'visible'});
- assert.equal(await page.locator('#lessonSubject option').count(),6);
+ assert.equal(await page.locator('#lessonSubject option').count(),9);
  // P0/P1: all three real workshop modes, final lesson step and history.
  await page.locator('[data-art-mode="color"]').click();
  await page.locator('[data-art-mode="color"]').click();
@@ -251,10 +251,10 @@ const server=http.createServer((req,res)=>{
  const textures=await page.evaluate(()=>{const outputs=[];for(const effect of ['solid','soft','marker','crayon','water']){const c=document.createElement('canvas');c.width=100;c.height=50;const cx=c.getContext('2d');studioStroke(cx,{x:15,y:25},{x:85,y:25},12,effect,'#bd3948');outputs.push(c.toDataURL())}return new Set(outputs).size});
  assert.equal(textures,5,'distinct brush strokes');
 
- await page.locator('[data-art-mode="lesson"]').click();
+ await page.locator('[data-art-mode="lesson"]').click();assert.equal(await page.locator('#storyColoringGallery canvas').count(),0,'hidden coloring thumbnails released');
  assert.ok(await page.locator('#studioLessonPane').isVisible());
  await page.waitForFunction(()=>{const a=document.getElementById('studioSheet').getBoundingClientRect(),b=document.getElementById('studioExtras').getBoundingClientRect(),c=document.getElementById('drawingCanvas').getBoundingClientRect();return a.width>200&&a.height>130&&c.width>200&&c.height>130&&(a.right<=b.left+1||b.bottom<=a.top+1)});
- for(const subject of ['rabbit','cat','flower','house','fox','butterfly']){
+ for(const subject of ['rabbit','cat','flower','house','fox','butterfly','owl','boat','landscape']){
   await page.locator('#lessonSubject').selectOption(subject);
   for(let step=0;step<6;step++){assert.equal(await page.locator('#lessonPicture [data-lesson-stage]').count(),step+1);assert.ok((await page.locator('#lessonInstruction').textContent()).includes('Шаг '+(step+1)+' из 6'));if(step<5)await page.locator('#lessonNext').click();}
   assert.equal(await page.locator('#lessonNext').isEnabled(),false);
