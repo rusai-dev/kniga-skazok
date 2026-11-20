@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.68')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.69')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -94,6 +94,13 @@ const server=http.createServer((req,res)=>{
  const artInfo=await page.locator('[data-academy] .fairy-art').first().evaluate(el=>{const style=getComputedStyle(el);return {image:style.backgroundImage.startsWith('url("data:image/webp;base64,'),width:el.getBoundingClientRect().width}});
  assert.ok(artInfo.image&&artInfo.width>60,'illustration sprite did not render');
 
+ await page.evaluate(()=>{const v=studyState('story');v.n=0;v.level=2;studySave('story',v);studyOpen('math','story')});
+ const staged=await page.evaluate(()=>numberQuestion('story',0,2));
+ assert.ok((await page.locator('#studyNumberLabel').textContent()).includes('Шаг 1'));
+ await page.locator('#studyNumber').fill(staged.steps.answer);await page.locator('#studyCheck').click();
+ assert.ok((await page.locator('#studyNumberLabel').textContent()).includes('Шаг 2'));assert.equal(await page.locator('#studyNext').isVisible(),false);
+ await page.locator('#studyNumber').fill(staged.answer);await page.locator('#studyCheck').click();assert.ok(await page.locator('#studyNext').isVisible());assert.equal(await page.evaluate(()=>studyState('story').independent),1);
+ await page.locator('#studyBack').click();
  await page.locator('[data-academy="add"]').click();
  await page.locator('#studyQuestion').waitFor({state:'visible'});
  assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-menu-focus')),false);
