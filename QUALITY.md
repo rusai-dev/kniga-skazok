@@ -215,3 +215,8 @@ Nine cumulative six-step lessons instead of six (54 stages); new original owl, s
 ## Candidate 1.5.69 — two-stage reasoning in mathematics
 
 At levels 2 and 3, five existing story structures and two purchase structures now require an independently entered intermediate result before the final answer. The original question, correct answer, full explanation, exercise generator and storage format remain compatible. Context-specific hints for both steps; wrong attempts or help mark the entire item as assisted. One exercise counts once only after final completion. Existing adaptive rules retained. No changes to artwork, dependencies or user storage keys. Initial source 944232 bytes under 1 MB. Regression checks include 368 deterministic intermediate results and simulated assisted/independent progression. Added real browser smoke exercise; browser and child/device acceptance pending.
+
+
+## Candidate 1.5.70 — library filter readability
+
+Fixes reported iPad view: theme chips were clipped by max-height and grid stretch left a large empty column. Full-width wrapping themes; first six include selected and owned-story themes; explicit All themes expansion; readable touch targets; compact author grid under themes. Search above filters, filters close on choosing a theme/author or starting a search. Existing search, routing, authors, stories and storage unchanged. Added portrait/landscape Chromium/WebKit smoke assertions for uncut chips, touch size, expanded selection, active visibility and search. Full regression passed. Initial source 946927 bytes under 1 MB; physical iPad and live deployment not verified.
