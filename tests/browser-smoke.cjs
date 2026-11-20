@@ -3,7 +3,11 @@
 const {chromium,webkit}=require('playwright');
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
-const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript','.json':'application/json','.css':'text/css','.txt':'text/plain'};
+const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript','.json':'application/json','.css':'text/css','.txt':'text/plain','.jpg':'image/jpeg','.png':'image/png','.webp':'image/webp'};
+const initialFiles=['index.html','classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css'];
+const initialBytes=initialFiles.reduce((n,name)=>n+fs.statSync(path.join(root,name)).size,0);
+assert.ok(initialBytes<=1000000,'initial source budget exceeded: '+initialBytes);
+console.log('INITIAL SOURCE BYTES',initialBytes);
 const server=http.createServer((req,res)=>{
  const name=new URL(req.url,'http://127.0.0.1').pathname;
  const file=path.resolve(root,'.'+(name==='/'?'/index.html':name));
@@ -20,8 +24,10 @@ const server=http.createServer((req,res)=>{
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
+ const initialBookRequests=[];const trackBooks=req=>{if(new URL(req.url()).pathname.includes('/assets/books/'))initialBookRequests.push(req.url())};page.on('request',trackBooks);
  await page.goto(url+'#author=own&theme=');
  assert.equal(await page.evaluate(()=>location.hash),'','legacy shelf URL should be cleaned');
+ assert.equal(initialBookRequests.length,0,'book artwork must not load on home');page.off('request',trackBooks);
  assert.ok(await page.locator('#storybookHome').isVisible());assert.equal(await page.locator('#libraryHome').isVisible(),false);assert.equal(await page.locator('#adultHome').isVisible(),false);
  assert.equal(await page.locator('.home-map button').count(),4);assert.equal(await page.locator('.home-paths button').count(),3);
  assert.ok(await page.locator('#homeFox img').evaluate(async e=>{await e.decode();return e.naturalWidth>180}));
@@ -288,6 +294,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>data.stories.find(b=>b.id==='archive-test-book')?.body),'Сохранённый текст.');
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-art-gallery-v1')),null);
+ const loadedAssets=await page.evaluate(async()=>{const sources=[...Object.values(SKAZKI_CLASSIC_ART),...Object.values(SKAZKI_ART_155),...Object.values(SKAZKI_ANDERSEN_ART)].map(x=>x.src).concat(Object.values(premiumArt));await Promise.all(sources.map(async src=>{if(!src.startsWith('./assets/books/'))throw Error('not external: '+src);const img=new Image();img.src=src;await img.decode();if(img.naturalWidth<180||img.naturalHeight<180)throw Error('invalid artwork '+src)}));return new Set(sources).size});assert.equal(loadedAssets,14,'all externalized artwork must decode');
  assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }
  }finally{if(browser)await browser.close();server.close()}
