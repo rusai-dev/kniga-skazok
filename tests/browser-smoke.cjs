@@ -117,7 +117,7 @@ const server=http.createServer((req,res)=>{
     await page.goto(url);await page.locator('#startNotice').waitFor({state:'hidden'});
     const storyText='Проверочная сказка о звезде.';
     if(mode==='free'){await page.locator('#homeCreate').tap();await page.locator('#childDraw').tap()}
-    else{await page.locator('#homeWrite').tap();await page.locator('#storyBody').fill(storyText);await page.locator('#writerExtras > summary').tap();await page.locator('#drawStory').tap()}
+    else{await page.locator('#homeWrite').tap();await page.locator('#storyTitle').fill('Сенсорная проверка');await page.locator('#storyBody').fill(storyText);await page.locator('#writerExtras > summary').tap();await page.locator('#drawStory').tap()}
     const canvas=page.locator('#drawingCanvas'),expand=page.locator('#drawingExpand');
     await canvas.waitFor({state:'visible'});const normal=await canvas.boundingBox(),blank=await canvas.evaluate(c=>c.toDataURL());
     await expand.tap();await page.waitForFunction(w=>document.getElementById('drawingCanvas').getBoundingClientRect().width>=w*1.10,normal.width);
@@ -128,6 +128,20 @@ const server=http.createServer((req,res)=>{
     await expand.tap();await page.locator('#drawingFullSave').tap();await canvas.waitFor({state:'hidden'});
     if(mode==='story'){const body=await page.locator('#storyBody').inputValue();assert.equal(body.replace('\n[[рисунок:1]]\n',''),storyText,'illustration leaves story text intact');assert.ok(body.includes('[[рисунок:1]]'),'one illustration marker');assert.equal(await page.locator('#imageTray img').count(),1);assert.ok(await page.locator('#imageTray img').evaluate(img=>img.src.startsWith('data:image/jpeg;base64,')),'saved illustration attached to story')}
     else{assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length),1,'touch saves one drawing')}
+    // A successful save must survive reload, not just update the current DOM.
+    if(mode==='story'){
+     const savedBody=await page.locator('#storyBody').inputValue(),savedImage=await page.locator('#imageTray img').getAttribute('src');
+     await page.reload();await page.locator('#startNotice').waitFor({state:'hidden'});
+     await page.locator('#homeDrafts').tap();await page.locator('[data-own-draft]').filter({hasText:'Сенсорная проверка'}).tap();
+     assert.equal(await page.locator('#storyBody').inputValue(),savedBody);
+     assert.equal(await page.locator('#imageTray img').getAttribute('src'),savedImage,'touch illustration persists in restored story');
+    }else{
+     const savedGallery=await page.evaluate(()=>localStorage.getItem('skazki-art-gallery-v1'));
+     await page.reload();await page.locator('#startNotice').waitFor({state:'hidden'});
+     await page.locator('#homeCreate').tap();await page.locator('#childDraw').tap();await page.locator('#openGallery').tap();
+     assert.equal(await page.locator('#galleryGrid [data-view]').count(),1);
+     assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-art-gallery-v1')),savedGallery,'touch gallery survives reload');
+    }
     assert.deepEqual(errors,[]);console.log('PASS touch drawing',mode,viewport);
    }finally{await touch.close()}
   }
