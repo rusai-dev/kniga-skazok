@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.75')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.76')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -89,8 +89,14 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#storyBody').inputValue(),'','notes never insert prose');await page.locator('#saveStoryNow').click();
  await page.reload();await page.locator('#homeWrite').click();await page.locator('[data-own-draft]').filter({hasText:'Лисёнок'}).click();await page.locator('.story-notebook summary').click();
  assert.equal(await page.locator('[data-story-plan="hero"]').inputValue(),'Лисёнок');assert.equal(await page.locator('[data-story-plan="wish"]').inputValue(),'Найти друзей');assert.equal(await page.locator('#storyBody').inputValue(),'');
- await page.locator('#storyTitle').fill('Лисёнок и друзья');await page.locator('#storyBody').fill('Жил маленький лисёнок.');await page.locator('#publishStory').click();
- assert.ok(await page.evaluate(()=>{const b=data.stories.find(x=>x.title==='Лисёнок и друзья');return b?.body==='Жил маленький лисёнок.'&&b.plan?.hero==='Лисёнок'&&!('plan' in fbook(b))}),'private notes preserved but not shared');
+ await page.locator('#storyTitle').fill('Лисёнок и друзья');await page.locator('#storyBody').fill('Жил маленький лисёнок.');
+ await page.locator('.writer-chapters summary').click();const beforeChapter=await page.evaluate(()=>localStorage.getItem(KEY));await page.locator('#newChapterTitle').fill('В лесу');assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),beforeChapter,'temporary title does not save');
+ await page.locator('#appendChapter').click();assert.equal(await page.locator('#storyBody').inputValue(),'Жил маленький лисёнок.\n\n## В лесу\n');
+ await page.locator('#storyBody').fill('Жил маленький лисёнок.\n\n## В лесу\nОн нашёл друга.');await page.locator('#newChapterTitle').fill('Возвращение');await page.locator('#appendChapter').click();await page.locator('#storyBody').fill('Жил маленький лисёнок.\n\n## В лесу\nОн нашёл друга.\n\n## Возвращение\nОни вернулись домой.');
+ assert.equal(await page.locator('[data-chapter-jump]').count(),3);await page.locator('[data-chapter-jump]').filter({hasText:'В лесу'}).click();assert.equal(await page.locator('#storyBody').evaluate(e=>e.selectionStart),await page.locator('#storyBody').evaluate(e=>e.value.indexOf('## В лесу')));
+ await page.locator('#previewStory').click();const beforePreview=await page.evaluate(()=>localStorage.getItem(KEY));await page.locator('#bookPreviewChapter').selectOption('1');assert.ok((await page.locator('#bookPreview .reader-text').textContent()).includes('Он нашёл друга.'));assert.ok(!(await page.locator('#bookPreview .reader-text').textContent()).includes('Они вернулись домой.'));assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),beforePreview);await page.locator('#previewStory').click();
+ await page.locator('#publishStory').click();
+ assert.ok(await page.evaluate(()=>{const b=data.stories.find(x=>x.title==='Лисёнок и друзья');return b?.body==='Жил маленький лисёнок.\n\n## В лесу\nОн нашёл друга.\n\n## Возвращение\nОни вернулись домой.'&&b.rich?.markup&&b.plan?.hero==='Лисёнок'&&!('plan' in fbook(b))}),'private notes preserved but not shared');
  await page.locator('#home').click();
  await page.evaluate(raw=>{if(!commitLibrary(JSON.parse(raw)))throw Error('restore fixture')},beforeDrafts);
  await page.locator('#homeCreate').click();assert.ok(await page.locator('#creativeHome').isVisible());assert.equal(await page.locator('#storybookHome').isVisible(),false);
