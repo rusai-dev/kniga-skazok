@@ -21,6 +21,25 @@ const server=http.createServer((req,res)=>{
  let browser;
  try{
  browser=await engine.launch({headless:true});
+ // Chromium: verify real service-worker caching with an isolated profile.
+ if(engine===chromium){
+  const ctx=await browser.newContext({serviceWorkers:'allow'}),page=await ctx.newPage();
+  try{
+   await page.goto(url);
+   await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});await navigator.serviceWorker.ready});
+   await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
+   const artPath='./assets/books/andersen-pea-bed.webp';
+   assert.equal(await page.evaluate(async()=>{const c=await caches.open('skazki-book-art-v1');return (await c.keys()).length}),0,'no book art is precached');
+   await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();localStorage.setItem('skazki-reading-size-v1','28')},artPath);
+   assert.equal(await page.evaluate(async path=>!!await (await caches.open('skazki-book-art-v1')).match(new URL(path,location.href).href),artPath),true,'viewed art cached');
+   await ctx.setOffline(true);await page.reload();
+   assert.ok(await page.locator('#storybookHome').isVisible());
+   assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
+   assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.67')).keys();return keys.length}),5,'complete versioned core');
+   console.log('PASS service worker offline artwork and storage');
+  }finally{await ctx.close()}
+ }
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.message));
