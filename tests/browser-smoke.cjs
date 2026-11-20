@@ -236,6 +236,7 @@ const server=http.createServer((req,res)=>{
  const inkEquivalence=await page.evaluate(()=>{
   const make=()=>{const c=document.createElement('canvas');c.width=720;c.height=480;return c};
   const layer=make(),lc=layer.getContext('2d');lc.strokeStyle='#40382f';lc.lineWidth=3;for(let x=0;x<720;x+=9){lc.beginPath();lc.moveTo(x,0);lc.lineTo(x,480);lc.stroke()}for(let y=0;y<480;y+=11){lc.beginPath();lc.moveTo(0,y);lc.lineTo(720,y);lc.stroke()}
+  const mask=lc.getImageData(0,0,720,480);for(let i=3;i<mask.data.length;i+=4)mask.data[i]=mask.data[i]?255:0;lc.putImageData(mask,0,0);
   const a=make(),b=make(),ca=a.getContext('2d'),cb=b.getContext('2d');let cases=0;
   const kinds=['solid','soft','marker','crayon','water','pastel','rainbow','gold','silver','neon','glitter',...stampEffects];
   for(const kind of kinds)for(const width of [4,11,24])for(const [from,to] of [[{x:0,y:0},{x:17,y:22}],[{x:350.2,y:240.7},{x:355.4,y:245.2}],[{x:710,y:470},{x:719,y:479}]]){
