@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.77')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.78')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -66,6 +66,10 @@ const server=http.createServer((req,res)=>{
  await page.locator('#homeLogic').click();assert.equal(await page.locator('[data-academy]').count(),6);await page.locator('#academyBack').click();
  const writeRect=await page.locator('#homeWrite').boundingBox();assert.ok(writeRect.y>=0&&writeRect.y+writeRect.height<=viewport.height,'author entry fits first screen');
  await page.locator('#homeWrite').click();assert.ok(await page.locator('#storyForm').isVisible());assert.equal(await page.locator('#storyTitle').getAttribute('required'),null);assert.equal(await page.locator('#writerExtras').evaluate(e=>e.open),false);assert.equal(await page.locator('#drawStory').isVisible(),false);assert.ok(await page.locator('#publishStory').isVisible());
+ assert.equal(await page.locator('#storyForm canvas').count(),0,'no canvas allocated during free writing');assert.equal(await page.locator('#coverPreview').innerHTML(),'');assert.equal(await page.locator('#writerChapterList').innerHTML(),'');
+ await page.locator('#writerExtras > summary').click();await page.locator('.cover-designer summary').click();await page.locator('#coverPreview .custom-cover').waitFor({state:'visible'});await page.locator('#coverColor').selectOption('sky');assert.ok((await page.locator('#coverPreview .custom-cover').getAttribute('style')).includes('#e6eef6'));await page.locator('#coverColor').selectOption('forest');await page.locator('.cover-designer summary').click();await page.waitForFunction(()=>!document.getElementById('coverPreview').children.length);await page.locator('#writerExtras > summary').click();
+ await page.locator('#writerExtras > summary').click();await page.locator('#drawStory').click();await page.locator('#drawingCanvas').waitFor({state:'visible'});assert.equal(await page.locator('#drawingCanvas').evaluate(c=>c.width*c.height),345600);await page.locator('#drawingCancel').click();assert.ok(await page.locator('#storyBody').isVisible());await page.locator('#writerExtras > summary').click();
+
  assert.ok(await page.evaluate(()=>document.getElementById('storyTitle').compareDocumentPosition(document.getElementById('storyBody'))&Node.DOCUMENT_POSITION_FOLLOWING));
  assert.ok(await page.evaluate(()=>document.getElementById('storyBody').compareDocumentPosition(document.getElementById('storyTheme'))&Node.DOCUMENT_POSITION_FOLLOWING),'writing before settings');
 
