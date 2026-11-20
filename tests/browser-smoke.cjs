@@ -93,6 +93,21 @@ const server=http.createServer((req,res)=>{
    console.log('PASS service worker offline artwork, catalog and storage');
   }finally{await ctx.close()}
  }
+ // Exercise actual buttons with APIs absent on older iPad Safari (not a legacy engine emulator).
+ const legacy=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'});
+ try{
+  await legacy.addInitScript(()=>{Object.hasOwn=undefined;Array.prototype.at=undefined});
+  const page=await legacy.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(url);await page.locator('#startNotice').waitFor({state:'hidden'});
+  await page.locator('#homeMath').click();await page.locator('#academyBack').waitFor({state:'visible'});await page.locator('#academyBack').click();
+  await page.locator('#homeLogic').click();await page.locator('#academyBack').waitFor({state:'visible'});await page.locator('#academyBack').click();
+  await page.locator('#childWorld').click();await page.locator('#worldHome').waitFor({state:'visible'});await page.locator('#worldHome').click();
+  await page.locator('#homeBooks').click();await page.locator('#libraryHome').waitFor({state:'visible'});await page.locator('#home').click();
+  await page.locator('#homeCreate').click();await page.locator('#creativeHome').waitFor({state:'visible'});await page.locator('#home').click();
+  await page.locator('#childLearn').click();await page.locator('#modal').waitFor({state:'visible'});await page.locator('#close').click();
+  await page.locator('#storybookHome').waitFor({state:'visible'});assert.deepEqual(errors,[],'no runtime errors with older API set');
+  console.log('PASS all six home destinations with older JavaScript API set');
+ }finally{await legacy.close()}
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.stack||e.message));
