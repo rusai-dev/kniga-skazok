@@ -286,7 +286,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#studySpatial').getAttribute('data-kind'),'mirror');assert.equal(await page.locator('#spatialControls button').count(),9);
  const mirrorAnswer=await page.evaluate(()=>spatialQuestion(1,3).spatial.solution);
  await page.locator('#spatialControls [data-spatial="'+mirrorAnswer[0]+'"]').click();
- assert.equal(await page.locator('#spatialControls [aria-pressed="true"]').count(),1);
+ assert.equal(await page.locator('#spatialControls [aria-pressed="true"]').count(),1);assert.ok((await page.locator('#spatialControls [aria-pressed="true"]').evaluate(b=>getComputedStyle(b,'::after').content)).includes('✓'));assert.equal(await page.locator('#spatialCheck').evaluate(b=>getComputedStyle(b).backgroundColor),'rgb(15, 118, 110)');
  await page.locator('#spatialReset').click();assert.equal(await page.locator('#spatialControls [aria-pressed="true"]').count(),0);
  await page.locator('#spatialCheck').click();assert.ok((await page.locator('#studyFeedback').textContent()).includes('Проверь'));
  for(const i of mirrorAnswer)await page.locator('#spatialControls [data-spatial="'+i+'"]').click();
