@@ -473,6 +473,15 @@ const server=http.createServer((req,res)=>{
   const failed=await outcome(),afterFail=await outcome();
   return {first,limited,confirmed,cached,failed,afterFail,requests}
  });assert.deepEqual(absence,{first:'unavailable',limited:'unavailable',confirmed:'missing',cached:'missing',failed:'unavailable',afterFail:'unavailable',requests:['raw','api','raw','raw','api','raw','raw','api','raw']},'only independently confirmed absence is reported; failures invalidate cached absence');
+ const failedShelf=await page.evaluate(async()=>{
+  const run=async books=>{
+   const shelf={textContent:books.length?'Сохранённая сказка':'В архиве пока нет опубликованных сказок.'},refresh={disabled:false},statuses=[];
+   const s={books,received:true,ghRevision:2,room:'synthetic'};
+   const source=ghViewerUnavailable.toString()+';'+ghViewerTick.toString()+';return ghViewerTick';
+   const tick=new Function('fam','$','readerRecovery','fstatus','ghReadPublic','ghReadMessage','fetch',source)(s,id=>id==='familyShelf'?shelf:refresh,k=>statuses.push(k),v=>statuses.push(v),async()=>{throw Error('offline')},()=> 'Библиотека временно недоступна.',()=>{});
+   await tick(s,true);return {shelf:shelf.textContent,status:statuses.at(-1),count:s.books.length,busy:s.ghBusy,disabled:refresh.disabled};
+  };return [await run([]),await run([{id:'synthetic'}])];
+ });assert.deepEqual(failedShelf,[{shelf:'Свежий список сказок пока не получен.',status:'Библиотека временно недоступна.',count:0,busy:false,disabled:false},{shelf:'Сохранённая сказка',status:'Свежая версия недоступна. Показаны ранее полученные сказки.',count:1,busy:false,disabled:false}],'failed refresh is explicit on both empty and populated shelves');
  const rollback=await page.evaluate(()=>{const cache='qa-family-revision-cache',secret='b'.repeat(64),books=[{id:'latest',title:'Свежая сказка',theme:'Лес',body:'Текст.',icon:'📖'}];const previousReader=fget(FAMILY_READER),previousConfirmed=fget(FAMILY_CONFIRMED);try{fdel(cache);fdel(cache+'-revision');const s={cache,secret,books:[],received:false};ghPublicCache(s,{revision:3,books});const reopened={cache,secret,books:JSON.parse(fget(cache)),ghRevision:ghCachedRevision({cache})};const stale=ghPublicCache(reopened,{revision:2,books:[]});const staleStatus=document.getElementById('familyViewStatus').textContent;const retry=ghPublicCache(reopened,{revision:3,books});return {revision:reopened.ghRevision,stale,count:JSON.parse(fget(cache)).length,status:staleStatus,retry,recovered:document.getElementById('familyViewStatus').textContent}}finally{fdel(cache);fdel(cache+'-revision');previousReader===null?fdel(FAMILY_READER):fput(FAMILY_READER,previousReader);previousConfirmed===null?fdel(FAMILY_CONFIRMED):fput(FAMILY_CONFIRMED,previousConfirmed)}});assert.equal(rollback.revision,3);assert.equal(rollback.stale,false);assert.equal(rollback.count,1);assert.ok(rollback.status.includes('не подтвердил свежую'));assert.equal(rollback.retry,true);assert.ok(rollback.recovered.includes('проверено и сохранено'));
  assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
  }

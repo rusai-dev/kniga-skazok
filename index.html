@@ -4150,13 +4150,17 @@ function ghPublicCache(s,remote){
  if(cached){fput(FAMILY_READER,s.secret);fput(FAMILY_CONFIRMED,s.secret)}
  readerRecovery('ready');fstatus('Сказок: '+s.books.length+(cached?' · проверено и сохранено':' · получено, но не сохранено на устройстве: освободите место или сделайте резервную копию')+' · '+new Date().toLocaleTimeString('ru-RU'));return true;
 }
-async function ghViewerTick(s,manual=false){
+function ghViewerUnavailable(s,message){
+ readerRecovery('error');fstatus(message);
+ if(!s.books.length&&$('familyShelf'))$('familyShelf').textContent='Свежий список сказок пока не получен.';
+}
+async function ghViewerTick(s,manual=false,fetcher=fetch){
  if(fam!==s||s.ghBusy)return;s.ghBusy=true;if($('familyRefresh'))$('familyRefresh').disabled=true;if(manual)fstatus('Проверяем новые сказки…');
  try{
-  const remote=await ghReadPublic(s,manual);if(fam!==s)return;
+  const remote=await ghReadPublic(s,manual,fetcher);if(fam!==s)return;
   if(remote){s.ghReader=true;ghPublicCache(s,remote)}
-  else if(s.received||s.ghRevision>0||s.books.length){readerRecovery('error');fstatus('Семейный архив пока не найден. Показаны ранее полученные сказки; попробуйте снова.')}else {readerRecovery(s.room===GH_CURRENT_ROOM?'missing':'mismatch');fstatus(ghReadMessage(s.room,'missing'))}
- }catch(e){if(fam===s){readerRecovery('error');fstatus(s.books.length?'Свежая версия недоступна. Показаны ранее полученные сказки.':ghReadMessage(s.room,'error'))}}
+  else if(s.received||s.ghRevision>0||s.books.length){ghViewerUnavailable(s,s.books.length?'Семейный архив пока не найден. Показаны ранее полученные сказки; попробуйте снова.':'Семейный архив пока не найден. Не удалось проверить список сказок.')}else {readerRecovery(s.room===GH_CURRENT_ROOM?'missing':'mismatch');fstatus(ghReadMessage(s.room,'missing'))}
+ }catch(e){if(fam===s)ghViewerUnavailable(s,s.books.length?'Свежая версия недоступна. Показаны ранее полученные сказки.':ghReadMessage(s.room,'error'))}
  finally{s.ghBusy=false;if(fam===s&&$('familyRefresh'))$('familyRefresh').disabled=false}
 }
 async function ghWriterTick(s){

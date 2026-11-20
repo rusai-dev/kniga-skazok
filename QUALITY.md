@@ -409,3 +409,7 @@ Avoid creating three static reading question/glossary objects at initial script 
 ## Candidate 1.5.104 — verified absence of family archive
 
 A raw CDN 404 is no longer sufficient to declare an archive absent. The independent anonymous API must also return 404; temporary errors invalidate the in-memory absence confirmation, without increasing polling frequency. A previously received shelf remains readable and shows a separate unavailable status. No changes to publication content, encryption, storage keys or actual family archives. Full dependency-free regression and six isolated status transitions passed; browser scenario covers throttling, two 404 responses and API failures. Cache test versions derived from release manifest rather than hardcoded. HTML 939402 → 939883 bytes. Browser CI, live family invitation and physical-device acceptance remain pending.
+
+### 1.5.104 follow-up — combined acceptance and truthful empty shelf
+
+Retargeted #62 to main to run the mandatory browser checks on the combined #60–62 candidate; original branch base and main have identical Git trees. On a failed refresh, the empty shelf explicitly says a fresh list has not been retrieved, and populated shelves keep cached books. Full dependency-free regression and six isolated viewer states passed; additional browser fixture tests empty/populated shelves. HTML 940247 bytes; no data key or format changes. No physical device or live family data tested. Merge only after green CI on this exact candidate.
