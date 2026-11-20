@@ -218,6 +218,9 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#studyPicture svg text').filter({hasText:/^\?$/}).count(),2);
  const sideAnswer=await page.evaluate(()=>numberQuestion('geometry',1,3).answer);
  await page.locator('#studyNumber').fill(sideAnswer);await page.locator('#studyCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
+ await page.keyboard.press('Escape');await page.evaluate(()=>{const v=studyState('measure');v.n=1;v.level=3;studySave('measure',v);studyOpen('math','measure')});
+ assert.equal(await page.locator('#studyPicture [data-ruler-strip]').count(),2);
+ const measured=await page.evaluate(()=>numberQuestion('measure',1,3).answer);await page.locator('#studyNumber').fill(measured);await page.locator('#studyCheck').click();assert.ok(await page.locator('#studyNext').isVisible());
  await page.keyboard.press('Escape');await page.locator('#homeLogic').click();
  assert.equal(await page.locator('[data-academy]').count(),6);
  assert.equal(await page.locator('[data-academy] .fairy-art').count(),6);
