@@ -570,3 +570,8 @@ Compared the editable source directly against accepted 1.5.126 main: all 36 reco
 ## Candidate 1.5.128 — night chapter echo experiment
 
 Chapter 2: optional 1–5 m model, prediction before explanation, outbound/return path 2d, reset, buttons/slider and direct pointer dragging with cancellation. Previous 1.5.127 main ba103ab. CI 44780297375 regression passed; both browsers stopped because a pre-existing generic SVG assertion matched both chapter art and new model. Correct its scope and add direct pointer drag coverage. Initial source 976929 → 982961 B, reserve 17039 B. Full isolated regression passed. No artwork replacement, storage changes, extra resource or real family archive access. Browser CI and physical device performance pending. No learning-effect claim.
+
+
+## 1.5.129 candidate — night flower interaction and owner resource policy
+
+1.5.128 accepted on main 817f1a2; CI 44780769454 all 3 passed. 1.5.129 adds optional pollination model, direct tapping or buttons, one-step undo and reset, same-flower no-op. Preserve all existing chapter artwork, catalog and storage schema. Initial sources 982961 → 989003 B; cap unchanged, reserve 10997 B. Isolated full regression passed; actual browser tests pending. Include owner-approved docs/performance-budget.md content from PR #89 (canceled CI, not merged separately). 800–850 KB optional, no total library cap. No raster asset added, no device benchmark or family archive confirmation. See docs/night-world-sources.md.
