@@ -354,3 +354,8 @@ Persist the highest verified GitHub archive revision in a separate per-room loca
 ## Candidate 1.5.93 — family paginated reading
 
 Reuse the personal adaptive full-screen reading component in the anonymous family viewer. Family-specific offsets are scoped to the archive room and book; no changes to publication payload or book format. Family preview retains the current edition when other books arrive. The fullscreen reader keeps its opened edition until closed; withdrawal closes the reader. Add browser checks for long stories, paging, saved location, and unrelated archive updates. Full dependency-free regression passed. Browser CI and physical iPad remain separate gates; no real archive modified. Size and reading-position storage are local only.
+
+
+## Candidate 1.5.94 — coordinate directions reasoning
+
+Coordinate questions progress from one to four non-repeating moves by level. Six legible marker palettes, four valid in-grid answer choices, and full route explanations. Fixed previously unreachable coordinate question path: n % 12 === 7 bypasses verbal-order questions while preserving existing sequence, maze and rotation practice. Regression independently reconstructs 4,000 routes, validates SVG start coordinates, all six colors, options, explanations, and actual routing; full dependency-free regression passed. Browser check added; physical iPad and educational benefit remain unverified. No storage or archive format changes.
