@@ -2029,7 +2029,7 @@ function academyLogicQuestion(skill,n,l){
  if(skill==='patterns'){
   const start=p(1,2,12),step=p(2,2,l+3),seq=Array.from({length:4},(_,i)=>start+step*i+(l>=2?i*(i-1)/2:0)),ans=start+4*step+(l>=2?6:0);
   if(n%3===0){const shapes=academyShuffle(['круг','квадрат','треугольник','ромб'],n),pattern=l<2?[shapes[0],shapes[1],shapes[0]]:[shapes[0],shapes[1],shapes[1],shapes[2]],len=pattern.length*2+p(4,0,pattern.length-1),v=pattern[len%pattern.length];return {...choice('Какая фигура будет следующей?',v,shapes.filter(x=>x!==v).slice(0,2),'Найди группу, которая повторяется.','Повторяется группа: '+pattern.join(', ')+'.'),picture:academyPatternPicture(Array.from({length:len},(_,i)=>pattern[i%pattern.length]))}}
-  return choice('Продолжи: '+seq.join(', ')+', …',ans,[ans-1,ans+step],l>=2?'Посмотри, как изменяются прибавки.':'Найди разницу соседних чисел.',l>=2?'Прибавки растут на 1. Следующая прибавка — '+(step+3)+'. Ответ: '+ans+'.':'Каждый раз прибавляем '+step+'. Получаем '+ans+'.');
+  return aq('Продолжи: '+seq.join(', ')+', …',ans,l>=2?'Посмотри, как изменяются прибавки.':'Найди разницу соседних чисел.',l>=2?'Прибавки растут на 1. Следующая прибавка — '+(step+3)+'. Ответ: '+ans+'.':'Каждый раз прибавляем '+step+'. Получаем '+ans+'.');
  }
  if(skill==='deduction'){
   const pets=academyShuffle(['кот','пёс','хомяк','попугай'],n+13),[x,y,z,w]=pets; const g=name=>({'Аня':'Ани','Вера':'Веры','Маша':'Маши','Лена':'Лены','Оля':'Оли'}[name]);
@@ -3259,11 +3259,11 @@ function applyRelease(version,manual){
  const next=new URL(location.href);next.searchParams.set('_release',version);location.replace(next.href);
 }
 function releaseFromManifest(value){return value&&typeof value.version==='string'&&/^\d+\.\d+\.\d+$/.test(value.version)?value.version:''}
-async function fetchReleaseVersion(current,fetcher=fetch){
- const opts={cache:'no-store',credentials:'same-origin'},stamp=String(Date.now());
+async function fetchReleaseVersion(current,fetcher=(url,opts)=>window.fetch(url,opts),signal){
+ const opts={cache:'no-store',credentials:'same-origin',signal},stamp=String(Date.now());
  let version='';
  try{const url=new URL('release.json',location.href);url.searchParams.set('_check',stamp);const response=await fetcher(url.href,opts);if(response.ok)version=releaseFromManifest(await response.json())}catch(e){}
- if(version&&!newerRelease(version,current))return current;
+ if(signal?.aborted)throw Error('cancelled');if(version&&!newerRelease(version,current))return current;
  // A newer manifest is only a hint. Verify that the deployed HTML is actually ready.
  const url=new URL('index.html',location.href);url.searchParams.set('_check',stamp);
  const response=await fetcher(url.href,opts);if(!response.ok)throw Error('network');
@@ -3271,25 +3271,25 @@ async function fetchReleaseVersion(current,fetcher=fetch){
 }
 async function checkRelease(manual=false){
  if(window.__nativeMode||!/^https?:$/.test(location.protocol)||typeof fetch!=='function')return;
- if(releaseChecking)return;
- releaseChecking=true;
+ if(releaseChecking||(!manual&&(!canAutoUpdate()||Date.now()-releaseCheckedAt<60000)))return;
+ releaseChecking=true;releaseCheckedAt=Date.now();const controller=new AbortController();releaseController=controller;
  try{
-  const remote=await fetchReleaseVersion(APP_RELEASE);
+  const remote=await fetchReleaseVersion(APP_RELEASE,undefined,controller.signal);if(controller.signal.aborted)return;
   if(newerRelease(remote,APP_RELEASE)){
     $('releaseNotice').hidden=false;$('releaseText').textContent='Доступна новая версия '+remote+'. Твои сказки останутся на устройстве.';
     $('releaseApply').onclick=()=>applyRelease(remote,true);
     if(canAutoUpdate())applyRelease(remote,false);
   }else if(manual)toast('У тебя актуальная версия '+APP_RELEASE+'.');
  }catch(e){if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
- finally{releaseChecking=false}
+ finally{releaseChecking=false;if(releaseController===controller)releaseController=null}
 }
-const APP_RELEASE='1.5.85';let releaseChecking=false;
+const APP_RELEASE='1.5.85';let releaseChecking=false,releaseCheckedAt=0,releaseController=null;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
  $('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);
  window.addEventListener('focus',()=>checkRelease());
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkRelease()});
- setInterval(()=>{if(!document.hidden)checkRelease()},30000);
- $('modal').addEventListener('close',()=>setTimeout(()=>checkRelease(),800));
+ setInterval(()=>{if(!document.hidden)checkRelease()},60000);
+ window.addEventListener('pagehide',()=>releaseController?.abort());
  window.addEventListener('online',()=>{checkRelease();familyWake()});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)familyWake()});
  window.addEventListener('focus',familyWake);window.addEventListener('pageshow',familyWake);

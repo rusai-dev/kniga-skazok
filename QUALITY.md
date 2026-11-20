@@ -305,3 +305,8 @@ After successful 1.5.83 release, moved two embedded WebP sprites to assets/ui/ho
 ## Candidate 1.5.85 — visible publication edition and safer deletion
 
 Private author book cards and reader now distinguish private, selected-for-family and changed public snapshots. The comparison excludes private plans/versions/edits through fbook; selection is explicitly not a delivery confirmation. Moved publish action near the title; reader and library update after share/unshare. Changed deletion to transactional commitLibrary, retaining the story if storage fails and triggering archive sync on successful removal. No migration, automatic publication or archive/key change. Updated theme meta colour. Added regression and browser fixtures for all three states. Startup source 891105 bytes, including UI sprites 973491 bytes. Regression passed; browser acceptance and real-device tests pending.
+
+
+### 1.5.85 follow-up — safe release polling and constructed number patterns
+
+Previous WebKit run failed on intermittent access-control errors during periodic release fetches. Automatic checks are restricted to safe idle states, at most once per minute; removed repeated modal-close polling and abort in-flight check on pagehide. Actual network fetch explicitly uses window.fetch. No browser errors suppressed. Numeric logic patterns now require typed answers rather than three alternatives; visual shape patterns remain choices. Existing four levels, explanatory hints and independent completion tracking retained. Added 800 numeric pattern correctness cases and browser answer test. Source 891530 bytes; regression passed; CI required.
