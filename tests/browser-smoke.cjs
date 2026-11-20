@@ -579,7 +579,7 @@ const server=http.createServer((req,res)=>{
  });
  assert.equal(originals,12,'independent original compositions');
  // Catalog paging, filtering and favorites persist without rendering the entire library.
- assert.ok((await page.locator('#coloringCount').textContent()).includes('из 40'));
+ assert.ok((await page.locator('#coloringCount').textContent()).includes('из 42'));
  await page.locator('#coloringMore').click();assert.ok((await page.locator('#coloringCount').textContent()).includes('9–16'));
  assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice').count(),8);
  await page.locator('#coloringPrev').click();
@@ -589,7 +589,9 @@ const server=http.createServer((req,res)=>{
  await page.locator('.coloring-like').click();await page.locator('#coloringCategory').selectOption('liked');assert.equal(await page.locator('#storyColoringGallery .story-coloring-choice').count(),1);
  await page.locator('#coloringSearch').fill('');await page.locator('#coloringCategory').selectOption('all');
  const catalogRender=await page.evaluate(()=>{const seen=new Set();for(const key of ORIGINAL_COLORING_IDS){const c=document.createElement('canvas');c.width=720;c.height=480;const ctx=c.getContext('2d');if(!originalColoring(ctx,key))throw Error(key);seen.add(c.toDataURL());const image=ctx.getImageData(0,0,720,480);const data=image.data;let found=0;for(let y=20;y<460&&found<5;y+=16)for(let x=20;x<700&&found<5;x+=16){const p=(y*720+x)*4;if(data[p]!==255||data[p+1]!==253||data[p+2]!==247)continue;const color=[22+found*35,111,177,255];if(!artFill(data,720,480,x,y,color))continue;let n=0;for(let i=0;i<data.length;i+=4)if(data[i]===color[0]&&data[i+1]===111&&data[i+2]===177)n++;if(n>100)found++;else{for(let i=0;i<data.length;i+=4)if(data[i]===color[0]&&data[i+1]===111&&data[i+2]===177){data[i]=255;data[i+1]=253;data[i+2]=247}}}if(found<5)throw Error('insufficient color regions '+key+' '+found)}return seen.size});
- assert.equal(catalogRender,40,'all distinct rendered catalog scenes');
+ assert.equal(catalogRender,42,'all distinct rendered catalog scenes');
+ const newColorings=await page.evaluate(()=>{const out=[];for(const [key,x,y] of [['moon-bat-garden',360,290],['nile-cat-voyage',422,282]]){const c=document.createElement('canvas');c.width=720;c.height=480;const ctx=c.getContext('2d');originalColoring(ctx,key);const img=ctx.getImageData(0,0,720,480),at=(x,y)=>Array.from(img.data.slice((y*720+x)*4,(y*720+x)*4+4)),outside=at(12,12),color=[45,137,190,255];if(!artFill(img.data,720,480,x,y,color)||at(x,y).join()!==color.join()||at(12,12).join()!==outside.join())throw Error('new scene fill '+key);out.push(key)}return out});assert.equal(newColorings.length,2);
+
  await page.locator('#storyColoringGallery .story-coloring-choice').first().click();
  assert.equal(await page.locator('[data-tool="fill"]').getAttribute('aria-pressed'),'true');
  const pixelState=()=>page.locator('#drawingCanvas').evaluate(c=>c.toDataURL());
