@@ -452,13 +452,21 @@ const server=http.createServer((req,res)=>{
  const drawingView=page.locator('#drawingCanvas'),expand=page.locator('#drawingExpand');
  const drawSnapshot=()=>drawingView.evaluate(c=>({pixels:c.toDataURL(),width:c.width,height:c.height}));
  const blankDrawing=await drawSnapshot(),normalBox=await drawingView.boundingBox();
+ assert.equal(await expand.evaluate(e=>e.parentElement.id),'studioSheet','size control belongs to the drawing sheet');
+ assert.ok((await expand.boundingBox()).height>=44,'large touch target');
+
  await expand.click();await page.waitForFunction(()=>document.getElementById('modal').classList.contains('canvas-full'));
  await page.waitForFunction(area=>{const c=document.getElementById('drawingCanvas').getBoundingClientRect();return c.width*c.height>=area},normalBox.width*normalBox.height);
  assert.equal(await expand.getAttribute('aria-pressed'),'true');assert.ok((await expand.textContent()).includes('Уменьшить'));
  assert.deepEqual(await drawSnapshot(),blankDrawing,'expand must not reset or resample drawing');
  assert.equal(await page.locator('#drawingFullColor').isVisible(),true);
+ assert.equal(await page.locator('#drawingFullSave').isVisible(),true);
+ assert.equal(await page.locator('#drawingFullSave').isEnabled(),false,'blank drawing has no save');
+ for(const tool of ['fill','pick'])assert.equal(await page.locator('[data-tool="'+tool+'"]').isVisible(),true,'active tools remain visible');
+ const edge=await expand.boundingBox(),paper=await drawingView.boundingBox();assert.ok(edge.y+edge.height<=paper.y+1,'expand control must never cover pixels');
+
  await page.locator('[data-tool="brush"]').click();await drawingView.click({position:{x:70,y:70}});
- const expandedDrawing=await drawSnapshot();assert.notEqual(expandedDrawing.pixels,blankDrawing.pixels);
+ const expandedDrawing=await drawSnapshot();assert.notEqual(expandedDrawing.pixels,blankDrawing.pixels);assert.ok(await page.locator('#drawingFullSave').isEnabled());
  const drawViewport=page.viewportSize();await page.setViewportSize({width:drawViewport.height,height:drawViewport.width});
  assert.deepEqual(await drawSnapshot(),expandedDrawing,'rotation preserves original pixels');
  await page.setViewportSize(drawViewport);
@@ -558,7 +566,7 @@ const server=http.createServer((req,res)=>{
  await page.waitForFunction(()=>document.getElementById('drawingStatus')?.textContent.includes('Продолжай свой сохранённый рисунок'));
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1')),draft);
  assert.deepEqual(await inkAt(),ink,'original contour restored after reload');
- await page.locator('#drawingSave').click();
+ await page.locator('#drawingExpand').click();await page.locator('#drawingFullSave').click();
  await page.locator('#galleryGrid [data-view]').first().click();assert.ok(await page.locator('.gallery-large').isVisible());
  await page.locator('#galleryReturn').click();assert.ok(await page.locator('#galleryGrid').isVisible());
  assert.ok(await page.evaluate(()=>JSON.parse(localStorage.getItem('skazki-art-gallery-v1')||'[]').length>0),'drawing stored');
