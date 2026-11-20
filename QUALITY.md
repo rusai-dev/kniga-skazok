@@ -255,3 +255,8 @@ Optional editor chapter panel appends a named chapter to the end of existing tex
 ## Candidate 1.5.77 — free writing first
 
 Direct entry resumes a draft or opens a blank editor without a required selection. Separate New Story and My Drafts actions; use an available theme without overwriting an existing draft. Neutral My Stories theme preferred. Title is optional; body-only publication uses a neutral title. Save, preview and publish beside body; all planning/design/spelling tools behind a closed optional section, drawing panel outside it. No migration or new dependencies. Registration of optional literacy scan is deferred while extras closed. Regression passed and browser scenarios exercise direct entry, hidden extras, title-free writing and existing draft retention. Initial source 975008 bytes under 1 MB. Theme-based draft capacity unchanged; browser and physical-device acceptance pending.
+
+
+## Candidate 1.5.78 — lazy tools in free writing
+
+The simple editor creates no drawing canvases until the child opens drawing. Existing studio initialization and original canvas resolution preserved. Closed cover preview renders no art; closing it releases rendered content. Closed chapter panel does not rebuild its table of contents on each keystroke. Synchronous library autosave, text, old drafts, all tool paths and data schema retained. 27 canvas tags in the existing drawing panel now deferred; main canvas 720×480 unchanged. Regression passed, browser smoke includes zero initial canvas count, optional cover rendering and drawing initialization. Startup 975909 bytes under 1 MB. Actual memory and latency, physical iPad and browser acceptance pending.
