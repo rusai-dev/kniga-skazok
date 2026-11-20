@@ -39,8 +39,8 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.93')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
-   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.93');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.94')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
+   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.94');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -198,6 +198,9 @@ const server=http.createServer((req,res)=>{
  await page.locator('#spatialUndo').click();assert.equal(await page.locator('#spatialStatus').textContent(),'Шагов: 0');
  await page.locator('#lessonHelp summary').click();await page.locator('#studySolution').click();assert.ok(await page.locator('#spatialCheck').isDisabled());
  await page.locator('#studyNext').click();assert.equal(await page.locator('#studySpatial').isVisible(),false);
+ await page.keyboard.press('Escape');await page.evaluate(()=>{let v=studyState("logic-order");v.n=7;v.level=3;studySave("logic-order",v);studyOpen("logic","order")});
+ assert.equal(await page.locator('#studyChoices button').count(),4);assert.ok(await page.locator('#studyPicture svg').isVisible());assert.equal((await page.locator('#studyQuestion').textContent()).match(/вправо|влево|вверх|вниз/g).length,4);
+ const coordinateAnswer=await page.evaluate(()=>academySpatial(7,3).answer);await page.locator('#studyChoices').getByRole('button',{name:coordinateAnswer,exact:true}).click();assert.ok(await page.locator('#studyNext').isVisible());assert.ok((await page.locator('#studyFeedback').textContent()).includes('Маршрут:'));
  await page.keyboard.press('Escape');await page.locator('#childWorld').click();
  assert.equal(await page.locator('[data-area]').count(),4);
  await page.locator('[data-area="1"]').click();
