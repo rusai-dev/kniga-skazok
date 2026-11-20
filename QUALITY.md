@@ -461,3 +461,15 @@ Previously 26 effect canvases were created and drawn on every author-editor open
 ## Candidate 1.5.110 — bats and ancient Egypt
 
 Four new discovery lessons, six distinct question forms each, four original SVG illustrations, a new history/places category within existing World room, and real-life or creative transfer activities. Existing review and progress engine unchanged. Scientific references: Smithsonian Bat Facts https://www.si.edu/spotlight/bats/batfacts and Bat Conservation International FAQ https://www.batcon.org/about-bats/faq/ ; history: British Museum school materials on daily life and writing, Met Museum https://www.metmuseum.org/essays/papyrus-in-ancient-egypt . Writing artwork uses deliberately labelled schematic symbols, not purported authentic hieroglyphs. Browser tests cover each new topic end to end and storage; existing generated question and unique art checks cover new entries. HTML 948647 → 963784 bytes; estimated starting source 967200 bytes. No new dependencies or storage keys. Physical iPad and learning outcomes not verified. Mandatory CI pending.
+
+## Candidate 1.5.111 — bat echo and Nile field models
+
+Two new three-state interactive schematic models in existing discovery lessons. Show only after first independent prediction or 'Пока не знаю'. Echo compares round-trip paths at constant sound speed; Nile compares near river, dry distant field and canal irrigation, not a historical map or real simulation. Add four optional themed writing prompts into existing creative toolbox, never insert text. Tests extend lab state and interaction count from 27/9 to 33/11, and browser assertions for near/far wall and channel presence. Existing progress, keys and author data unchanged. HTML 963784 → 968083 bytes; estimated initial source 971499 bytes. No libraries. Depends on #69. Mandatory CI and actual device timing/learning outcomes not verified.
+
+### 1.5.111 acceptance correction
+
+Run 44739698365: regression passed, Chromium and WebKit rejected the Nile channel visibility assertion. An SVG horizontal stroked path has zero geometric height for the visibility check. Use a positive-area rounded water rectangle (same 9-unit thickness) and verify visible geometry and actual fill. Added end-to-end themed prompt selection and author-text preservation. No data changes. Re-run full CI before merging.
+
+## Candidate 1.5.112 — family archive consistency and truthful status
+
+Reject a different book payload claiming the same revision as an already verified in-memory archive; keep the current list and cached books. Preserve recovery on reload after failed cache write (received not yet true). Distinguish authenticated archive write/current equality from anonymous verification; if verification fails, advertise pending public reading rather than a failed write. Synthetic regression and browser conflict checks; no real family data, network writes, credentials or storage format changes. HTML 968083 → 968539 bytes. Mandatory CI pending; depends on #70. Real family delivery delay not verified.
