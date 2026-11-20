@@ -683,3 +683,7 @@ Single-draft recoverable JSON for failed saves, private additive restore via exi
 
 
 1.5.153 same-PR follow-up: compact emergency export controls no longer excluded by viewport CSS, backup async origin guard, tested scenario added for failed additive restore/retry. 998842 B initial source. See per-action inventory in SECTION_ACCEPTANCE.md. Exact-head browser CI pending.
+
+
+## Package 01 candidate 1.5.154
+#118 1.5.153 passed all three CI jobs and merged 7c24012cc2a0a148239ee90791c6da482b42bbc0. A08: persist personal/family reader font size in existing bookmark, legacy compatible, no changes to book or publication. 998965 B startup source, syntax and isolated validation passed, CI pending. Real Pages/iPad/family archive verification outstanding.
