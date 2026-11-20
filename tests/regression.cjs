@@ -198,6 +198,12 @@ function verify(html){
  let x="АБВГД".indexOf(start[1]),y=+start[2]-1;const seen=new Set([x+","+y]),labels=[start[1]+start[2]];
  const marker=q.picture.match(/<circle cx="(\d+)" cy="(\d+)" r="12" fill="(#[A-Fa-f0-9]{6})"/);
  if(!marker||+marker[1]!==64+x*44||+marker[2]!==54+y*44)throw Error("wrong drawn start");colors.add(marker[3]);
+ const cell=q.picture.match(new RegExp('<rect x="'+(42+x*44)+'" y="'+(32+y*44)+'" width="44" height="44" fill="(#[A-Fa-f0-9]{6})"'));
+ if(!cell)throw Error("missing highlighted starting cell");
+ const light=hex=>hex.slice(1).match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[0.2126,0.7152,0.0722][i],0);
+ const a=light(cell[1]),b=light(marker[3]);
+ if((Math.max(a,b)+0.05)/(Math.min(a,b)+0.05)<3)throw Error("low contrast route marker");
+ if(!q.picture.includes('aria-label="Сетка '+side+' на '+side+', фишка на '+start[1]+start[2]+'"'))throw Error("missing accessible start position");
  for(const d of dirs){x+=d==="вправо"?1:d==="влево"?-1:0;y+=d==="вниз"?1:d==="вверх"?-1:0;if(x<0||y<0||x>=side||y>=side||seen.has(x+","+y))throw Error("route bounds or repeat");seen.add(x+","+y);labels.push("АБВГД"[x]+(y+1))}
  if(q.answer!==labels.at(-1)||q.opts.length!==4||new Set(q.opts).size!==4||!q.opts.includes(q.answer)||!q.why.includes(labels.join(" → ")))throw Error("coordinate answer");
  if(q.opts.some(v=>!v.match(/^[АБВГД][1-5]$/)||"АБВГД".indexOf(v[0])>=side||+v[1]>side))throw Error("choice outside grid");
