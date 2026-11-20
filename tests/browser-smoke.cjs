@@ -322,7 +322,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#dayExperiment').isVisible(),false);
  await page.locator('#worldUnsure').click();await page.locator('#dayRotate').click();await page.locator('#dayRotate').click();
  assert.ok((await page.locator('.day-model-label').textContent()).includes('Ночь'));
- for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float'],[0,'ice'],[2,'sound'],[0,'rain'],[2,'air'],[0,'moon'],[1,'bee']]){
+ for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float'],[0,'ice'],[2,'sound'],[0,'rain'],[2,'air'],[0,'moon'],[1,'bee'],[1,'bat-echo'],[4,'egypt-nile']]){
   await page.locator('#worldBack').click();await page.locator('[data-area="'+area+'"]').click();await page.locator('[data-world="'+id+'"]').click();
   assert.equal(await page.locator('#worldLab').isVisible(),false);
   await page.locator('#worldUnsure').click();assert.ok(await page.locator('#worldLab').isVisible());
@@ -330,8 +330,12 @@ const server=http.createServer((req,res)=>{
   assert.ok(await page.locator('#worldLabModel svg[role="img"][aria-label]').isVisible());
   if(id==='moon'||id==='bee'){const diagram=page.locator('#worldLabModel svg');if(id==='moon')assert.equal(await diagram.locator('[data-moon-position="0"]').count(),1);await page.locator('[data-lab="1"]').click();assert.ok((await diagram.textContent()).includes(id==='moon'?'Четверть: половина диска':'Переработка нектара'));await page.locator('[data-lab="0"]').click();}
   const first=await page.locator('#worldLabLabel').textContent();
+  if(id==='bat-echo')assert.equal(await page.locator('[data-echo-wall="0"]').getAttribute('x'),'160');
+  if(id==='egypt-nile')assert.equal(await page.locator('[data-nile-channel]').count(),0);
   await page.locator('[data-lab="2"]').click();
   assert.notEqual(await page.locator('#worldLabLabel').textContent(),first);
+  if(id==='bat-echo')assert.equal(await page.locator('[data-echo-wall="2"]').getAttribute('x'),'280');
+  if(id==='egypt-nile')assert.ok(await page.locator('[data-nile-channel]').isVisible());
   assert.equal(await page.locator('[data-lab="2"]').getAttribute('aria-pressed'),'true');
   await page.locator('#worldNext').click();assert.equal(await page.locator('#worldLab').isVisible(),false);
  }
