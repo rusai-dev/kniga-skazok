@@ -230,3 +230,8 @@ Adds ice/temperature comparison and string vibration models to existing science 
 ## Candidate 1.5.72 — Russian language and guided story writing
 
 60 distinct language items instead of 36; added eight per skill (spelling, sentences, meaning) with level-specific pools and original typed spelling. Four writing stages (beginning, adventure, ending, revision), 16 optional prompts; random ideas remain. Prompts never insert or modify story text. No changes to storage keys, original art or dependencies. Regression passes 288 language cases and 16 guidance prompts. Browser smoke checks stage switching and preservation of the text. Initial source 960531 bytes under 1 MB. Physical device and pedagogical acceptance pending.
+
+
+## Candidate 1.5.73 — author-first experience
+
+Makes writing the top-level home action. Own-author draft picker lists separate existing draft themes and starts a new story only in an unused theme. Existing library and art/learning paths remain. Editor title and text precede optional cover/theme and formatting tools; larger writing field; prompts remain read-only. No migration, new dependencies or art. Regression passed with draft selection assertions. Browser checks cover opening writing directly, draft selection, blank new story and preservation of both original drafts. Startup 964019 bytes under 1 MB. Browser and physical iPad acceptance pending.

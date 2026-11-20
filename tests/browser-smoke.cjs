@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.72')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.73')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -64,13 +64,22 @@ const server=http.createServer((req,res)=>{
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  await page.locator('#homeMath').click();assert.equal(await page.locator('[data-academy]').count(),12);assert.equal(await page.locator('#close').isVisible(),false);await page.locator('#academyBack').click();
  await page.locator('#homeLogic').click();assert.equal(await page.locator('[data-academy]').count(),6);await page.locator('#academyBack').click();
- await page.evaluate(()=>editor());
+ const writeRect=await page.locator('#homeWrite').boundingBox();assert.ok(writeRect.y>=0&&writeRect.y+writeRect.height<=viewport.height,'author entry fits first screen');
+ await page.locator('#homeWrite').click();assert.ok(await page.locator('#storyForm').isVisible());
+ assert.ok(await page.evaluate(()=>document.getElementById('storyTitle').compareDocumentPosition(document.getElementById('storyBody'))&Node.DOCUMENT_POSITION_FOLLOWING));
+ assert.ok(await page.evaluate(()=>document.getElementById('storyBody').compareDocumentPosition(document.getElementById('storyTheme'))&Node.DOCUMENT_POSITION_FOLLOWING),'writing before settings');
+
  const original=await page.locator('#storyBody').inputValue(),originalLibrary=await page.evaluate(()=>localStorage.getItem(KEY));
  await page.locator('.story-guide summary').click();
  await page.locator('#ideaStage').selectOption('revise');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('Прочитай начало'));
  await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('повторяется'));
  await page.locator('#ideaStage').selectOption('middle');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('мешает'));
  assert.equal(await page.locator('#storyBody').inputValue(),original,'guidance never modifies story');assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),originalLibrary,'guidance never writes library');await page.keyboard.press('Escape');
+ const beforeDrafts=await page.evaluate(()=>JSON.stringify(data));
+ await page.evaluate(()=>{const a={author:OWN,theme:'Лес',title:'Лесной черновик',body:'Текст один'},b={author:OWN,theme:'Море',title:'Морской черновик',body:'Текст два'};data.drafts={...data.drafts,[draftKey(OWN,'Лес')]:a,[draftKey(OWN,'Море')]:b};});
+ await page.locator('#homeWrite').click();await page.locator('[data-own-draft]').filter({hasText:'Морской черновик'}).click();assert.equal(await page.locator('#storyBody').inputValue(),'Текст два');assert.equal(await page.locator('#storyTitle').inputValue(),'Морской черновик');
+ await page.keyboard.press('Escape');await page.locator('#homeWrite').click();await page.locator('#newOwnStory').click();assert.equal(await page.locator('#storyBody').inputValue(),'');assert.equal(await page.evaluate(()=>getDraft(OWN,'Лес').body),'Текст один');assert.equal(await page.evaluate(()=>getDraft(OWN,'Море').body),'Текст два');await page.keyboard.press('Escape');
+ await page.evaluate(raw=>{if(!commitLibrary(JSON.parse(raw)))throw Error('restore fixture')},beforeDrafts);
  await page.locator('#homeCreate').click();assert.ok(await page.locator('#creativeHome').isVisible());assert.equal(await page.locator('#storybookHome').isVisible(),false);
  await page.locator('#childBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());assert.equal(await page.locator('#homeLabel').textContent(),'Главная');
  await page.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));const homeRect=await page.locator('#home').boundingBox();assert.ok(homeRect.y>=0&&homeRect.y+homeRect.height<=viewport.height,'home button must stay in viewport');
