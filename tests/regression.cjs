@@ -3,9 +3,10 @@ function verifyCatalogCodec(packCatalog,utf8){
  const assert=(ok,why)=>{if(!ok)throw Error(why)};
  const samples=[[],[{id:"test",title:"Сказка",pages:["Ёжик ёжик ёжик ёжик ёжик 🦉 <script> </script> & \" \\  \n\n\t\u2028\u2029", "молоко молоко молоко молоко молоко", "𐐀𐐁𐐂𐐀𐐁𐐂"]}],[{id:"a",pages:["слово слово слово"]},{id:"b",pages:["слово слово слово"]}]];
  samples.push([{id:"unicode",pages:[Array.from({length:768},(_,i)=>String.fromCharCode(0x100+i)).join(""),"literal \\u0100 and Ā Μετά Ω ÿ Ё ѿ <script>","слово ".repeat(20)]}]);const repeatedWords=Array.from({length:900},(_,i)=>"словарь"+i+"й");samples.push([{pages:[Array.from({length:6},()=>repeatedWords.join(" ")).join(" ")]}]);
+ samples.push([{pages:[('В лесу лиса, в лесу сова. 🦉\\n<сказка> ').repeat(100)]}]);
  for(const sample of samples){const block=packCatalog(sample);assert(block===packCatalog(sample),'deterministic packing');assert(!/<\/?script/i.test(block),'script-safe generated literal');assert(JSON.stringify(new Function(block+'return getReadingBooks()')())===JSON.stringify(sample),'lossless Unicode and markup');}
- let rejected=false;try{packCatalog([{pages:["\uE000"]}])}catch(e){rejected=true}assert(rejected,'reserved marker must be rejected rather than corrupt source');
- assert(utf8("Aя🦉")===7,'UTF-8 byte accounting');return samples.length+2;
+ let rejected=false;try{packCatalog([{pages:["\uE000"]}])}catch(e){rejected=true}assert(rejected,'reserved marker must be rejected rather than corrupt source');let secondRejected=false;try{packCatalog([{pages:['\uF000']}])}catch(e){secondRejected=true}assert(secondRejected,'second-stage token must be reserved');
+ assert(utf8("Aя🦉")===7,'UTF-8 byte accounting');return samples.length+3;
 }
 function verify(html,sourceCatalog){
  const assert=(ok,why)=>{if(!ok)throw Error(why)};
