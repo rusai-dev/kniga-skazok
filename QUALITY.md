@@ -417,3 +417,7 @@ Retargeted #62 to main to run the mandatory browser checks on the combined #60�
 ### 1.5.104 release blocker — classic author shelf
 
 CI 44719128356 passed regression but failed Chromium and WebKit with snapshot.favorites.has undefined. Array.map(bookShelfCard) implicitly supplied the array index as the new snapshot parameter. Both shelf routes now use a shared readingShelfSnapshot and explicitly pass it per book. Regression exercises the real author mapping expression with three books and verifies distinct reading states and favorites; browser smoke opens a second Pushkin book, with stack traces retained. Full dependency-free regression passed. HTML 940247 → 940363 bytes; no storage or archive changes. Browser rerun required before release.
+
+### 1.5.104 CI environment fix
+
+Run 44719882395 Chromium failed before browser launch: ubuntu-latest resolved to Ubuntu 26.04 and apt could not locate required fonts. Pin both jobs to Ubuntu 24.04 and refresh apt indexes before Playwright installs browser dependencies. Retain all regression and browser checks without reducing coverage. Browser rerun is mandatory; this change does not alter application resources or stored data.
