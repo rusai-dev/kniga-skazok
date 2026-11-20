@@ -201,6 +201,7 @@ function verify(html){
  for(const d of dirs){x+=d==="вправо"?1:d==="влево"?-1:0;y+=d==="вниз"?1:d==="вверх"?-1:0;if(x<0||y<0||x>=side||y>=side||seen.has(x+","+y))throw Error("route bounds or repeat");seen.add(x+","+y);labels.push("АБВГД"[x]+(y+1))}
  if(q.answer!==labels.at(-1)||q.opts.length!==4||new Set(q.opts).size!==4||!q.opts.includes(q.answer)||!q.why.includes(labels.join(" → ")))throw Error("coordinate answer");
  if(q.opts.some(v=>!v.match(/^[АБВГД][1-5]$/)||"АБВГД".indexOf(v[0])>=side||+v[1]>side))throw Error("choice outside grid");
+ if(n%12===7&&(spatialQuestion(n,l)||academyLogicQuestion("order",n,l).q!==q.q))throw Error("coordinate task not routed to study");
  routes.add(q.q);count++;
  }if(colors.size!==6||routes.size<12)throw Error("coordinate diversity")}
  return count;
