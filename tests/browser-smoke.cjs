@@ -508,6 +508,9 @@ const server=http.createServer((req,res)=>{
  const pro=page.locator('#studioProPane'),proButton=page.locator('#studioPro');
  await proButton.click();assert.ok(await pro.isVisible());assert.equal(await page.locator('#proEffect option').count(),29);
  await page.locator('#proPalette').selectOption('all');assert.equal(await page.locator('#proSwatches button').count(),72);
+ // Width, opacity and RGB mixing must not replace palette controls or lose keyboard focus.
+ const paletteResult=await page.evaluate(()=>{const host=document.getElementById('proSwatches'),before=Array.from(host.children),shade=document.getElementById('proShades').children[3],preview=document.getElementById('proPreview');const change=(id,v)=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}))};before[5].focus();before[5].click();const focused=document.activeElement===before[5];change('proWidth','32');change('proOpacity','55');const pixels=preview.toDataURL();change('proRatio','23');const stablePreview=pixels===preview.toDataURL();const stable=before.every((node,i)=>host.children[i]===node)&&document.getElementById('proShades').children[3]===shade;return {focused,stable,stablePreview,selected:before[5].getAttribute('aria-pressed'),shadeMatches:shade.dataset.color===document.getElementById('proColor').value}});assert.deepEqual(paletteResult,{focused:true,stable:true,stablePreview:true,selected:'true',shadeMatches:true});
+
  await page.locator('#proPalette').selectOption('warm');assert.equal(await page.locator('#proSwatches button').count(),8);
  const setValue=async(id,value)=>page.locator('#'+id).evaluate((e,v)=>{e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}))},value);
  await setValue('proColor','#ff0000');await setValue('proSecond','#0000ff');await setValue('proRatio','50');
