@@ -18,6 +18,17 @@ const entry=fs.readFileSync(path.join(root,'index.html'),'utf8');
 assert.ok(entry.includes("const APP_RELEASE='"+release+"'"),'runtime release must match manifest');
 for(const asset of initialFiles.slice(1))assert.ok(entry.includes(asset+'?v='+release+'"'),'versioned core URL mismatched: '+asset);
 
+async function verifySpriteReuse(source){
+ const slice=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)+1));
+ const sprite='https://test/assets/ui/sprite-v1.webp',core='https://test/index.html',bad=new Response('bad',{headers:{'content-type':'text/plain'}}),valid=new Response('image',{headers:{'content-type':'image/webp'}}),freshResponse=new Response('fresh');
+ const reads=[],fetches=[];
+ const api=new Function('CACHE','UI_SPRITES','find','isImage','fresh',slice('function olderShellNames(','self.addEventListener(\'install\'')+slice('function shellRevision(','function obsoleteShells(')+'return {olderShellNames,installCore}')('skazki-shell-1.5.123',[sprite],async(name,url)=>{reads.push([name,url]);return name==='skazki-shell-1.5.122'?bad:name==='skazki-shell-1.5.121'?valid:undefined},r=>r.ok&&(r.headers.get('content-type')||'').toLowerCase().startsWith('image/'),async url=>{fetches.push(url);return freshResponse});
+ const older=api.olderShellNames(['unrelated','skazki-shell-1.5.124','skazki-shell-1.5.123','skazki-shell-1.5.121','skazki-shell-1.5.122']);
+ assert.deepEqual(older,['skazki-shell-1.5.122','skazki-shell-1.5.121']);
+ assert.equal(await api.installCore(sprite,older),valid);assert.equal(fetches.length,0);assert.equal(reads.length,2);
+ assert.equal(await api.installCore(core,older),freshResponse);assert.deepEqual(fetches,[core]);assert.equal(reads.length,2);
+ assert.equal(await api.installCore(sprite,[]),freshResponse);assert.deepEqual(fetches,[core,sprite]);
+}
 async function verifyWriterRetry(source){
  const a=[{id:'a',title:'A'}],b=[{id:'b',title:'B'}],shaA='a'.repeat(40),shaB='b'.repeat(40),shaC='c'.repeat(40);
  let local=a,remote={books:a,revision:1,sha:shaA},fail=false,reads=0,writes=0,status='';
@@ -38,6 +49,7 @@ const server=http.createServer((req,res)=>{
  res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
 });
 (async()=>{
+ await verifySpriteReuse(fs.readFileSync(path.join(root,'sw.js'),'utf8'));
  assert.ok(await verifyWriterRetry(entry.slice(entry.indexOf('function ghDecision('),entry.indexOf('function ghCachedRevision('))+entry.slice(entry.indexOf('async function ghWriterTick('),entry.indexOf('function ghWriterStart('))));
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const url='http://127.0.0.1:'+server.address().port+'/?view=personal';

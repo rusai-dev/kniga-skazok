@@ -1,6 +1,6 @@
 /* Versioned offline shell; lazy artwork cache. Never modify user storage. */
 'use strict';
-const REV='1.5.122',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
+const REV='1.5.123',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
 const ROOT=new URL('./',self.registration.scope).href,INDEX=new URL('index.html',ROOT).href;
 const LEGACY_CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css'].map(name=>new URL(name,ROOT).href);
 const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1536.webp','assets/ui/writer-fox-144-v1.webp'].map(name=>new URL(name,ROOT).href);
@@ -13,8 +13,19 @@ function isImage(r){return r.ok&&/^image\//i.test(r.headers.get('content-type')|
 async function find(name,key){try{return await (await caches.open(name)).match(key)}catch(e){return undefined}}
 async function save(name,key,r){try{await (await caches.open(name)).put(key,r.clone())}catch(e){/* Quota failure must never prevent opening a valid response. */}}
 async function sameRelease(r){return isHTML(r)&&(await r.clone().text()).includes('<footer>Книга сказок · версия '+REV+'</footer>')}
+// Versioned UI image URLs are immutable; reuse valid copies from older shells.
+function olderShellNames(names,current=CACHE){
+ const version=shellRevision(current);if(!version)return [];
+ return names.filter(name=>{const v=shellRevision(name);return v&&compareRevision(v,version)<0})
+ .sort((a,b)=>compareRevision(shellRevision(b),shellRevision(a)));
+}
+async function installCore(url,older){
+ if(UI_SPRITES.includes(url))for(const name of older){const r=await find(name,url);if(r&&isImage(r))return r}
+ return fresh(url)
+}
 self.addEventListener('install',event=>event.waitUntil((async()=>{
- const responses=await Promise.all([INDEX,...CORE].map(fresh));
+ let older=[];try{older=olderShellNames(await caches.keys())}catch(e){}
+ const responses=await Promise.all([INDEX,...CORE].map(url=>installCore(url,older)));
  if(!await sameRelease(responses[0])||responses.slice(1).some(r=>!r.ok)||responses.slice(-UI_SPRITES.length).some(r=>!isImage(r)))throw Error('Incomplete release');
  const cache=await caches.open(CACHE);
  await Promise.all([INDEX,...CORE].map((url,i)=>cache.put(url,responses[i])));
@@ -25,9 +36,7 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
 function shellRevision(name){const match=/^skazki-shell-(\d+)\.(\d+)\.(\d+)$/.exec(name);return match?match.slice(1).map(Number):null}
 function compareRevision(a,b){for(let i=0;i<3;i++){if(a[i]!==b[i])return a[i]-b[i]}return 0}
 function obsoleteShells(names,current=CACHE){
- const version=shellRevision(current);if(!version)return [];
- return names.filter(name=>{const v=shellRevision(name);return v&&compareRevision(v,version)<0})
- .sort((a,b)=>compareRevision(shellRevision(b),shellRevision(a))).slice(2);
+ return olderShellNames(names,current).slice(2);
 }
 async function pruneShells(){
  try{await Promise.all((obsoleteShells(await caches.keys())).map(name=>caches.delete(name).catch(()=>false)))}catch(e){/* Storage cleanup is best effort. */}
