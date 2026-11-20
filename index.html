@@ -3494,7 +3494,7 @@ function flink(secret){const u=new URL('./',location.href);u.hash='family='+secr
 function finvite(){
  const secret=fget(FAMILY_SECRET);if(!fvalid(secret))return;
  const url=flink(secret);
- openModal('Ссылка для семьи','<p>Отправьте эту ссылку близким один раз. Они смогут читать все опубликованные сказки.</p><label class="field">Постоянная ссылка<input id="inviteValue" type="text" readonly spellcheck="false" value="'+esc(url)+'"></label><div class="actions"><button type="button" class="primary" id="inviteShare">Отправить ссылку</button><button type="button" id="inviteCopy">Скопировать</button></div>','family-invite');
+ openModal('Ссылка для семьи','<p>Отправьте эту ссылку близким один раз. Для чтения не нужен аккаунт GitHub. Книги доступны после настройки семейного архива; если архив не подключён, отправка ссылки сама по себе не доставит сказки. Передавайте ссылку только близким.</p><label class="field">Постоянная ссылка<input id="inviteValue" type="text" readonly spellcheck="false" value="'+esc(url)+'"></label><div class="actions"><button type="button" class="primary" id="inviteShare">Отправить ссылку</button><button type="button" id="inviteCopy">Скопировать</button></div>','family-invite');
  function selectLink(){const input=$('inviteValue');input.focus();input.select();input.setSelectionRange(0,input.value.length)}
  $('inviteValue').onclick=selectLink;
  $('inviteCopy').onclick=async()=>{try{await navigator.clipboard.writeText(url);toast('Ссылка скопирована.')}catch(e){selectLink();toast('Скопируйте выделенную ссылку.')}};
@@ -3758,7 +3758,7 @@ function ghDecision(local,remote,sha,prior){
 }
 function ghPublicCache(s,remote){
  if(!remote||remote.revision<(s.ghRevision||0))return false;
- if(remote.revision===s.ghRevision){readerRecovery('ready');fstatus('Сказок: '+s.books.length+' · проверено '+new Date().toLocaleTimeString('ru-RU'));return true;}
+ if(remote.revision===s.ghRevision){const cached=fput(s.cache,JSON.stringify(s.books));if(cached){fput(FAMILY_READER,s.secret);fput(FAMILY_CONFIRMED,s.secret)}readerRecovery('ready');fstatus('Сказок: '+s.books.length+(cached?' · проверено и сохранено':' · получено, но не сохранено на устройстве: освободите место или сделайте резервную копию')+' · '+new Date().toLocaleTimeString('ru-RU'));return true;}
  s.ghRevision=remote.revision;s.books=remote.books;s.received=true;fdraw(s);
  const cached=fput(s.cache,JSON.stringify(s.books));
  if(cached){fput(FAMILY_READER,s.secret);fput(FAMILY_CONFIRMED,s.secret)}
