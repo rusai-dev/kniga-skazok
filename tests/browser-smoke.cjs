@@ -83,6 +83,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#ideaStage').selectOption('middle');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('мешает'));
  for(const [stage,word] of [['scene','место действия'],['dialogue','Два героя'],['words','Прошептал']]){await page.locator('#ideaStage').selectOption(stage);await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes(word));const first=await page.locator('#ideaText').textContent();await page.locator('#ideaStory').click();assert.notEqual(await page.locator('#ideaText').textContent(),first)}
  assert.equal(await page.locator('#writerWords').evaluate(e=>e.open),false);await page.locator('#writerWords summary').click();await page.locator('#writerWordSelect').selectOption('сказал');
+ assert.ok(await page.locator('#writerWordSelect').evaluate(e=>e.getBoundingClientRect().height>=44));
  assert.equal(await page.locator('.writer-word-card').count(),3);assert.ok((await page.locator('#writerWordCards').textContent()).includes('Прошептал'));
  await page.locator('#writerWordSelect').selectOption('увидел');assert.equal(await page.locator('.writer-word-card').count(),2);assert.ok((await page.locator('#writerWordCards').textContent()).includes('Разглядел'));
  await page.locator('#writerWordSelect').selectOption('');assert.equal(await page.locator('.writer-word-card').count(),0);
