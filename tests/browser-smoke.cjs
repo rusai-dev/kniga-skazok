@@ -39,8 +39,8 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.98')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
-   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.98');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.99')).keys();return keys.length}),7,'complete versioned core including both artwork sprites');
+   const uiSprites=await page.evaluate(async()=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open('skazki-shell-1.5.99');return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))});assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -178,6 +178,13 @@ const server=http.createServer((req,res)=>{
  for(let i=0;i<4;i++)for(let j=0;j<payment[i];j++)await page.locator('[data-model-i="'+i+'"][data-model-d="1"]').click();
  for(let i=0;i<4;i++)assert.equal(await page.locator('#modelArt [data-coin="'+[1,2,5,10][i]+'"]').count(),payment[i]);
  await page.locator('#modelCheck').click();assert.ok(await page.locator('#studyNext').isVisible());assert.ok((await page.locator('#studyFeedback').textContent()).startsWith('Верно!'));
+ await page.evaluate(()=>{const v=studyState('memory-attention');v.n=1;v.level=3;studySave('memory-attention',v);memoryOpen('attention')});
+ assert.ok((await page.locator('#memPrompt').textContent()).includes('ИЛИ'));
+ const selected=await page.evaluate(()=>memoryCard('attention',1,3).answer);
+ for(const i of selected)await page.locator('[data-mem="'+i+'"]').click();
+ await page.locator('#memNext').click();assert.ok((await page.locator('#memFeedback').textContent()).includes('Пропущено: 0'));
+ assert.equal(await page.locator('#memBoard [data-result="correct"]').count(),selected.length);
+ await page.locator('#memBack').click();
  await page.evaluate(()=>{const v=studyState('geometry');v.n=1;v.level=3;studySave('geometry',v);studyOpen('math','geometry')});
  assert.equal(await page.locator('#studyPicture [data-geometry-rect]').count(),1);
  assert.equal(await page.locator('#studyPicture svg text').filter({hasText:/^\?$/}).count(),2);
