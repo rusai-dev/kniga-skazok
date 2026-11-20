@@ -117,6 +117,29 @@ function verify(html){
  if(m.kind==="line"&&m.max[0]>20&&mathModelMove(m,[m.max[0]-1],0,10)[0]!==m.max[0]-1)throw Error("invalid ten-step");count++;
  }return {count,alternatives};
  };
+
+ const checkLearningArt=()=>{
+  const clockCheck=(svg,h,min)=>{
+   const hands=[...svg.matchAll(/<path d="M100 100L([^ ]+) ([^"]+)" stroke="[^"]+" stroke-width="(7|4)"/g)];
+   if(hands.length!==2)throw Error("clock hands missing");
+   for(const [,x,y,w] of hands){const angle=w==="7"?(h+min/60)*Math.PI/6:min*Math.PI/30,r=w==="7"?43:58;if(Math.abs(+x-100-r*Math.sin(angle))>1e-7||Math.abs(+y-100+r*Math.cos(angle))>1e-7)throw Error("clock hand position "+h+":"+min)}
+  };
+  let clocks=0,data=0;
+  for(let h=1;h<=12;h++)for(let min=0;min<60;min+=5){clockCheck(clockPicture(h,false,min),h,min);clocks++}
+  for(let l=0;l<4;l++){const contexts=new Set();for(let n=0;n<200;n++){
+   const m=mathModelQuestion("clock",n,l)?.model;if(m){clockCheck(mathModelArt(m,m.solution),m.solution[0],m.solution[1]*m.unit);clocks++}
+   if(l>=2&&n%2===0){const q=numberQuestion("clock",n,l),[h,min]=q.answer.split(":").map(Number);clockCheck(q.picture,h,min);clocks++}
+   const q=numberQuestion("data",n,l),names=["Аня","Лена","Вера"],gen=["Ани","Лены","Веры"],ctx=["книг","шишек","открыток","закладок"].find(x=>q.q.includes(x));
+   if(!ctx)throw Error("data context");contexts.add(ctx);
+   const values=n%2?[...q.picture.matchAll(/font-weight="700">(\d+)<\/text>/g)].map(x=>+x[1]):[...q.picture.matchAll(/<td>(\d+)<\/td>/g)].map(x=>+x[1]);
+   if(values.length!==3)throw Error("data values");
+   const expected=l===0?values[names.findIndex(x=>q.q.includes(x))]:l===1?names[values.indexOf(Math.max(...values))]:l===2?Math.abs(values[gen.findIndex(x=>q.q.includes(x))]-values[gen.findLastIndex(x=>q.q.includes(x))]):values.reduce((a,b)=>a+b,0);
+   if(String(expected)!==q.answer)throw Error("data answer "+q.q);data++;
+  }if(contexts.size!==4)throw Error("data context diversity")}
+  return {clocks,data};
+ };
+ const artChecks=new Function('fget','fput','childArt','esc',source+'\nreturn ('+checkLearningArt.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
+ assert(artChecks.clocks===504&&artChecks.data===800,'clock geometry and data contexts');
  const models=new Function('fget','fput','childArt','esc',source+'\nreturn ('+modelVerifyCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);
  const modelStore=new Map(),modelNodes=new Map();
  function modelNode(id){if(!modelNodes.has(id)){const x={id,hidden:false,disabled:false,textContent:'',value:'',dataset:{},children:[],querySelectorAll(){return this.children},setAttribute(){}};Object.defineProperty(x,'innerHTML',{set(v){this.markup=v;this.children=[...v.matchAll(/data-model-i="(\d+)" data-model-d="(-?\d+)"/g)].map(m=>({dataset:{modelI:m[1],modelD:m[2]}}))}});modelNodes.set(id,x)}return modelNodes.get(id)}
