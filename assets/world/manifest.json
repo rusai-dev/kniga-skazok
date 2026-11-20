@@ -110,6 +110,34 @@
       "source": "User-supplied MASTER_PROMPT_ETALON_2026.pdf embedded AI reference, page 32",
       "status": "integrated; CI pending",
       "alt": ""
+    },
+    {
+      "width": 320,
+      "bytes": 25114,
+      "sha256": "c8dc5dd5cd0f6e2c6f67f077aa8ae9902c6688330df38f1abc9b2701f07f35b4",
+      "git_sha": "2d64ea59d020a556060d94967974d5e5f76a7bf3",
+      "id": "NIGHT-03-ROOST",
+      "height": 320,
+      "path": "assets/world/night-roost-scene-320-v1.webp",
+      "source_sha256": "0a2aabca3763ab79205a8416d622321ae89e117e775aa0b33966863358f8cb51",
+      "source": "Original generated 2026-11-20; 1254x1254 PNG master retained separately in personal Library; gen 8ef9f552-a22d-48db-8bcb-af6e8e2d94ed",
+      "role": "Atmospheric chapter 3 illustration, not species plate; decorative adjacent descriptive caption",
+      "alt": "",
+      "status": "integrated; CI pending"
+    },
+    {
+      "width": 504,
+      "bytes": 53574,
+      "sha256": "ad6e6836a443971a52d51692333724a6c35648e81d791a1ff179b1ee26ae46e6",
+      "git_sha": "ba967dfa97029059373f786b4c2b72c25f45d8a9",
+      "id": "NIGHT-03-ROOST",
+      "height": 504,
+      "path": "assets/world/night-roost-scene-504-v1.webp",
+      "source_sha256": "0a2aabca3763ab79205a8416d622321ae89e117e775aa0b33966863358f8cb51",
+      "source": "Original generated 2026-11-20; 1254x1254 PNG master retained separately in personal Library; gen 8ef9f552-a22d-48db-8bcb-af6e8e2d94ed",
+      "role": "Atmospheric chapter 3 illustration, not species plate; decorative adjacent descriptive caption",
+      "alt": "",
+      "status": "integrated; CI pending"
     }
   ]
 }
