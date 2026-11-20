@@ -565,3 +565,8 @@ Dependent on 1.5.126 (d827046). Keep all 36 catalog records available offline on
 ### 1.5.127 acceptance follow-up
 
 Compared the editable source directly against accepted 1.5.126 main: all 36 records match exactly. Source size measured across all five actual files: 992368 → 976929 B. Strengthen automated codec cases (empty catalog, Cyrillic, supplementary Unicode, markup/script delimiters, whitespace, deterministic output, reserved-token rejection). Browser CI must verify full decoded catalog against editable source while offline, lazy initialization and back-to-shelf navigation. Full isolated regression and 5 codec cases passed; no runtime code or image changes in this follow-up. No CI run was available on f670c72 at review; new head requires all mandatory checks before merge.
+
+
+## Candidate 1.5.128 — night chapter echo experiment
+
+Chapter 2: optional 1–5 m model, prediction before explanation, outbound/return path 2d, reset, buttons/slider and direct pointer dragging with cancellation. Previous 1.5.127 main ba103ab. CI 44780297375 regression passed; both browsers stopped because a pre-existing generic SVG assertion matched both chapter art and new model. Correct its scope and add direct pointer drag coverage. Initial source 976929 → 982961 B, reserve 17039 B. Full isolated regression passed. No artwork replacement, storage changes, extra resource or real family archive access. Browser CI and physical device performance pending. No learning-effect claim.
