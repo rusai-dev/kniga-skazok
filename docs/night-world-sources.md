@@ -13,7 +13,7 @@ British species range data, not a guarantee for every individual. 40 mm lies in 
 |---|---|---|---|
 | 1 (0) | Twilight woodland, owl on branch, flying bat | bird wings vs mammal membrane | existing SVG; new painting draft |
 | 2 (1) | Bat near tree at twilight | no visible real sound; exact echo model retained | existing SVG; new painting draft |
-| 3 (2) | Quiet sheltered roost | do not depict handling or disturbance | existing SVG; new painting draft |
+| 3 (2) | Quiet sheltered roost | do not depict handling or disturbance | generated original NIGHT-03-ROOST; integrated candidate; SVG fallback |
 | 4 (3) | Night-blooming flower visited by nectar bat | generic species, not European insectivorous bats | existing SVG; new painting draft |
 | 5 (4) | Owl gliding above meadow | silent-flight generalization qualified | existing SVG; new painting draft |
 | 6 (5) | Owl observing its surroundings | no impossible neck rotation | existing SVG; new painting draft |
