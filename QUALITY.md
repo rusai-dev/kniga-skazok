@@ -339,3 +339,8 @@ Pre-release audit caught a regression: quarter-hour and interactive clock render
 ## Candidate 1.5.90 — science knowledge transfer
 
 Added one alternate applied question with an explanation to each of the 20 existing science topics. First visit remains unchanged; the concluding question on repeat visits rotates between the original and the new context (done % 3), while the existing first recall question, progress records, illustrations and session length remain unchanged. Regression verifies all 20 alternate questions and their rotation; full dependency-free suite passed before PR. Educational impact and physical iPad behavior remain unverified. No new resources or storage schema changes.
+
+
+## Candidate 1.5.91 — voluntary creative writing guidance
+
+Expand the existing writer helper to seven topics (28 prompts), including sensory scenes, dialogue, and four word-meaning contrasts. Quick ideas cycle through eight prompts for an empty draft and twenty for a nonempty draft; no extra required inputs, no automatic edits, no new data keys or network calls. Full dependency-free regression passed. Browser acceptance extends the existing proof that opening and cycling optional guidance leaves draft text and stored library unchanged. Physical iPad and educational benefit remain unverified.
