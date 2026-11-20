@@ -680,3 +680,6 @@ Lossless catalog optimization and safe illustration placement; source 995955 B v
 
 ## Package 01 candidate 1.5.153
 Single-draft recoverable JSON for failed saves, private additive restore via existing backup flow; text, inserted artwork, cover, plan, editions. No family keys or other books in rescue export; no publication or wholesale replacement on import. TXT unchanged. New isolated and browser tests; source 998457 B, limit unchanged; full CI pending. Uninserted canvas not included. See SECTION_ACCEPTANCE.md.
+
+
+1.5.153 same-PR follow-up: compact emergency export controls no longer excluded by viewport CSS, backup async origin guard, tested scenario added for failed additive restore/retry. 998842 B initial source. See per-action inventory in SECTION_ACCEPTANCE.md. Exact-head browser CI pending.
