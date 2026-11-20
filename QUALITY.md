@@ -399,3 +399,8 @@ Optional, initially collapsed word workshop in existing author extras. Fourteen 
 ## Candidate 1.5.102 — bounded versioned shell storage
 
 Previously every installed release retained its own full versioned cache. Activation now keeps the current and two newest older versioned shells, preserving legacy caches, future installing versions, unrelated caches and lazily cached book artwork. Requests for older versioned core files consult the retained prior cache. Cleanup cannot block successful activation; no localStorage or IndexedDB access. Service-worker update requests are coalesced with a 60-second minimum interval across focus, visibility and online events. Full dependency-free regression and numeric revision pruning self-check passed; Chromium seeded cache cleanup and previous-version offline fetch assertions added. HTML 938647 → 938810 bytes. Actual storage usage and cold-start timing not measured on iPad; all materials retained.
+
+
+## Candidate 1.5.103 — deferred reading banks and shelf rendering
+
+Avoid creating three static reading question/glossary objects at initial script execution (24026 bytes of source data); create once on first use, retaining inline offline/file support. Cache validated immutable book catalog and use one history, progress and favorites snapshot per shelf update instead of repeated storage parsing per book. No book contents, art, user data, or network dependencies changed. Full regression passed including deferred/memoized bank assertions, 19 books, 38 quiz questions and 32 terms; browser assertion added for deferred banks at home. HTML 938810 → 939402 bytes. This optimizes allocation and repeated parsing, not network transfer. Device timings/memory remain unmeasured.
