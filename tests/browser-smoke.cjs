@@ -65,12 +65,12 @@ const server=http.createServer((req,res)=>{
  await page.locator('#homeMath').click();assert.equal(await page.locator('[data-academy]').count(),12);assert.equal(await page.locator('#close').isVisible(),false);await page.locator('#academyBack').click();
  await page.locator('#homeLogic').click();assert.equal(await page.locator('[data-academy]').count(),6);await page.locator('#academyBack').click();
  await page.evaluate(()=>editor());
- const original=await page.locator('#storyBody').inputValue();
+ const original=await page.locator('#storyBody').inputValue(),originalLibrary=await page.evaluate(()=>localStorage.getItem(KEY));
  await page.locator('.story-guide summary').click();
  await page.locator('#ideaStage').selectOption('revise');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('Прочитай начало'));
  await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('повторяется'));
  await page.locator('#ideaStage').selectOption('middle');await page.locator('#ideaStory').click();assert.ok((await page.locator('#ideaText').textContent()).includes('мешает'));
- assert.equal(await page.locator('#storyBody').inputValue(),original,'guidance never modifies story');await page.keyboard.press('Escape');
+ assert.equal(await page.locator('#storyBody').inputValue(),original,'guidance never modifies story');assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),originalLibrary,'guidance never writes library');await page.keyboard.press('Escape');
  await page.locator('#homeCreate').click();assert.ok(await page.locator('#creativeHome').isVisible());assert.equal(await page.locator('#storybookHome').isVisible(),false);
  await page.locator('#childBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());assert.equal(await page.locator('#homeLabel').textContent(),'Главная');
  await page.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));const homeRect=await page.locator('#home').boundingBox();assert.ok(homeRect.y>=0&&homeRect.y+homeRect.height<=viewport.height,'home button must stay in viewport');
