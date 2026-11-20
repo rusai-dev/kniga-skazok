@@ -394,3 +394,8 @@ Eight original mini-stories with causal and chronological dependencies. At level
 ## Candidate 1.5.101 — expressive vocabulary for authors
 
 Optional, initially collapsed word workshop in existing author extras. Fourteen familiar words with 35 alternatives and contextual examples; explains shades of meaning and warns that substitutions depend on context. No automatic replacements, data writes, external requests or new storage keys. Full dependency-free regression passed, browser cases check switching words, clearing selection and unchanged draft/library. HTML 931883 → 938647 bytes. Browser, real device and educational acceptance pending.
+
+
+## Candidate 1.5.102 — bounded versioned shell storage
+
+Previously every installed release retained its own full versioned cache. Activation now keeps the current and two newest older versioned shells, preserving legacy caches, future installing versions, unrelated caches and lazily cached book artwork. Requests for older versioned core files consult the retained prior cache. Cleanup cannot block successful activation; no localStorage or IndexedDB access. Service-worker update requests are coalesced with a 60-second minimum interval across focus, visibility and online events. Full dependency-free regression and numeric revision pruning self-check passed; Chromium seeded cache cleanup and previous-version offline fetch assertions added. HTML 938647 → 938810 bytes. Actual storage usage and cold-start timing not measured on iPad; all materials retained.
