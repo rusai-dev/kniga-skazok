@@ -2837,15 +2837,16 @@ function editor(bid,fromGallery=null,ownTheme=null){
   const list=$('writerChapterList'),parts=storyChapters(b.body,rich.markup),hasHead=rich.markup&&/^## [^\n]+/m.test(b.body);
   if(!hasHead){list.textContent='Пока без глав. Это тоже хорошо.';return}
   list.innerHTML=parts.map((part,i)=>'<button type="button" data-chapter-jump="'+i+'">'+esc(part.title)+'</button>').join('');
-  list.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const part=storyChapters(body.value,rich.markup)[Number(btn.dataset.chapterJump)];if(!part)return;body.focus();body.setSelectionRange(part.start,Math.min(part.start+1,body.value.length));body.scrollIntoView({block:'center'});const before=body.value.slice(0,part.start);body.scrollTop=Math.max(0,(before.split('\n').length-1)*parseFloat(getComputedStyle(body).lineHeight||'28')-30)});
+  list.querySelectorAll('button').forEach(btn=>btn.onclick=()=>{const part=storyChapters(body.value,rich.markup)[Number(btn.dataset.chapterJump)];if(!part)return;body.focus();body.setSelectionRange(part.start,part.start);body.scrollIntoView({block:'center'});const before=body.value.slice(0,part.start);body.scrollTop=Math.max(0,(before.split('\n').length-1)*parseFloat(getComputedStyle(body).lineHeight||'28')-30)});
  }
  function renderBookPreview(b){
   const parts=storyChapters(b.body,rich.markup),hasHead=rich.markup&&/^## [^\n]+/m.test(b.body);
   if(!hasHead||previewChapter>=parts.length)previewChapter=-1;
   const selected=previewChapter<0?b:{...b,body:b.body.slice(parts[previewChapter].start,parts[previewChapter].end)};
   $('bookPreview').innerHTML=coverArt(b)+'<h3>'+esc(b.title||'Моя сказка')+'</h3>'+(hasHead?'<label class="field">Перечитать главу<select id="bookPreviewChapter">'+chapterOptions(parts)+'</select></label>':'')+'<div class="reader-text'+storyStyle(b)+'">'+richBody(selected)+'</div>';
-  if($('bookPreviewChapter')){$('bookPreviewChapter').value=String(previewChapter);$('bookPreviewChapter').onchange=()=>{previewChapter=Number($('bookPreviewChapter').value);renderBookPreview(snapshot())}}
+  if($('bookPreviewChapter')){$('bookPreviewChapter').value=String(previewChapter);$('bookPreviewChapter').onchange=()=>{previewChapter=Number($('bookPreviewChapter').value);renderBookPreview(snapshot());$('bookPreviewChapter')?.focus()}}
  }
+ $('newChapterTitle').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();$('appendChapter').click()}};
  $('appendChapter').onclick=()=>{
   const next=storyChapterAppend(body.value,$('newChapterTitle').value,rich.markup);
   if(!next){$('chapterStatus').textContent='Введи название главы. Если в тексте уже есть особые знаки оформления, сначала проверь текст.';return}
