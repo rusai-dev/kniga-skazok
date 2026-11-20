@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.67')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.69')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -94,6 +94,13 @@ const server=http.createServer((req,res)=>{
  const artInfo=await page.locator('[data-academy] .fairy-art').first().evaluate(el=>{const style=getComputedStyle(el);return {image:style.backgroundImage.startsWith('url("data:image/webp;base64,'),width:el.getBoundingClientRect().width}});
  assert.ok(artInfo.image&&artInfo.width>60,'illustration sprite did not render');
 
+ await page.evaluate(()=>{const v=studyState('story');v.n=0;v.level=2;studySave('story',v);studyOpen('math','story')});
+ const staged=await page.evaluate(()=>numberQuestion('story',0,2));
+ assert.ok((await page.locator('#studyNumberLabel').textContent()).includes('Шаг 1'));
+ await page.locator('#studyNumber').fill(staged.steps.answer);await page.locator('#studyCheck').click();
+ assert.ok((await page.locator('#studyNumberLabel').textContent()).includes('Шаг 2'));assert.equal(await page.locator('#studyNext').isVisible(),false);
+ await page.locator('#studyNumber').fill(staged.answer);await page.locator('#studyCheck').click();assert.ok(await page.locator('#studyNext').isVisible());assert.equal(await page.evaluate(()=>studyState('story').independent),1);
+ await page.locator('#studyBack').click();
  await page.locator('[data-academy="add"]').click();
  await page.locator('#studyQuestion').waitFor({state:'visible'});
  assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('fairy-menu-focus')),false);
@@ -195,7 +202,8 @@ const server=http.createServer((req,res)=>{
  await page.keyboard.press('Escape');
  await page.evaluate(()=>artRoom());
  await page.locator('#drawingCanvas').waitFor({state:'visible'});
- assert.equal(await page.locator('#lessonSubject option').count(),6);
+ assert.equal(await page.locator('#lessonSubject option').count(),9);
+ assert.equal(await page.locator('#premiumColoring img').getAttribute('src'),null,'premium art must not be requested when drawing opens');
  // P0/P1: all three real workshop modes, final lesson step and history.
  await page.locator('[data-art-mode="color"]').click();
  await page.locator('[data-art-mode="color"]').click();
@@ -251,10 +259,10 @@ const server=http.createServer((req,res)=>{
  const textures=await page.evaluate(()=>{const outputs=[];for(const effect of ['solid','soft','marker','crayon','water']){const c=document.createElement('canvas');c.width=100;c.height=50;const cx=c.getContext('2d');studioStroke(cx,{x:15,y:25},{x:85,y:25},12,effect,'#bd3948');outputs.push(c.toDataURL())}return new Set(outputs).size});
  assert.equal(textures,5,'distinct brush strokes');
 
- await page.locator('[data-art-mode="lesson"]').click();
+ await page.locator('[data-art-mode="lesson"]').click();assert.equal(await page.locator('#storyColoringGallery canvas').count(),0,'hidden coloring thumbnails released');
  assert.ok(await page.locator('#studioLessonPane').isVisible());
  await page.waitForFunction(()=>{const a=document.getElementById('studioSheet').getBoundingClientRect(),b=document.getElementById('studioExtras').getBoundingClientRect(),c=document.getElementById('drawingCanvas').getBoundingClientRect();return a.width>200&&a.height>130&&c.width>200&&c.height>130&&(a.right<=b.left+1||b.bottom<=a.top+1)});
- for(const subject of ['rabbit','cat','flower','house','fox','butterfly']){
+ for(const subject of ['rabbit','cat','flower','house','fox','butterfly','owl','boat','landscape']){
   await page.locator('#lessonSubject').selectOption(subject);
   for(let step=0;step<6;step++){assert.equal(await page.locator('#lessonPicture [data-lesson-stage]').count(),step+1);assert.ok((await page.locator('#lessonInstruction').textContent()).includes('Шаг '+(step+1)+' из 6'));if(step<5)await page.locator('#lessonNext').click();}
   assert.equal(await page.locator('#lessonNext').isEnabled(),false);
@@ -274,7 +282,10 @@ const server=http.createServer((req,res)=>{
  await page.mouse.move(sheet.x+sheet.width/3,sheet.y+sheet.height/3);await page.mouse.down();await page.mouse.move(sheet.x+sheet.width/2,sheet.y+sheet.height/2,{steps:5});await page.mouse.up();
  assert.ok(await page.locator('#drawingSave').isEnabled());
  const draft=await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1'));assert.ok(draft?.startsWith('data:image/jpeg;base64,'));
- await page.keyboard.press('Escape');await page.reload();await page.evaluate(()=>artRoom());
+ await page.evaluate(()=>{window.__encodeCalls=0;const original=HTMLCanvasElement.prototype.toDataURL;HTMLCanvasElement.prototype.toDataURL=function(...args){window.__encodeCalls++;return original.apply(this,args)}});
+ await page.locator('#drawingCancel').click();assert.equal(await page.evaluate(()=>window.__encodeCalls),0,'closing an already saved drawing must not encode again');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1')),draft);
+ await page.reload();await page.evaluate(()=>artRoom());
  await page.waitForFunction(()=>document.getElementById('drawingStatus')?.textContent.includes('Продолжай свой сохранённый рисунок'));
  assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1')),draft);
  assert.deepEqual(await inkAt(),ink,'original contour restored after reload');
