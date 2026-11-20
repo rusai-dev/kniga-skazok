@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "ART-02",
+      "role": "decorative world category thumbnail, not species identification",
+      "path": "assets/world/night-owl-thumb-128-v1.webp",
+      "width": 128,
+      "height": 128,
+      "bytes": 4602,
+      "sha256": "c4235ff51856f8ba08d62544c25246d24eafaaee29bbb4d97ffa0621165f2b04",
+      "source_sha256": "d66663c27cb63a3515d33b1ea9a41be754c212a57a519722d017267f5cccd244",
+      "source": "User-supplied MASTER_PROMPT_ETALON_2026.pdf embedded AI-generated reference, page 31",
+      "status": "integrated; CI pending",
+      "alt": ""
+    },
+    {
+      "id": "ART-03",
+      "role": "decorative world category thumbnail, not historical reconstruction",
+      "path": "assets/world/egypt-nile-thumb-128-v1.webp",
+      "width": 128,
+      "height": 128,
+      "bytes": 4726,
+      "sha256": "c69e0fc585fb747a4740b4ba0ff826ae57c06538b5ff885239d556aab87f070e",
+      "source_sha256": "7a7b33762c9db6b3fff798dbbb8b54ef464bbd677efcfc17ee114d9ca8f22320",
+      "source": "User-supplied MASTER_PROMPT_ETALON_2026.pdf embedded AI-generated reference, page 32",
+      "status": "integrated; CI pending",
+      "alt": ""
+    }
+  ]
+}
