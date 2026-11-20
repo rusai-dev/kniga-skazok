@@ -311,6 +311,23 @@ function verify(html){
  'const m={kind:"place",labels:["Десятки","Единицы"],max:[9,9]};const html=mathModelControls(m);if((html.match(/role="group"/g)||[]).length!==2||(html.match(/aria-label="Изменить/g)||[]).length!==2||(html.match(/data-model-i=/g)||[]).length!==4)throw Error("accessible math controls");return true;')(s=>s);
  const placePanels=new Function('fget','fput','childArt','esc',source+
  'let count=0;const m=mathModelQuestion("place",0,3).model;for(let t=0;t<=9;t++)for(let u=0;u<=9;u++){const a=mathModelArt(m,[t,u]),rods=[...a.matchAll(/<g data-ten-rod="[^"]+">([\\s\\S]*?)<\\/g>\\s*<\\/g>/g)];if(!a.includes("data-place-group=\\\"tens\\\"")||!a.includes("data-place-group=\\\"ones\\\"")||(a.match(/data-ten-rod=/g)||[]).length!==t||(a.match(/data-unit="ten"/g)||[]).length!==10*t||(a.match(/data-unit="one"/g)||[]).length!==u||a.includes("NaN"))throw Error("place panels "+t+" "+u);count++}return count;')(()=>null,()=>true,()=>'',s=>s);
- return {chapterCases:16,planFields:6,ideaCount,stepwise,personalSearch,lessonSubjects,lessonNavigation,artModeNavigation,accessibility,placePanels,seedTest,directLibrary:true,landingCases:landingCases.length,homeCheck,outcomeCases,outcomeArchive,spatialTests,spatialUI,gap,gapArchive,models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
+
+ const moneyVisualCode=function(){
+  let count=0;const contexts=new Set();
+  const luminance=hex=>hex.slice(1).match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+  const contrast=(a,b)=>(Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
+  for(let l=0;l<4;l++)for(let n=0;n<100;n+=5){
+   const q=mathModelQuestion("money",n,l),m=q.model;contexts.add(q.q.match(/за ([^.]*)\./)[1]);
+   for(const s of [m.initial,m.solution,[10,10,10,10],...[0,1,2,3].map(i=>[0,0,0,0].map((_,j)=>i===j?10:0))]){
+    const a=mathModelArt(m,s),panels=[...a.matchAll(/data-coin-panel="(\d+)"[^>]*fill="(#[A-Fa-f0-9]{6})" stroke="(#[A-Fa-f0-9]{6})"/g)];
+    if(panels.length!==4||new Set(panels.map(x=>x[2])).size!==4||panels.some((p,i)=>+p[1]!==m.denoms[i]||contrast(p[2],p[3])<4.5))throw Error("coin panel clarity");
+    for(let i=0;i<4;i++){const coins=[...a.matchAll(new RegExp('<g data-coin="'+m.denoms[i]+'"><circle[^>]*fill="(#[A-Fa-f0-9]{6})" stroke="(#[A-Fa-f0-9]{6})"[^>]*/>','g'))];if(coins.length!==s[i]||coins.some(c=>contrast(c[1],c[2])<4.5))throw Error("coin number contrast or count")}
+    count++;
+   }
+  }
+  if(contexts.size!==4)throw Error("purchase variety");return count;
+ };
+ const moneyVisualCases=new Function('fget','fput','childArt','esc',source+'\nreturn ('+moneyVisualCode.toString()+')();')(()=>null,()=>true,()=>'',s=>s);assert(moneyVisualCases===560,'money visual coverage');
+ return {moneyVisualCases,chapterCases:16,planFields:6,ideaCount,stepwise,personalSearch,lessonSubjects,lessonNavigation,artModeNavigation,accessibility,placePanels,seedTest,directLibrary:true,landingCases:landingCases.length,homeCheck,outcomeCases,outcomeArchive,spatialTests,spatialUI,gap,gapArchive,models,modelUI,modelAlternativesUI,labs,labUI,fairyDesign,discoveryNav,discoveryDesign,archiveSuccess,archiveSafety,constructed,constructedUI,readingUI,inference,boundaries,worldUI,scienceBackup,scienceRecall,outcomes,transfer,groups,evidence,session,parent,language,review,scripts:scripts.length,books:books.length,paging,art,...academy,...reading,portable};
 }
 if(typeof module!=='undefined'){module.exports=verify;if(require.main===module){const fs=require('node:fs'),path=require('node:path');console.log(JSON.stringify(verify(fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8')),null,2));}}
