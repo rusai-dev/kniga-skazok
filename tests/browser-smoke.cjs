@@ -36,7 +36,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.70')).keys();return keys.length}),5,'complete versioned core');
+   assert.equal(await page.evaluate(async()=>{const keys=await (await caches.open('skazki-shell-1.5.71')).keys();return keys.length}),5,'complete versioned core');
    console.log('PASS service worker offline artwork and storage');
   }finally{await ctx.close()}
  }
@@ -161,7 +161,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('#dayExperiment').isVisible(),false);
  await page.locator('#worldUnsure').click();await page.locator('#dayRotate').click();await page.locator('#dayRotate').click();
  assert.ok((await page.locator('.day-model-label').textContent()).includes('Ночь'));
- for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float']]){
+ for(const [area,id] of [[0,'shadow'],[2,'magnet'],[2,'float'],[0,'ice'],[2,'sound']]){
   await page.locator('#worldBack').click();await page.locator('[data-area="'+area+'"]').click();await page.locator('[data-world="'+id+'"]').click();
   assert.equal(await page.locator('#worldLab').isVisible(),false);
   await page.locator('#worldUnsure').click();assert.ok(await page.locator('#worldLab').isVisible());

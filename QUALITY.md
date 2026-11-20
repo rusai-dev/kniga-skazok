@@ -220,3 +220,8 @@ At levels 2 and 3, five existing story structures and two purchase structures no
 ## Candidate 1.5.70 — library filter readability
 
 Fixes reported iPad view: theme chips were clipped by max-height and grid stretch left a large empty column. Full-width wrapping themes; first six include selected and owned-story themes; explicit All themes expansion; readable touch targets; compact author grid under themes. Search above filters, filters close on choosing a theme/author or starting a search. Existing search, routing, authors, stories and storage unchanged. Added portrait/landscape Chromium/WebKit smoke assertions for uncut chips, touch size, expanded selection, active visibility and search. Full regression passed. Initial source 946927 bytes under 1 MB; physical iPad and live deployment not verified.
+
+
+## Candidate 1.5.71 — qualitative science models
+
+Adds ice/temperature comparison and string vibration models to existing science lessons. Three distinct states per lab, explicit schematic limits, no real sound or numerical melting claims, no extra assets or dependencies. Models remain hidden before the first answer and on subsequent checks; storage and scoring unchanged. Regression passes 15 model states and 5 full lab transitions including the new labs; browser smoke has both new labs. Initial source 951011 bytes, under 1 MB. Physical iPad, learning outcomes and new browser run not yet verified. Includes explicit grid placement fix from 1.5.70 after browser logs showed authors above themes due to a legacy grid-row rule.
