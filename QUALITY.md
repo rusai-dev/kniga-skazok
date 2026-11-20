@@ -359,3 +359,8 @@ Reuse the personal adaptive full-screen reading component in the anonymous famil
 ## Candidate 1.5.94 — coordinate directions reasoning
 
 Coordinate questions progress from one to four non-repeating moves by level. Six legible marker palettes, four valid in-grid answer choices, and full route explanations. Fixed previously unreachable coordinate question path: n % 12 === 7 bypasses verbal-order questions while preserving existing sequence, maze and rotation practice. Regression independently reconstructs 4,000 routes, validates SVG start coordinates, all six colors, options, explanations, and actual routing; full dependency-free regression passed. Browser check added; physical iPad and educational benefit remain unverified. No storage or archive format changes.
+
+
+## Candidate 1.5.95 — colourful money constructions
+
+Four stable, labelled denomination panels in blue, green, amber and violet, larger high-contrast digits on schematic tokens, explicit counts, and four rotating purchase contexts. No change to payment targets, accepted combinations, progress keys, scoring or private data. All existing tests and 560 additional mixed and maximum-capacity SVG cases passed in the dependency-free regression runner; contrast checks cover token digits and category labels. Browser interaction added for exact payment and visible denomination palette. HTML 910949 → 911430 bytes; no new assets or dependencies. Browser CI, physical iPad and learning outcomes remain separate acceptance gates.
