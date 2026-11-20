@@ -14,7 +14,7 @@ NAMES = {
     'ART-03':'art-03-egypt-nile.webp', 'ART-04':'art-04-writer-fox.webp',
     'ART-05':'art-05-math-manipulatives.webp', 'ART-06':'art-06-coloring-forest.png',
 }
-COVERS = {'ART-02':'night-owl-cover','ART-03':'egypt-nile-cover'}
+COVERS = {'ART-01':'night-bats-scene','ART-02':'night-owl-cover','ART-03':'egypt-nile-cover'}
 
 def sha(b):
     return hashlib.sha256(b).hexdigest()
@@ -39,7 +39,7 @@ def prepare(pdf, output):
                 files['masters/'+n] = b
                 if a['id'] not in COVERS:
                     continue
-                for width in (128,320,504):
+                for width in ((320,504) if a['id']=='ART-01' else (128,320,504)):
                     if width > im.width:
                         raise ValueError('No upscaling allowed')
                     pic = im.convert('RGB').resize((width,round(im.height*width/im.width)),Image.Resampling.LANCZOS)
