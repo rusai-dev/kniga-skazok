@@ -325,3 +325,8 @@ PR #44 passed regression, Chromium and WebKit before merge; malformed publicatio
 ## Candidate 1.5.88 — multicolour figures inside exercises
 
 Classification tasks now use six named figure colours (turquoise, violet, yellow, pink, green, orange) rather than just two. Each generated task includes at least three distinct figure colours, preserving numeric answers, all four reasoning levels, adaptive scoring and the semantic classification interleave. Labels accompany colour for accessibility; no storage schema changes or extra assets. Regression verifies six-colour coverage, per-task variety and independent answer validation across 800 cases. Browser CI and physical tablet checks remain required.
+
+
+## Candidate 1.5.89 — multicolour learning models
+
+Attention tasks now use four colours at levels 0–1 and six at levels 2–3, with every colour shown in each board, controlled distractors and the same number of correct cells (3 or 4). Existing progress and memory rules stay unchanged. Shape-pattern illustrations use distinct natural red, blue, green and yellow; math clocks have blue hour and red minute hands, chart columns differ in colour, polygons vary in fill by side count. Regression independently recomputes answers and checks all colours and SVG fills on 400 attention boards. No new assets or dependencies. Physical-device visuals and learning outcomes remain unverified.
