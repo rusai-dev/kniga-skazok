@@ -139,6 +139,22 @@ const server=http.createServer((req,res)=>{
  }finally{await ctx.close()}
  console.log('PASS confirmed draft and feedback, fresh shelf sheet, theme retry');
  }
+ // Direct family publication: three illustrations, cancel, quota refusal, retry and persistent outcome.
+ {
+ const ctx=await browser.newContext({viewport:{width:1024,height:768},serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{
+ await page.goto(url);await page.evaluate(()=>{window.qaDeliveries=0;startWriter=()=>{window.qaDeliveries++;fstatus('Тест: архив ещё не подтвердил доставку.')}});
+ await page.evaluate(()=>{const picture=document.createElement('canvas').toDataURL('image/jpeg'),draft={author:OWN,theme:'Мои истории',title:'',body:'[[рисунок:1]]Тестовая история\n\n[[рисунок:3]]\n[[рисунок:2]]',icon:'',rich:{markup:true,images:[picture,picture,picture]},plan:{hero:'Личная заметка'}};const k=newDraftKey(OWN);if(!commitLibrary({...data,drafts:{[k]:draft},draft:{...draft,draftRef:k}}))throw Error('fixture');editor(undefined,null,draft.theme,k)});
+ const before=await page.evaluate(()=>localStorage.getItem(KEY)),body=await page.locator('#storyBody').inputValue();
+ await page.locator('#publishFamily').click();await page.locator('#cancelFamilyPublish').click();assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),before);
+ await page.locator('#publishFamily').click();await page.evaluate(()=>{window.qaSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY&&JSON.parse(v).familyPublished.length)throw Error('quota');return window.qaSet.call(this,k,v)}});
+ await page.locator('#confirmFamilyPublish').click();assert.ok(await page.locator('#familyPublishNotice').isVisible());assert.equal(await page.locator('#storyBody').inputValue(),body);assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),before);assert.equal(await page.evaluate(()=>qaDeliveries),0);
+ await page.evaluate(()=>Storage.prototype.setItem=window.qaSet);await page.locator('#confirmFamilyPublish').click();assert.ok(await page.locator('#publicationDelivery').isVisible());assert.ok((await page.locator('#publicationDelivery').textContent()).includes('не подтвердил'));
+ const saved=await page.evaluate(()=>fpublished()[0]);assert.equal(saved.body,body);assert.equal(saved.rich.images.length,3);assert.equal(saved.title,'Сказка без названия');assert.ok(!('plan' in saved));assert.equal(await page.evaluate(()=>qaDeliveries),1);
+ await page.locator('#publicationRetry').click();assert.equal(await page.evaluate(()=>qaDeliveries),2);await page.locator('#publicationShelf').click();assert.ok(await page.locator('#familyOwnBooks').isVisible());assert.deepEqual(errors,[]);
+ }finally{await ctx.close()}
+ console.log('PASS direct family publish with three illustrations, failure and retry');
+ }
  // Full personal book: repeat an existing cover, refuse a sixth, and retry a failed save.
  {
  const ctx=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
