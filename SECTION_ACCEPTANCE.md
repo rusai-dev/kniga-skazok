@@ -1,8 +1,8 @@
 # Section-by-section acceptance / Книга сказок
 
 Active: **01 — Мои сказки / авторская мастерская**. Status: **technical release merged; deployment and full acceptance pending**.
-Current verified main: 1.5.162, d66bba0a4d2830642cd0ab0db73388fc30f9560a. Historical entries below retain their original base SHAs.
-Last integrated PR: #126, including #125. Exact integrated candidate passed all three jobs; deployment and physical iPad not confirmed. Preserve all user data; only synthetic fixtures in tests.
+Current verified main: 1.5.163, 969da911840b3fb343a9233f769892e82a2989b2. Historical entries below retain their original base SHAs.
+Last integrated PR: #128, including #127. Exact integrated candidate passed all three jobs; deployment and physical iPad not confirmed. Preserve all user data; only synthetic fixtures in tests.
 
 ## Acceptance matrix
 Based on master prompt §§114–119, 127–132. A PASS requires evidence for the whole row, not merely code presence. All rows mandatory. No aggregate score; individual axes (function, content, usability, art, data/privacy, accessibility, speed/offline) remain unscored until evidence recorded.
@@ -111,3 +111,10 @@ Next: check live release.json and test on physical iPad: from My Stories select 
 
 ## 1.5.163 compact catalog and optional cover gallery (A07/A11/A12)
 Candidate based on #127 documentation-only head c675d385ce15e47b7f036982d5079152c477359b. Lossless build-time first dictionary capped at 400 high-value words, leaving fragment packing to compress recurring tails. Measured generated catalog 58852 → 56936 B; decoded all 36 canonical books and compared exact JSON, no changes to source texts, artwork, storage, runtime decoder or request strategy. Add fourth voluntary cover “Лесной домик” using existing NIGHT-03-ROOST 320/504 WebP, already in lazy ART cache policy, no startup image added. Gallery cards have visible focus and rounded corners. Move capacity check after exact-image lookup so a repeated cover does not need a new slot even in a full book; a genuinely new sixth image is refused. Added synthetic tests for uncommon words, fourth cover selection, reuse and original image/text preservation; syntax checked, full CI pending. Repeated selection of the current cover now skips redundant writes; exact persisted snapshot equality asserted. Full-capacity repeat case still needs direct browser coverage. Source estimate 997578 B vs 999308 B; actual network and iPad not measured. No newly generated artwork. Full mandatory rows 0/12, live Pages, iPad and real family archive unverified. Next: full exact-head CI then verify live deployment and actual iPad, no transition to 02.
+
+
+## 1.5.163 merge evidence (2026-11-21)
+PR #128 exact head 5114dfcc0734c828d5506825bd1ee0a9813a4ba0 passed regression, Chromium and WebKit in run 44867267091. Synthetic merge had zero file differences against tested head. Merged as 969da911840b3fb343a9233f769892e82a2989b2; main release.json verified 1.5.163. Public Pages/release.json inaccessible to this environment; not proof of outage. Physical iPad and anonymous real family archive remain unverified; no new full mandatory rows, 0/12.
+
+## 1.5.164 cover retry and full-book coverage (A04/A07/A11)
+Base 969da911840b3fb343a9233f769892e82a2989b2. Fix false success on reselecting the current cover when a previous write failed: retry draft persistence and explicitly report continued failure, preserve current text, images and rescue action. No schema, storage keys, artwork or network changes. Add isolated browser scenario with two uploaded synthetic drawings and three optional gallery images, successfully reuse an existing cover at five-image capacity, refuse sixth without persisted mutation, simulate quota failure and restore, retry via same cover, close/reopen and verify full text/image equality. Estimated startup source 997576 → 997692 B (same initialFiles definition). JS syntax checked; full CI pending. No real data touched. Next: exact all-green CI and compatible merge; live Pages and physical iPad test remain required. Do not transition to 02.

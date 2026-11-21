@@ -79,6 +79,41 @@ const server=http.createServer((req,res)=>{
  console.log('PASS stale library and publication lock');
  }
 
+ // Full personal book: repeat an existing cover, refuse a sixth, and retry a failed save.
+ {
+ const ctx=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{
+ await page.goto(url);await page.locator('#homeNewStory').click();
+ await page.locator('#storyTitle').fill('Проверка пяти рисунков');await page.locator('#storyBody').fill('Моя история.');
+ await page.locator('#writerExtras > summary').click();
+ for(const [i,color] of ['#123456','#abcdef'].entries()){
+ const png=await page.evaluate(color=>{const c=document.createElement('canvas');c.width=c.height=16;const g=c.getContext('2d');g.fillStyle=color;g.fillRect(0,0,16,16);return c.toDataURL('image/png').split(',')[1]},color);
+ await page.locator('#pictureFile').setInputFiles({name:'test-'+i+'.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+ await page.waitForFunction(n=>document.querySelectorAll('#imageTray img').length===n&&!$('publishStory').disabled,i+1);
+ }
+ await page.locator('.cover-designer summary').click();await page.locator('#coverGalleryToggle').click();
+ const button=name=>page.locator('#coverGallery button').filter({hasText:name});
+ const stored=()=>page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem(KEY)).drafts).find(d=>d.title==='Проверка пяти рисунков'));
+ for(const [i,name] of ['Лунный лес','Ночные друзья','Лесной домик'].entries()){
+ await button(name).click();await page.waitForFunction(n=>$('coverImage').value===String(n)&&!$('publishStory').disabled,i+2);
+ }
+ const full=await stored();assert.equal(full.rich.images.filter(Boolean).length,5);assert.equal(full.rich.coverImage,4);
+ await button('Лунный лес').click();await page.waitForFunction(()=>$('coverImage').value==='2'&&!$('publishStory').disabled);
+ const selected=await stored();assert.deepEqual(selected.rich.images,full.rich.images);assert.equal(selected.body,full.body);
+ await button('Далёкие страны').click();await page.waitForFunction(()=>$('toast').textContent.includes('пять картинок')&&!$('publishStory').disabled);assert.deepEqual(await stored(),selected,'sixth cover refused without modifying stored book');
+ await page.evaluate(()=>{window.__qaCoverSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return window.__qaCoverSet.call(this,k,v)}});
+ const changed=selected.body+'\nНовая строка.';
+ await page.locator('#storyBody').fill(changed);assert.ok((await page.locator('#draftStatus').textContent()).includes('Не удалось'));
+ await button('Лунный лес').click();await page.waitForFunction(()=>$('toast').textContent.includes('Не удалось сохранить')&&!$('publishStory').disabled);
+ assert.equal(await page.locator('#storyBody').inputValue(),changed);assert.deepEqual(await stored(),selected);assert.ok(await page.locator('#rescueFull').isVisible());
+ await page.evaluate(()=>{Storage.prototype.setItem=window.__qaCoverSet});
+ await button('Лунный лес').click();await page.waitForFunction(()=>$('toast').textContent==='Обложка сохранена.'&&!$('publishStory').disabled);
+ const saved=await stored();assert.equal(saved.body,changed);assert.deepEqual(saved.rich.images,full.rich.images);assert.equal(saved.rich.coverImage,2);
+ await page.locator('#saveStoryNow').click();await page.reload();await page.locator('#homeWrite').click();assert.equal(await page.locator('#storyBody').inputValue(),changed);assert.deepEqual(await stored(),saved);assert.deepEqual(errors,[]);
+ }finally{await ctx.close()}
+ console.log('PASS full cover reuse, capacity refusal and failed-save retry');
+ }
+
  // Chromium: verify real service-worker caching with an isolated profile.
  if(engine===chromium){
   const ctx=await browser.newContext({serviceWorkers:'allow'}),page=await ctx.newPage();
