@@ -58,9 +58,21 @@ function packCatalog(catalog){
  'const catalogWords='+literal(dictionary)+';\nconst catalogPhrases='+literal(fragments.dictionary)+';\nconst catalogTails='+literal(tails.dictionary)+';\nconst catalogPacked='+literal(tails.output)+';\n'+
  'return readingBooksCache=JSON.parse(catalogPacked.replace(/[\\u0100-\\u03FF]/g,c=>{const i=c.charCodeAt(0)-0x100-catalogWords.length;if(i<0)return c;const tail=catalogTails[i];if(tail===undefined)throw Error("Invalid tail token");return tail}).replace(/[\\u0500-\\u07FF]/g,c=>{const phrase=catalogPhrases[c.charCodeAt(0)-0x500];if(phrase===undefined)throw Error("Invalid fragment token");return phrase}).replace(/[\\u0100-\\u03FF\\uE000-\\uF8FF]/g,c=>{const p=c.charCodeAt(0),word=catalogWords[p<0xE000?p-0x100:p-0xE000+768];if(word===undefined)throw Error("Invalid catalog token");return word}));}\n\n';
 }
-if(typeof module!=='undefined'){module.exports={packCatalog,utf8};if(require.main===module){
+// Independent lazy question banks: use the existing reversible codec only when smaller.
+function packReadingBanks(banks){
+ return ['readingComprehension','readingGlossary','readingInference'].map(name=>{
+ const value=banks[name];if(!value||typeof value!=='object')throw Error('Missing bank '+name);
+ const plain='const '+name+'=lazyReadingBank(()=>('+JSON.stringify(value).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')+'));\n';
+ const packed=packCatalog(value).replace('let readingBooksCache;function getReadingBooks(){if(readingBooksCache)return readingBooksCache;\n','const '+name+'=lazyReadingBank(()=>{\n').replace('return readingBooksCache=','return ').replace(/;}\n\n$/,';});\n');
+ return utf8(packed)<utf8(plain)?packed:plain;
+ }).join('');
+}
+if(typeof module!=='undefined'){module.exports={packCatalog,packReadingBanks,utf8};if(require.main===module){
  const fs=require('node:fs'),path=require('node:path'),root=path.resolve(__dirname,'..'),file=path.join(root,'index.html'),html=fs.readFileSync(file,'utf8'),catalog=JSON.parse(fs.readFileSync(path.join(root,'content/reading-catalog.json'),'utf8'));
  const start=html.indexOf('let readingBooksCache;'),end=html.indexOf('const readingAuthorNames=',start);if(start<0||end<start)throw Error('Catalog markers missing');const packed=packCatalog(catalog);
  if(process.argv.includes('--write'))fs.writeFileSync(file,html.slice(0,start)+packed+html.slice(end));else if(html.slice(start,end)!==packed)throw Error('Generated catalog differs. Run node tools/pack-reading-catalog.cjs --write');
- console.log('PACKED CATALOG BYTES',utf8(packed));
+ const banks=JSON.parse(fs.readFileSync(path.join(root,'content','reading-banks.json'),'utf8')),generated=packReadingBanks(banks),current=fs.readFileSync(file,'utf8'),a=current.indexOf('const readingComprehension=lazyReadingBank('),b=current.indexOf('function readingQuestions(b)',a);
+ if(a<0||b<a||!current.includes('function readingGlossaryMarkup(')||current.slice(a,b).includes('function readingGlossaryMarkup('))throw Error('Reading bank markers or glossary helper placement invalid');
+ if(process.argv.includes('--write'))fs.writeFileSync(file,current.slice(0,a)+generated+current.slice(b));else if(current.slice(a,b)!==generated)throw Error('Generated reading banks differ. Run node tools/pack-reading-catalog.cjs --write');
+ console.log('PACKED CATALOG BYTES',utf8(packed),'READING BANK BYTES',utf8(generated));
 }}
