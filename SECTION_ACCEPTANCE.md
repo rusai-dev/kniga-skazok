@@ -1,8 +1,8 @@
 # Section-by-section acceptance / Книга сказок
 
 Active: **01 — Мои сказки / авторская мастерская**. Status: **technical release merged; deployment and full acceptance pending**.
-Current verified main: 1.5.176, de9a4e9cfc5ff54372ce57009806b161ccc8f2d9. Historical entries retain their base SHAs.
-Last integrated PR: #141. All mandatory CI checks passed; live deployment, physical iPad and full acceptance unverified.
+Current verified main: 1.5.177, 73f2bf146cb33a8988d18c84eff4b202c1a5e7bd. Historical entries retain their base SHAs.
+Last integrated PR: #142. All mandatory CI checks passed; live deployment, physical iPad and full acceptance unverified.
 
 ## Acceptance matrix
 Based on master prompt §§114–119, 127–132. A PASS requires evidence for the whole row, not merely code presence. All rows mandatory. No aggregate score; individual axes (function, content, usability, art, data/privacy, accessibility, speed/offline) remain unscored until evidence recorded.
@@ -202,3 +202,15 @@ PR #140 exact head b58eba7e8ff492f1c6301eab35056106082f0e51, run 44876024136 all
 
 ## Package 01 — repair candidate 1.5.177 after failed browser gate
 Exact head 89c404f532a6eab286f97de37ee24acbcaa2de54, run 44879570856: regression PASS; Chromium and WebKit FAIL at #readingQuizStart. Root cause: replacing the generated bank region also removed readingGlossaryMarkup, used by finishBook and dictionary. Restored exact helper outside generation markers, added packer guard, isolated glossary markup test, offline actual browser bank roundtrip and glossary test, explicit quiz error assertion. Retain preview return and original bank data. Source 994713 B (reserve 5287 B), syntax, exact bank/catalog generation and isolated regression PASS. New CI required; same PR #142, version unchanged. Main 1.5.176; no merge on red CI. Full acceptance 0/12; live device/archive/site unverified. Next: exact CI and fix any remaining issues before merging. No package 02.
+
+
+## Package 01 — personal shelf direct reading and reliable return (unversioned candidate)
+#142 exact e71c3c802a6e16ea049036863ff710d1e019ace9, run 44883631212 regression/Chromium/WebKit all PASS; merged 73f2bf146cb33a8988d18c84eff4b202c1a5e7bd with identical tree, release.json 1.5.177. A02/A08/A11: personal cover and title now open paginated reading directly; explicit family-info and edit controls remain. Capture origin by book ID/control and shelf query/topic/author/scroll; restore focus after header, reader or native dialog close even if shelf DOM rebuilt, only when original context still matches. Added browser scenarios for all three reading entrances, Escape/header/reader returns, unchanged search and story data, family detail route. No schema/artwork/real data changes; estimated source 995634 B (4366 B reserve); inline/test syntax PASS. New candidate retains base release version until exact CI; do not merge as same-version runtime update. Physical iPad/live archive and public deployment unconfirmed; 0/12 full mandatory rows. Next: exact CI, correct failures, verify device and measured performance, and complete A04/A09 evidence. No package 02.
+
+
+## Package 01 — coordinated 1.5.178 candidate: shelf and drawing/restore conflict protection
+Base main 73f2bf146cb33a8988d18c84eff4b202c1a5e7bd; retains prior #143 exact head 6a48f6b294ae828c0814660745fea6be2e924c56. A02/A08: render shelf before closing from save so focus returns to live card, with same search and filter. A04/A07/A10: capture raw unfinished drawing at canvas initialization; refuse overwriting or deleting changed drawing from another tab; retain current canvas with PNG rescue (insertion into own story still allowed if library current); do not clear a stale canvas by mistake. Restore operations bind async checkpoint to the originating dialog instance, not just the kind. No new keys/schema, no real child data or archive access, no dependencies or artwork changes. Single unfinished-drawing slot remains; comparison is sequential protection, not atomic concurrency. Synthetic browser fixture verifies stale stroke and successful insertion preserve newer JPEG and edit save restores search/focus. Source 996322 B, JS syntax PASS; exact new full CI required. Version candidate 1.5.178, no merge before all mandatory tests; physical iPad, real family archive, live version and measured device speed unverified. Full mandatory rows 0/12. Next: exact CI and compatible merge; exercise actual iPad drawing, writing, and family delivery. No package 02.
+
+Follow-on before CI: stale clear explicitly confirms clearing only the local sheet, keeping the other saved draft, so PNG rescue is not a dead end. Added delayed restore fixture replacing the dialog with the same route, then normal restore/rollback. Final source 996468 B, syntax PASS; exact CI required.
+
+Regression run 44887892970 on ea0ec0f4bb6f763659fb41f80d35775ece34042c failed an obsolete lexical assertion requiring close-before-render (old behavior). Replaced it with executable tests for busy, rejected save (no close), and successful save (render then close, restores live shelf focus), retaining export requirement. New exact CI mandatory. No runtime source change; 996468 B. Browser results for superseded SHA not sufficient.
