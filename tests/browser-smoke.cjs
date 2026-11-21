@@ -74,6 +74,39 @@ const server=http.createServer((req,res)=>{
  let browser;
  try{
  browser=await engine.launch({headless:true});
+ // Optional studio art is selected once per visit, with a readable fallback.
+ {
+ const ctx=await browser.newContext({serviceWorkers:'block'}),page=await ctx.newPage();
+ try{
+ await page.goto(url);
+ const image=page.locator('#heroArt img'),motifs=[];
+ for(let i=0;i<8;i++){
+  await page.locator('#homeBooks').click();
+  assert.equal(await image.evaluate(async img=>{await img.decode();return img.naturalWidth}),240);
+  motifs.push(await image.getAttribute('src'));
+  await page.locator('#home').click();
+ }
+ assert.equal(new Set(motifs.slice(0,4)).size,4);
+ assert.equal(new Set(motifs.slice(4)).size,4);
+ assert.ok(motifs.every((m,i)=>m!==motifs[i-1]));
+ await page.locator('#homeBooks').click();
+ await page.locator('#studioInspiration summary').click();
+ const picker=page.locator('#studioMotif');
+ await picker.selectOption('1');
+ const favorite=await image.getAttribute('src');
+ await page.locator('#home').click();
+ await page.locator('#homeBooks').click();
+ assert.equal(await image.getAttribute('src'),favorite);
+ await page.locator('#studioInspiration summary').click();
+ await picker.selectOption('off');
+ assert.equal(await page.locator('#heroArt').isVisible(),false);
+ await page.route('**/assets/author/studio/*.webp',r=>r.fulfill({contentType:'image/webp',body:'invalid WebP'}));
+ await picker.selectOption('3');
+ await image.waitFor({state:'detached'});
+ assert.equal(await page.locator('#heroArt').textContent(),'📖');
+ console.log('PASS studio illustration rotation, favorite, disable and decode fallback');
+ }finally{await ctx.close()}
+ }
  // Isolated tabs: the stale author's unsaved work stays visible, the latest library survives.
  {
  const ctx=await browser.newContext({serviceWorkers:'block'}),a=await ctx.newPage(),b=await ctx.newPage();
@@ -428,7 +461,7 @@ const server=http.createServer((req,res)=>{
  const cold=await homeSnapshot();assert.ok(cold.resources.every(x=>!x.path.endsWith('/content/reading-catalog.json')&&!x.path.endsWith('/content/reading-banks.json')),'editable catalog and banks never fetched by app');console.log('COLD HOME RESOURCE BYTES',JSON.stringify({viewport,...cold}));assert.ok(cold.encoded>0&&cold.encoded<=1200000,'cold home encoded response budget exceeded: '+cold.encoded);assert.ok(cold.resources.every(x=>!/(\/assets\/(books|world|author)\/|\/(art-152|paintings-154|peerjs\.min)\.js$)/.test(x.path)),'optional full art or peer transport must not load on home');
  const last=await page.locator('#homeBooks').boundingBox();assert.ok(last.y>=0&&last.y+last.height<=viewport.height,'personal books must fit first screen');
  const homeLayout=await page.evaluate(()=>{const r=id=>{const b=$(id).getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,bottom:b.bottom,right:b.right}};return {books:r('homeBooks'),create:r('homeCreate'),tabs:['readingEntry','homeMath','homeLogic','childWorld'].map(r),actions:['homeWrite','homeNewStory','homeDrafts','childLearn'].map(r),width:innerWidth,height:innerHeight,scroll:document.documentElement.scrollHeight}});assert.ok(homeLayout.books.y<homeLayout.tabs[0].y&&homeLayout.create.y<homeLayout.tabs[0].y,'creative destinations precede learning');for(const r of [...homeLayout.tabs,...homeLayout.actions,homeLayout.books,homeLayout.create])assert.ok(r.x>=0&&r.right<=homeLayout.width+1&&r.bottom<=homeLayout.height+1&&r.h>=44,'home action visible and tappable');assert.ok(homeLayout.books.h>homeLayout.tabs[0].h*1.3,'creative cards dominate');assert.ok(homeLayout.scroll<=homeLayout.height+2,'home fits iPad viewport without scrolling');
- await page.locator('#homeBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());await page.evaluate(()=>{window.__qaTopics=$('topics').firstElementChild;window.__qaHero=$('heroArt').firstElementChild});await page.locator('#bookSearch').fill('Тестовый поиск');assert.equal(await page.evaluate(()=>window.__qaTopics===$('topics').firstElementChild&&window.__qaHero===$('heroArt').firstElementChild),true,'personal search preserves filter and hero DOM');await page.locator('#clearBookSearch').click();assert.ok(await page.locator('#topics button').count()>0,'shelf built on entry');assert.ok(await page.locator('#heroArt svg').count()>0,'hero art retained');assert.ok(await page.locator('#libraryHome .hero').isVisible(),'personal shelf illustrated header visible');assert.equal(await page.locator('#heading').textContent(),'Моя книжная полка');await page.waitForFunction(()=>{const im=$('heroArt').querySelector('img');return im&&!im.hidden&&im.naturalWidth===144});assert.ok(await page.locator('#books .shelf-new-art').isVisible(),'illustrated new story card');assert.ok(await page.locator('#libraryHome').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'personal shelf fits width');assert.ok(await page.evaluate(()=>Array.isArray(readingBooksCache)&&readingBooksCache.length>0),'books initialized on shelf entry');assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);assert.ok(await page.locator('#ownShelfNew').isVisible());assert.ok(await page.locator('#ownShelfContinue').isVisible());assert.ok(await page.locator('#ownShelfDrafts').isVisible());assert.equal(await page.locator('#ownShelfDrafts').textContent(),await page.evaluate(()=>'Мои черновики · '+(ownDraftChoices(data,OWN).length+ownEditChoices(data.stories,data.edits,OWN).length)));await page.locator('#ownShelfNew').click();assert.equal(await page.locator('#storyBody').inputValue(),'');await page.keyboard.press('Escape');assert.ok(await page.locator('#libraryHome').isVisible(),'editor returns to personal shelf');
+ await page.locator('#homeBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());await page.evaluate(()=>{window.__qaTopics=$('topics').firstElementChild;window.__qaHero=$('heroArt').firstElementChild});await page.locator('#bookSearch').fill('Тестовый поиск');assert.equal(await page.evaluate(()=>window.__qaTopics===$('topics').firstElementChild&&window.__qaHero===$('heroArt').firstElementChild),true,'personal search preserves filter and hero DOM');await page.locator('#clearBookSearch').click();assert.ok(await page.locator('#topics button').count()>0,'shelf built on entry');assert.ok(await page.locator('#libraryHome .hero').isVisible(),'personal shelf illustrated header visible');assert.equal(await page.locator('#heading').textContent(),'Моя книжная полка');await page.waitForFunction(()=>{const im=$('heroArt').querySelector('img');return im&&!im.hidden&&im.naturalWidth===240});assert.ok(await page.locator('#books .shelf-new-art').isVisible(),'illustrated new story card');assert.ok(await page.locator('#libraryHome').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'personal shelf fits width');assert.ok(await page.evaluate(()=>Array.isArray(readingBooksCache)&&readingBooksCache.length>0),'books initialized on shelf entry');assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);assert.ok(await page.locator('#ownShelfNew').isVisible());assert.ok(await page.locator('#ownShelfContinue').isVisible());assert.ok(await page.locator('#ownShelfDrafts').isVisible());assert.equal(await page.locator('#ownShelfDrafts').textContent(),await page.evaluate(()=>'Мои черновики · '+(ownDraftChoices(data,OWN).length+ownEditChoices(data.stories,data.edits,OWN).length)));await page.locator('#ownShelfNew').click();assert.equal(await page.locator('#storyBody').inputValue(),'');await page.keyboard.press('Escape');assert.ok(await page.locator('#libraryHome').isVisible(),'editor returns to personal shelf');
  await page.locator('#libraryFilters summary').click();assert.ok(await page.locator('#authors').isVisible());
  const geometry=await page.evaluate(()=>{const r=id=>document.getElementById(id).getBoundingClientRect();const topic=r('topics'),author=r('authors'),search=r('bookSearch'),visible=[...document.querySelectorAll('#topics button')].filter(b=>getComputedStyle(b).display!=='none');return {searchAbove:search.bottom<=topic.top,authorsBelow:author.top>=topic.bottom,unclipped:visible.every(b=>{const x=b.getBoundingClientRect();return x.top>=topic.top-1&&x.bottom<=topic.bottom+1&&x.left>=topic.left-1&&x.right<=topic.right+1&&x.height>=44}),count:visible.length}});
  assert.deepEqual(geometry,{searchAbove:true,authorsBelow:true,unclipped:true,count:7},'compact, fully visible library filters');
