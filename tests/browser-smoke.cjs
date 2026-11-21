@@ -155,6 +155,56 @@ const server=http.createServer((req,res)=>{
  }finally{await ctx.close()}
  console.log('PASS direct family publish with three illustrations, failure and retry');
  }
+ // Two isolated browser profiles exercise real encryption, archive protocol, private drafts and automatic refresh.
+ {
+ const author=await browser.newContext({viewport:{width:1024,height:768},serviceWorkers:'block'}),reader=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'});
+ const errors=[],secret='c'.repeat(64),token='github_pat_'+'T'.repeat(40),origin=new URL(url).origin;
+ let archive=null,encoded=null,sha=null,rejected=0,writes=0,reads=0,failWrite=true;
+ const api='/repos/rusai-dev/kniga-skazok-archive',crypto=require('node:crypto');
+ const cors={'access-control-allow-origin':'*','access-control-allow-methods':'GET,PUT,OPTIONS','access-control-allow-headers':'*'};
+ for(const ctx of [author,reader])await ctx.route('**/*',async route=>{
+  const req=route.request(),u=new URL(req.url()),headers=req.headers(),method=req.method(),auth=headers.authorization;
+  if(u.origin===origin)return route.continue();
+  if(u.hostname==='raw.githubusercontent.com'&&u.pathname.startsWith('/rusai-dev/kniga-skazok-archive/main/archive-')){
+   assert.equal(auth,undefined);reads++;return route.fulfill({status:archive?200:404,headers:cors,body:archive||''});
+  }
+  if(u.hostname!=='api.github.com'||!u.pathname.startsWith(api))return route.abort();
+  if(method==='OPTIONS')return route.fulfill({status:204,headers:cors});
+  const json=(status,value)=>route.fulfill({status,headers:cors,contentType:'application/json',body:JSON.stringify(value)});
+  if(ctx===reader)assert.equal(auth,undefined,'reader never receives writer token');
+  if(method==='PUT'){
+   assert.equal(ctx,author);assert.equal(auth,'Bearer '+token);
+   if(failWrite){rejected++;return json(503,{})}
+   const payload=req.postDataJSON();assert.equal(payload.sha,sha||undefined);assert.equal(payload.branch,'main');
+   encoded=payload.content;archive=Buffer.from(encoded,'base64').toString('utf8');const env=JSON.parse(archive);
+   assert.deepEqual(Object.keys(env).sort(),['cipher','iv','revision','version']);assert.equal(env.revision,writes+1);
+   assert.ok(!archive.includes('QA')&&!archive.includes('Личный текст'));sha=crypto.createHash('sha1').update(archive).digest('hex');writes++;
+   return json(200,{content:{sha}})
+  }
+  if(u.pathname===api)return json(200,{full_name:'rusai-dev/kniga-skazok-archive',private:false,default_branch:'main'});
+  if(u.pathname.startsWith(api+'/contents/')){if(!auth)reads++;return archive?json(200,{type:'file',sha,encoding:'base64',content:encoded}):json(404,{})}
+  if(u.pathname===api+'/git/blobs/'+sha)return json(200,{encoding:'base64',content:encoded});
+  return json(404,{})
+ });
+ const a=await author.newPage(),v=await reader.newPage();for(const p of [a,v])p.on('pageerror',e=>errors.push(e.message));
+ try{
+  await a.goto(url);await a.evaluate(({secret,token})=>{if(!fput(FAMILY_SECRET,secret)||!fput(GH_TOKEN,token))throw Error('fixture');const k=newDraftKey(OWN),privateDraft={author:OWN,theme:'Лес',title:'Личный текст',body:'Только на устройстве',icon:'📖'};if(!commitLibrary({...data,drafts:{[k]:privateDraft}}))throw Error('fixture')},{secret,token});
+  await a.locator('#homeNewStory').click();await a.locator('#storyTitle').fill('QA Книга');await a.locator('#storyBody').fill('Первая редакция.');
+  // Insert synthetic art exactly as the editor opens an illustrated existing draft.
+  await a.evaluate(()=>{const p=document.createElement('canvas').toDataURL('image/jpeg'),d={author:OWN,theme:'Лес',title:'QA Книга',body:'Первая редакция.\n[[рисунок:1]]',icon:'📖',rich:{markup:true,images:[p]},plan:{hero:'Личная заметка'}};const k=newDraftKey(OWN);closeModal();if(!commitLibrary({...data,drafts:{...data.drafts,[k]:d},draft:{...d,draftRef:k}}))throw Error('fixture');editor(undefined,null,'Лес',k)});
+  await a.locator('#publishFamily').click();await a.locator('#confirmFamilyPublish').click();
+  await a.waitForFunction(()=>!fam.ghBusy&&$('publicationDelivery').textContent.includes('не подтвердил запись'));assert.ok(rejected>0);assert.equal(writes,0);
+  failWrite=false;await a.locator('#publicationRetry').click();await a.waitForFunction(()=>$('publicationDelivery').textContent.includes('Проверено без входа'));assert.equal(writes,1);
+  const invitation=new URL(url);invitation.searchParams.set('view','family');invitation.hash='family='+secret;await v.goto(invitation.href);
+  await v.waitForFunction(()=>document.querySelectorAll('#familyShelf .family-book').length===1);await v.locator('#familyShelf .family-book').click();assert.equal(await v.locator('#familyReading h2').textContent(),'QA Книга');assert.equal(await v.locator('#familyReading .reader-text img').count(),1);assert.ok((await v.locator('#familyReading .family-theme-label').textContent()).includes('Лес'));
+  const delivered=await v.evaluate(()=>fam.books[0]);assert.ok(!('plan' in delivered)&&!('versions' in delivered)&&!('author' in delivered));assert.equal(delivered.body,'Первая редакция.\n[[рисунок:1]]');
+  await a.locator('#publicationPersonal').click();await a.locator('.own-info').filter({visible:true}).first().click();await a.locator('#editStory').click();await a.locator('#storyBody').fill('Вторая редакция.\n[[рисунок:1]]');await a.locator('#publishStory').click();
+  await a.locator('.own-info').filter({visible:true}).first().click();await a.locator('#shareFamilyBook').click();await a.locator('#cancelSharedBook').click();assert.equal(writes,1);await a.locator('#shareFamilyBook').click();await a.locator('#confirmSharedBook').click();await a.waitForFunction(()=>$('publicationDelivery').textContent.includes('Проверено без входа'));assert.equal(writes,2);
+  await v.waitForFunction(()=>fam.books[0]?.body.startsWith('Вторая редакция.'),null,{timeout:20000});assert.ok((await v.locator('#familyReading .reader-text').textContent()).includes('Вторая редакция.'));assert.equal(await v.locator('#familyReading .reader-text img').count(),1);
+  await v.reload();await v.waitForFunction(()=>fam?.received&&fam.books[0]?.body.startsWith('Вторая редакция.'));assert.equal(await v.locator('#familyShelf .family-book').count(),1);assert.ok(reads>0);assert.deepEqual(errors,[]);
+ }finally{await author.close();await reader.close()}
+ console.log('PASS isolated author-to-reader archive retry, encryption and automatic second edition');
+ }
  // Full personal book: repeat an existing cover, refuse a sixth, and retry a failed save.
  {
  const ctx=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
