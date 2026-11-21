@@ -7,7 +7,7 @@ function utf8(s){let n=0;for(const c of s){const p=c.codePointAt(0);n+=p<128?1:p
 function packFragments(packed,literal){
  if(/[\u0500-\u07FF]/.test(packed))throw Error('Reserved fragment character in input');
  let output=packed;const points=Array.from(packed),counts=new Map();
- for(const len of [3,4,5,6,7,8,10,12,16,20,24,32])for(let i=0;i+len<=points.length;i++){const frag=points.slice(i,i+len).join('');counts.set(frag,(counts.get(frag)||0)+1)}
+ for(const len of [3,4,5,6,7,8,10,12,16,20,24,32,40,48])for(let i=0;i+len<=points.length;i++){const frag=points.slice(i,i+len).join('');counts.set(frag,(counts.get(frag)||0)+1)}
  const candidates=[...counts].filter(x=>x[1]>=2).map(([word,n])=>{const b=utf8(literal(word));return {word,b,score:(b-4)*n-b-1}}).filter(x=>x.score>4).sort((a,b)=>b.score-a.score||(a.word<b.word?-1:a.word>b.word?1:0));
  const dictionary=[];
  for(const {word,b} of candidates.slice(0,12000)){
@@ -30,7 +30,7 @@ function packFragments(packed,literal){
 function packTails(packed,literal,offset){
  if([...packed].some(c=>c.charCodeAt(0)>=0x100+offset&&c.charCodeAt(0)<=0x3ff))throw Error('Reserved tail token');
  const points=Array.from(packed),counts=new Map();
- for(const n of [2,3,4,5,6,7,8,10,12,16,20,24,32])for(let i=0;i+n<=points.length;i++){const w=points.slice(i,i+n).join('');counts.set(w,(counts.get(w)||0)+1)}
+ for(const n of [2,3,4,5,6,7,8,10,12,16,20,24,32,40,48])for(let i=0;i+n<=points.length;i++){const w=points.slice(i,i+n).join('');counts.set(w,(counts.get(w)||0)+1)}
  const candidates=[...counts].filter(x=>x[1]>=2).map(([word,n])=>{const b=utf8(literal(word))-2;return {word,b,score:(b-2)*n-b-3}}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||(a.word<b.word?-1:a.word>b.word?1:0));
  let output=packed;const dictionary=[];
  for(const {word,b} of candidates.slice(0,30000)){
@@ -46,9 +46,9 @@ function packCatalog(catalog){
  const words=/[\p{L}\p{N}]{3,}/gu,counts=new Map();
  for(const m of raw.matchAll(words))counts.set(m[0],(counts.get(m[0])||0)+1);
  // First 768 tokens occupy two UTF-8 bytes; source characters in that interval are JSON-escaped.
- // Limit to 240 high-value words; the final dictionary uses remaining two-byte codes.
+ // Limit to 80 high-value words; the final dictionary uses remaining two-byte codes.
  const score=([word,n])=>(utf8(word)-2)*n-utf8(word)-3;
- const dictionary=[...counts].filter(x=>score(x)>4).sort((a,b)=>score(b)-score(a)||(a[0]<b[0]?-1:a[0]>b[0]?1:0)).slice(0,240).map(x=>x[0]);
+ const dictionary=[...counts].filter(x=>score(x)>4).sort((a,b)=>score(b)-score(a)||(a[0]<b[0]?-1:a[0]>b[0]?1:0)).slice(0,80).map(x=>x[0]);
  const codes=new Map(dictionary.map((word,i)=>[word,String.fromCharCode(i<768?0x100+i:0xE000+i-768)]));
  const packed=raw.replace(words,word=>codes.get(word)||word);
  if(packed.replace(/[\u0100-\u03FF\uE000-\uF8FF]/g,c=>dictionary[c.charCodeAt(0)<0xE000?c.charCodeAt(0)-0x100:c.charCodeAt(0)-0xE000+768])!==raw)throw Error('Catalog round-trip failed');
