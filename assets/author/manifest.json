@@ -1,0 +1,25 @@
+{
+  "version": "1.5.169",
+  "assets": [
+    {
+      "path": "assets/author/library-lantern-v1.svg",
+      "title": "Волшебная библиотека",
+      "width": 504,
+      "height": 504,
+      "bytes": 5110,
+      "source": "Original SVG authored for this project",
+      "use": "Optional author gallery",
+      "alt": "Открытая книга в библиотеке у светящегося фонаря"
+    },
+    {
+      "path": "assets/author/star-journey-v1.svg",
+      "title": "Звёздное путешествие",
+      "width": 504,
+      "height": 504,
+      "bytes": 2981,
+      "source": "Original SVG authored for this project",
+      "use": "Optional author gallery",
+      "alt": "Парусная лодка под луной и звёздами"
+    }
+  ]
+}
