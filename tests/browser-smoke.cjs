@@ -565,8 +565,14 @@ const server=http.createServer((req,res)=>{
  assert.ok(await page.locator('#clearBookSearch').isVisible());
  await page.locator('#bookSearch').press('Enter');
  assert.equal(await page.locator('#bookSearch').evaluate(e=>document.activeElement===e),false);
- await page.locator('#books .book-title').click();assert.ok(await page.locator('#modal').isVisible());
- await page.keyboard.press('Escape');await page.reload();
+ const searchedCard=page.locator('#books .own-book');const searchedStory=await page.evaluate(()=>JSON.stringify(data.stories));const searchedHash=await page.evaluate(()=>location.hash);
+ for(const [control,exit] of [['.book-title','#ownReadBack'],['.cover','#close'],['.own-read',null]]){
+   const button=searchedCard.locator(control);assert.ok((await button.boundingBox()).height>=44);await button.click();await page.locator('#ownReadText').waitFor();assert.ok((await page.locator('#ownReadText').textContent()).includes('Светлячок'));assert.equal(await page.locator('#shareFamilyBook').count(),0,'direct reading does not open publication');
+   if(exit)await page.locator(exit).click();else await page.keyboard.press('Escape');await page.locator('#modal').waitFor({state:'hidden'});await page.waitForFunction(selector=>document.activeElement===document.querySelector('#books .own-book '+selector),control);
+   assert.equal(await page.locator('#bookSearch').inputValue(),'ежик фонарь');assert.equal(await page.evaluate(()=>location.hash),searchedHash);assert.equal(await page.locator('#books .book-title').count(),1);
+ }
+ await searchedCard.locator('.own-info').click();assert.ok(await page.locator('#shareFamilyBook').isVisible());await page.locator('#close').click();await page.waitForFunction(()=>document.activeElement===document.querySelector('#books .own-info'));
+ assert.equal(await page.evaluate(()=>JSON.stringify(data.stories)),searchedStory,'reading and returning do not mutate books');await page.reload();
  await page.locator('#homeBooks').click();await page.locator('#bookSearch').fill('СИЯНИ');
  assert.equal(await page.locator('#books .book-title').count(),1);
  await page.locator('#clearBookSearch').click();assert.equal(await page.locator('#bookSearch').inputValue(),'');
