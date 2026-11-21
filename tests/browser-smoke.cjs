@@ -155,6 +155,76 @@ const server=http.createServer((req,res)=>{
  }finally{await ctx.close()}
  console.log('PASS direct family publish with three illustrations, failure and retry');
  }
+ // Two isolated browser profiles exercise real encryption, archive protocol, private drafts and automatic refresh.
+ {
+ const author=await browser.newContext({viewport:{width:1024,height:768},serviceWorkers:'block'}),reader=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'});
+ const errors=[],secret='c'.repeat(64),token='github_pat_'+'T'.repeat(40),origin=new URL(url).origin;
+ let archive=null,encoded=null,sha=null,rejected=0,writes=0,reads=0,failWrite=true;
+ const api='/repos/rusai-dev/kniga-skazok-archive',crypto=require('node:crypto');
+ const cors={'access-control-allow-origin':'*','access-control-allow-methods':'GET,PUT,OPTIONS','access-control-allow-headers':'*'};
+ for(const ctx of [author,reader])await ctx.route('**/*',async route=>{
+  const req=route.request(),u=new URL(req.url()),headers=req.headers(),method=req.method(),auth=headers.authorization;
+  if(u.origin===origin)return route.continue();
+  if(u.hostname==='raw.githubusercontent.com'&&u.pathname.startsWith('/rusai-dev/kniga-skazok-archive/main/archive-')){
+   assert.equal(auth,undefined);reads++;return route.fulfill({status:archive?200:404,headers:cors,body:archive||''});
+  }
+  if(u.hostname!=='api.github.com'||!u.pathname.startsWith(api))return route.abort();
+  if(method==='OPTIONS')return route.fulfill({status:204,headers:cors});
+  const json=(status,value)=>route.fulfill({status,headers:cors,contentType:'application/json',body:JSON.stringify(value)});
+  if(ctx===reader)assert.equal(auth,undefined,'reader never receives writer token');
+  if(method==='PUT'){
+   assert.equal(ctx,author);assert.equal(auth,'Bearer '+token);
+   if(failWrite){rejected++;return json(503,{})}
+   const payload=req.postDataJSON();assert.equal(payload.sha,sha||undefined);assert.equal(payload.branch,'main');
+   encoded=payload.content;archive=Buffer.from(encoded,'base64').toString('utf8');const env=JSON.parse(archive);
+   assert.deepEqual(Object.keys(env).sort(),['cipher','iv','revision','version']);assert.equal(env.revision,writes+1);
+   const cipher=Buffer.from(env.cipher,'base64'),dec=crypto.createDecipheriv('aes-256-gcm',Buffer.from(secret,'hex'),Buffer.from(env.iv,'hex'));dec.setAuthTag(cipher.subarray(-16));const plain=JSON.parse(Buffer.concat([dec.update(cipher.subarray(0,-16)),dec.final()]).toString());assert.equal(plain.books.length,1);assert.equal(plain.books[0].title,'QA Книга');assert.ok(!JSON.stringify(plain).includes('Личный текст')&&!('plan' in plain.books[0]));sha=crypto.createHash('sha1').update(archive).digest('hex');writes++;
+   return json(200,{content:{sha}})
+  }
+  if(u.pathname===api)return json(200,{full_name:'rusai-dev/kniga-skazok-archive',private:false,default_branch:'main'});
+  if(u.pathname.startsWith(api+'/contents/')){if(!auth)reads++;return archive?json(200,{type:'file',sha,encoding:'base64',content:encoded}):json(404,{})}
+  if(u.pathname===api+'/git/blobs/'+sha)return json(200,{encoding:'base64',content:encoded});
+  return json(404,{})
+ });
+ const a=await author.newPage(),v=await reader.newPage();for(const p of [a,v])p.on('pageerror',e=>errors.push(e.message));
+ try{
+  await a.goto(url);await a.evaluate(({secret,token})=>{if(!fput(FAMILY_SECRET,secret)||!fput(GH_TOKEN,token))throw Error('fixture');const k=newDraftKey(OWN),privateDraft={author:OWN,theme:'Лес',title:'Личный текст',body:'Только на устройстве',icon:'📖'};if(!commitLibrary({...data,drafts:{[k]:privateDraft}}))throw Error('fixture')},{secret,token});
+  await a.locator('#homeNewStory').click();await a.locator('#storyTitle').fill('QA Книга');await a.locator('#storyBody').fill('Первая редакция.');
+  // Insert synthetic art exactly as the editor opens an illustrated existing draft.
+  await a.evaluate(()=>{const p=document.createElement('canvas').toDataURL('image/jpeg'),d={author:OWN,theme:'Лес',title:'QA Книга',body:'Первая редакция.\n[[рисунок:1]]',icon:'📖',rich:{markup:true,images:[p]},plan:{hero:'Личная заметка'}};const k=newDraftKey(OWN);closeModal();if(!commitLibrary({...data,drafts:{...data.drafts,[k]:d},draft:{...d,draftRef:k}}))throw Error('fixture');editor(undefined,null,'Лес',k)});
+  await a.locator('#publishFamily').click();await a.locator('#confirmFamilyPublish').click();
+  await a.waitForFunction(()=>!fam.ghBusy&&$('publicationDelivery').textContent.includes('не подтвердил запись'));assert.ok(rejected>0);assert.equal(writes,0);
+  failWrite=false;await a.locator('#publicationRetry').click();await a.waitForFunction(()=>$('publicationDelivery').textContent.includes('Проверено без входа'));assert.equal(writes,1);
+  const invitation=new URL(url);invitation.searchParams.set('view','family');invitation.hash='family='+secret;await v.goto(invitation.href);
+  await v.waitForFunction(()=>document.querySelectorAll('#familyShelf .family-book').length===1);await v.locator('#familyShelf .family-book').click();assert.equal(await v.locator('#familyReading h2').textContent(),'QA Книга');assert.equal(await v.locator('#familyReading .reader-text img').count(),1);assert.ok((await v.locator('#familyReading .family-theme-label').textContent()).includes('Лес'));
+  const delivered=await v.evaluate(()=>fam.books[0]);assert.ok(!('plan' in delivered)&&!('versions' in delivered)&&!('author' in delivered));assert.equal(delivered.body,'Первая редакция.\n[[рисунок:1]]');
+  await a.locator('#publicationPersonal').click();await a.locator('.own-info').filter({visible:true}).first().click();await a.locator('#editStory').click();await a.locator('#storyBody').fill('Вторая редакция.\n[[рисунок:1]]');await a.locator('#publishStory').click();
+  await a.locator('.own-info').filter({visible:true}).first().click();await a.locator('#shareFamilyBook').click();await a.locator('#cancelSharedBook').click();assert.equal(writes,1);await a.locator('#shareFamilyBook').click();await a.locator('#confirmSharedBook').click();await a.waitForFunction(()=>$('publicationDelivery').textContent.includes('Проверено без входа'));assert.equal(writes,2);
+  await v.waitForFunction(()=>fam.books[0]?.body.startsWith('Вторая редакция.'),null,{timeout:20000});assert.ok((await v.locator('#familyReading .reader-text').textContent()).includes('Вторая редакция.'));assert.equal(await v.locator('#familyReading .reader-text img').count(),1);
+  await v.reload();await v.waitForFunction(()=>fam?.received&&fam.books[0]?.body.startsWith('Вторая редакция.'));assert.equal(await v.locator('#familyShelf .family-book').count(),1);assert.ok(reads>0);assert.deepEqual(errors,[]);
+ }finally{await author.close();await reader.close()}
+ console.log('PASS isolated author-to-reader archive retry, encryption and automatic second edition');
+ }
+ // Direct manuscript illustration tools and exact cursor position without opening settings.
+ {
+ const ctx=await browser.newContext({viewport:{width:1024,height:768},serviceWorkers:'block'}),page=await ctx.newPage();
+ try{
+ await page.goto(url);await page.locator('#homeNewStory').click();
+ const body=page.locator('#storyBody');await body.fill('Начало. Конец.');await body.evaluate(e=>e.setSelectionRange(7,7));
+ await page.evaluate(()=>{const p=document.createElement('canvas').toDataURL('image/jpeg');if(!gallerySave(p))throw Error('fixture')});
+ assert.equal(await page.locator('#writerExtras').evaluate(e=>e.open),false);
+ await page.locator('#writerGallery').click();await page.locator('#writerGalleryItems button').click();assert.equal(await body.inputValue(),'Начало.\n[[рисунок:1]]\n Конец.');
+ assert.equal(await body.evaluate(e=>e.selectionStart), 'Начало.\n[[рисунок:1]]\n'.length);
+ assert.equal(await page.locator('#imageTray img').count(),1);
+ await page.locator('#drawStory').click();await page.locator('#drawingCanvas').waitFor({state:'visible'});await page.locator('#drawingCancel').click();assert.equal(await body.inputValue(),'Начало.\n[[рисунок:1]]\n Конец.');
+ await body.evaluate(e=>e.setSelectionRange(e.value.length,e.value.length));await page.locator('#drawStory').click();const box=await page.locator('#drawingCanvas').boundingBox();await page.mouse.move(box.x+30,box.y+30);await page.mouse.down();await page.mouse.move(box.x+90,box.y+90,{steps:4});await page.mouse.up();await page.locator('#drawingSave').click();assert.equal(await page.locator('#drawingPanel').isVisible(),false);assert.equal(await page.locator('#imageTray img').count(),2);assert.ok((await body.inputValue()).endsWith('\n[[рисунок:2]]\n'));
+ assert.equal(await body.evaluate(e=>e.selectionStart===e.value.length),true);
+ await body.evaluate(e=>e.setSelectionRange(e.value.indexOf('рисунок:1')+2,e.value.indexOf('рисунок:1')+2));await page.locator('#writerGallery').click();await page.locator('#writerGalleryItems button').click();assert.ok((await body.inputValue()).includes('[[рисунок:1]]\n[[рисунок:3]]'));assert.equal(await page.locator('#imageTray img').count(),3);
+ await page.evaluate(()=>{const e=$('storyBody');e.focus();writerViewportFit({height:390,offsetTop:0,scale:1})});assert.ok(await page.locator('#drawStory').isVisible());assert.ok(await page.locator('#saveStoryNow').isVisible());await page.evaluate(()=>writerViewportFit({height:innerHeight,offsetTop:0,scale:1}));
+ await page.locator('#saveStoryNow').click();await page.reload();await page.locator('#homeWrite').click();assert.equal(await page.locator('#imageTray img').count(),3);
+ }finally{await ctx.close()}
+ console.log('PASS direct art toolbar, gallery insert, draw, return and reopen');
+ }
  // Full personal book: repeat an existing cover, refuse a sixth, and retry a failed save.
  {
  const ctx=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -370,7 +440,7 @@ const server=http.createServer((req,res)=>{
  const visited=await homeSnapshot();console.log('HOME AFTER LIBRARY AND LESSONS',JSON.stringify({viewport,...visited}));
  const fallback=await ctx.newPage();try{await fallback.route('**/assets/ui/writer-squirrel-144-v1.webp',r=>r.abort());await fallback.goto(url);await fallback.waitForFunction(()=>!document.querySelector('#homeWriteArt img'));assert.ok(await fallback.locator('#homeWriteArt svg').isVisible(),'writer fallback when art unavailable');await fallback.locator('#homeWrite').click();assert.ok(await fallback.locator('#storyBody').isVisible(),'free writing still opens with missing art');assert.equal(await fallback.evaluate(()=>readingBooksCache===undefined),true,'cold direct writer avoids book catalog allocation');}finally{await fallback.close()}
  const writeRect=await page.locator('#homeWrite').boundingBox();assert.ok(writeRect.y>=0&&writeRect.y+writeRect.height<=viewport.height,'author entry fits first screen');
- await page.locator('#homeWrite').click();assert.ok(await page.locator('#storyForm').isVisible());assert.equal(await page.locator('#storyTitle').getAttribute('required'),null);assert.equal(await page.locator('#writerExtras').evaluate(e=>e.open),false);assert.equal(await page.locator('#drawStory').isVisible(),false);assert.equal(await page.locator('#studioEffectPane canvas').count(),0,'no preview canvases during free writing');assert.equal(await page.locator('#lessonPicture svg').count(),0,'no lesson SVG during free writing');assert.ok(await page.locator('#publishStory').isVisible());
+ await page.locator('#homeWrite').click();assert.ok(await page.locator('#storyForm').isVisible());assert.equal(await page.locator('#storyTitle').getAttribute('required'),null);assert.equal(await page.locator('#writerExtras').evaluate(e=>e.open),false);assert.equal(await page.locator('#drawStory').isVisible(),true);assert.ok(await page.locator('#writerGallery').isVisible());assert.ok(await page.locator('#pictureStory').isVisible());assert.equal(await page.locator('#studioEffectPane canvas').count(),0,'no preview canvases during free writing');assert.equal(await page.locator('#lessonPicture svg').count(),0,'no lesson SVG during free writing');assert.ok(await page.locator('#publishStory').isVisible());
  assert.ok(await page.evaluate(()=>document.getElementById('storyTitle').compareDocumentPosition(document.getElementById('storyBody'))&Node.DOCUMENT_POSITION_FOLLOWING));
  assert.ok(await page.evaluate(()=>document.getElementById('storyBody').compareDocumentPosition(document.getElementById('storyTheme'))&Node.DOCUMENT_POSITION_FOLLOWING),'writing before settings');
 
