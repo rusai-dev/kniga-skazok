@@ -520,7 +520,11 @@ const server=http.createServer((req,res)=>{
  const rescuePNG=await page.locator('#drawingCanvas').evaluate(c=>c.toDataURL('image/png').split(',')[1]);const drawingDownload=page.waitForEvent('download');await page.locator('#drawingRescue').click();assert.deepEqual(fs.readFileSync(await (await drawingDownload).path()),Buffer.from(rescuePNG,'base64'));
  assert.equal(await page.locator('#drawingCanvas').evaluate(c=>c.toDataURL('image/png').split(',')[1]),rescuePNG);assert.deepEqual(await persistedPicture(),imported);assert.equal(await page.evaluate(()=>localStorage.getItem(DRAWING_DRAFT)),drawingBeforeRescue);
  await page.locator('#drawingFullSave').click();assert.ok(await page.locator('#drawingCanvas').isVisible());assert.deepEqual(await persistedPicture(),imported);
- await page.evaluate(()=>{Storage.prototype.setItem=window.__qaDrawingSet});await page.locator('#drawingFullSave').click();assert.equal(await page.locator('#drawingPanel').isVisible(),false);assert.ok(await page.locator('#imageTray img').isVisible());
+ await page.evaluate(()=>{Storage.prototype.setItem=window.__qaDrawingSet});
+ // Simulate a newer drawing from another tab; neither a stale stroke nor successful insertion may overwrite/remove it.
+ const newerDrawing=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='#6d3aa8';g.fillRect(0,0,64,64);const src=c.toDataURL('image/jpeg',.77);localStorage.setItem(DRAWING_DRAFT,src);return src});
+ await page.locator('#drawingCanvas').click({position:{x:70,y:70}});assert.ok((await page.locator('#drawingStatus').textContent()).includes('Другой рисунок'));assert.ok(await page.locator('#drawingRescue').isVisible());assert.equal(await page.evaluate(()=>localStorage.getItem(DRAWING_DRAFT)),newerDrawing);
+ await page.locator('#drawingFullSave').click();assert.equal(await page.locator('#drawingPanel').isVisible(),false);assert.ok(await page.locator('#imageTray img').isVisible());assert.equal(await page.evaluate(()=>localStorage.getItem(DRAWING_DRAFT)),newerDrawing,'inserting stale canvas preserves newer drawing');await page.evaluate(()=>localStorage.removeItem(DRAWING_DRAFT));
  assert.equal((await persistedPicture()).body.replace(/\n\[\[рисунок:1\]\]\n/,''),imported.body);
  await page.locator('#saveStoryNow').click();
  await page.locator('#homeNewStory').click();assert.equal(await page.locator('#storyBody').inputValue(),'');assert.equal(await page.locator('#storyTheme').inputValue(),'Мои истории');await page.locator('#storyTitle').fill('Вторая свободная сказка');await page.locator('#storyBody').fill('Другой текст в той же теме.');await page.locator('#saveStoryNow').click();
@@ -572,7 +576,8 @@ const server=http.createServer((req,res)=>{
    assert.equal(await page.locator('#bookSearch').inputValue(),'ежик фонарь');assert.equal(await page.evaluate(()=>location.hash),searchedHash);assert.equal(await page.locator('#books .book-title').count(),1);
  }
  await searchedCard.locator('.own-info').click();assert.ok(await page.locator('#shareFamilyBook').isVisible());await page.locator('#close').click();await page.waitForFunction(()=>document.activeElement===document.querySelector('#books .own-info'));
- assert.equal(await page.evaluate(()=>JSON.stringify(data.stories)),searchedStory,'reading and returning do not mutate books');await page.reload();
+ assert.equal(await page.evaluate(()=>JSON.stringify(data.stories)),searchedStory,'reading and returning do not mutate books');
+ await searchedCard.locator('.own-edit').click();await page.locator('#saveStoryNow').click();await page.waitForFunction(()=>document.activeElement===document.querySelector('#books .own-edit'));assert.equal(await page.locator('#bookSearch').inputValue(),'ежик фонарь');await page.reload();
  await page.locator('#homeBooks').click();await page.locator('#bookSearch').fill('СИЯНИ');
  assert.equal(await page.locator('#books .book-title').count(),1);
  await page.locator('#clearBookSearch').click();assert.equal(await page.locator('#bookSearch').inputValue(),'');
