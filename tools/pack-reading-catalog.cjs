@@ -24,8 +24,9 @@ function packCatalog(catalog){
  const words=/[\p{L}\p{N}]{3,}/gu,counts=new Map();
  for(const m of raw.matchAll(words))counts.set(m[0],(counts.get(m[0])||0)+1);
  // First 768 tokens occupy two UTF-8 bytes; source characters in that interval are JSON-escaped.
+ // Limit to 400 high-value words: the fragment dictionary covers repeated tails more efficiently.
  const score=([word,n])=>(utf8(word)-2)*n-utf8(word)-3;
- const dictionary=[...counts].filter(x=>score(x)>4).sort((a,b)=>score(b)-score(a)||(a[0]<b[0]?-1:a[0]>b[0]?1:0)).slice(0,1500).map(x=>x[0]);
+ const dictionary=[...counts].filter(x=>score(x)>4).sort((a,b)=>score(b)-score(a)||(a[0]<b[0]?-1:a[0]>b[0]?1:0)).slice(0,400).map(x=>x[0]);
  const codes=new Map(dictionary.map((word,i)=>[word,String.fromCharCode(i<768?0x100+i:0xE000+i-768)]));
  const packed=raw.replace(words,word=>codes.get(word)||word);
  if(packed.replace(/[\u0100-\u03FF\uE000-\uF8FF]/g,c=>dictionary[c.charCodeAt(0)<0xE000?c.charCodeAt(0)-0x100:c.charCodeAt(0)-0xE000+768])!==raw)throw Error('Catalog round-trip failed');
