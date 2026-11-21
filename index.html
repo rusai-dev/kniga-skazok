@@ -3665,6 +3665,7 @@ function editor(bid,fromGallery=null,ownTheme=null,ownKey=null){
      const response=await fetch(path+'-504-v1.webp');if(!response.ok)throw Error('image');
      const src=await imageForStory(await response.blob());if($('storyForm')!==form||!$('modal').hasAttribute('open')||rich!==original||rich.coverImage!==prior||form.dataset.drawingDirty==='yes')return;
      const old=[...rich.images];let i=old.indexOf(src);if(i<0)i=old.findIndex(x=>!x);if(i<0)i=old.length;if(i>=5){toast('В книге пять картинок. Выбери одну из них для обложки.');return}
+     if(i===prior){toast('Обложка сохранена.');return}
      rich.images[i]=src;rich.coverImage=i;tray();
      if(!draft()){rich.images=old;rich.coverImage=prior;tray();draft();toast('Обложка не изменена: не удалось сохранить.');return}
      toast('Обложка сохранена.');
