@@ -115,6 +115,30 @@ const server=http.createServer((req,res)=>{
  }finally{await ctx.close()}
  console.log('PASS exact manuscript, invalid family shelf and closed image request');
  }
+ // A fresh sheet is not a continuation; failed writes leave committed state and form intact.
+ {
+ const ctx=await browser.newContext({viewport:{width:1024,height:768},serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{
+ await page.goto(url);
+ await page.evaluate(()=>{const d={author:OWN,theme:'Лес',title:'Первый черновик',body:'Сохранённый текст'};if(!commitLibrary({...data,drafts:{[draftKey(OWN,'Лес')]:d},draft:d}))throw Error('fixture');navigate(OWN,'Лес')});
+ await page.locator('.newpage').click();assert.equal(await page.locator('#storyBody').inputValue(),'');assert.equal(await page.locator('#storyTheme').inputValue(),'Лес');await page.keyboard.press('Escape');await page.locator('#ownShelfDrafts').click();await page.locator('[data-own-draft]').click();
+ const persisted=await page.evaluate(()=>JSON.stringify(data));
+ await page.evaluate(()=>{window.qaSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return window.qaSet.call(this,k,v)}});
+ await page.locator('#storyBody').fill('Несохранённый текст');assert.equal(await page.evaluate(()=>JSON.stringify(data)),persisted);assert.ok(await page.locator('#rescueFull').isVisible());
+ await page.locator('#writerExtras > summary').click();await page.locator('#writerExtras summary').filter({hasText:'Тема и значок обложки'}).click();await page.locator('#storyTheme').selectOption('Море');assert.equal(await page.evaluate(()=>JSON.stringify(data)),persisted);
+ await page.evaluate(()=>Storage.prototype.setItem=window.qaSet);await page.locator('#saveStoryNow').click();assert.equal(await page.evaluate(()=>ownDraftChoices(data,OWN).length),1);assert.equal(await page.evaluate(()=>ownDraftChoices(data,OWN)[0].theme),'Море');assert.equal(await page.evaluate(()=>ownDraftChoices(data,OWN)[0].draft.body),'Несохранённый текст');
+ await page.locator('#ownShelfContinue').click();await page.locator('#publishStory').click();
+ const bid=await page.evaluate(()=>data.stories.find(b=>b.title==='Первый черновик').id);
+ await page.locator('.own-info').click();await page.locator('#commentText').fill('Семейный отзыв');
+ await page.evaluate(()=>{Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return window.qaSet.call(this,k,v)}});
+ await page.locator('#commentForm button').click();assert.equal(await page.locator('#commentText').inputValue(),'Семейный отзыв');assert.equal(await page.evaluate(bid=>getFeedback(bid).comments.length,bid),0);
+ await page.locator('#rUp').click();assert.equal(await page.evaluate(bid=>getFeedback(bid).vote,bid),0);await page.evaluate(()=>Storage.prototype.setItem=window.qaSet);
+ await page.locator('#commentForm button').click();assert.equal(await page.evaluate(bid=>getFeedback(bid).comments.length,bid),1);await page.keyboard.press('Escape');
+ await page.evaluate(()=>{addTheme();Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return window.qaSet.call(this,k,v)}});await page.locator('#themeName').fill('Новая тема QA');await page.locator('#newThemeForm button').click();assert.equal(await page.locator('#themeName').inputValue(),'Новая тема QA');assert.equal(await page.evaluate(()=>data.themes.some(t=>t.name==='Новая тема QA')),false);
+ await page.evaluate(()=>Storage.prototype.setItem=window.qaSet);await page.locator('#newThemeForm button').click();assert.equal(await page.evaluate(()=>data.themes.some(t=>t.name==='Новая тема QA')),true);assert.deepEqual(errors,[]);
+ }finally{await ctx.close()}
+ console.log('PASS confirmed draft and feedback, fresh shelf sheet, theme retry');
+ }
  // Full personal book: repeat an existing cover, refuse a sixth, and retry a failed save.
  {
  const ctx=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
