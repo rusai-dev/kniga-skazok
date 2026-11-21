@@ -9,7 +9,10 @@
       "bytes": 5110,
       "source": "Original SVG authored for this project",
       "use": "Optional author gallery",
-      "alt": "Открытая книга в библиотеке у светящегося фонаря"
+      "alt": "Открытая книга в библиотеке у светящегося фонаря",
+      "sha256": "44ee2f65f973b1b542022b525c99c76455e6fe07e71b2ab4e7dd0bbfea8a670b",
+      "license": "Original project artwork; no third-party assets",
+      "status": "integrated; visual/device verification pending"
     },
     {
       "path": "assets/author/star-journey-v1.svg",
@@ -19,7 +22,10 @@
       "bytes": 2981,
       "source": "Original SVG authored for this project",
       "use": "Optional author gallery",
-      "alt": "Парусная лодка под луной и звёздами"
+      "alt": "Парусная лодка под луной и звёздами",
+      "sha256": "a164908915041480242c15d8f62e311ccde77c0fb421a9fd386b5b13227ac37c",
+      "license": "Original project artwork; no third-party assets",
+      "status": "integrated; visual/device verification pending"
     }
   ]
 }
