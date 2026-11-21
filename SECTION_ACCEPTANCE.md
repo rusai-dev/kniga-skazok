@@ -1,8 +1,8 @@
 # Section-by-section acceptance / Книга сказок
 
 Active: **01 — Мои сказки / авторская мастерская**. Status: **technical release merged; deployment and full acceptance pending**.
-Current verified main: 1.5.164, 8e6bf71aa737315d5bf73d436aaf24cf8b8f5b13. Historical entries below retain their original base SHAs.
-Last integrated PR: #129, including #128. Exact integrated candidate passed all three jobs; deployment and physical iPad not confirmed. Preserve all user data; only synthetic fixtures in tests.
+Current verified main: 1.5.165, 442cc0f73fa6e2a531b3ff847232be30b614e580. Historical entries retain their base SHAs.
+Last integrated PR: #130; exact CI passed. Deployment and physical iPad not confirmed. Only synthetic fixtures.
 
 ## Acceptance matrix
 Based on master prompt §§114–119, 127–132. A PASS requires evidence for the whole row, not merely code presence. All rows mandatory. No aggregate score; individual axes (function, content, usability, art, data/privacy, accessibility, speed/offline) remain unscored until evidence recorded.
@@ -125,3 +125,10 @@ PR #129 exact head 8aa8f984ac4751a5576dce989108e04a4978aabb all three jobs passe
 
 ## 1.5.165 illustrated cover gallery feedback (A07/A11)
 Base 8e6bf71aa737315d5bf73d436aaf24cf8b8f5b13. Show the selected gallery card with visible border, check and aria-pressed, synchronized with cover dropdown, removal and rollback. Gallery-wide loading lock and aria-busy while selecting an image; keep old selected cover visible. Track decoded illustration provenance in current editor session only (four bounded references); after reopening, the existing cover preview and chosen picture in tray remain authoritative; no persisted metadata/schema changes. No new artwork or network endpoints. Browser assertions verify selection, theme cover switch, slow fetch with all four buttons disabled and intact saved snapshot, and capacity failure. Syntax checked; full CI pending. Startup sources 997692 → 998492 B; actual transfer, iPad, family archive and full visual acceptance outstanding. 0/12 full rows accepted. Next: exact CI, then physical iPad test and full action inventory; remain in package 01.
+
+
+## 1.5.165 merge evidence
+#130 exact head afacd5a4282b1c8c504ccf35c855530d6a9e0eda passed regression, Chromium and WebKit run 44868257748; tested tree matches merge, main 442cc0f73fa6e2a531b3ff847232be30b614e580. Live deployment and iPad not independently confirmed.
+
+## 1.5.166 expanded optional cover palette (A07/A08/A09/A11)
+User requested more cover colors. Add turquoise, violet, mint, peach, berry; keep five original colors unchanged. Central dictionary drives dropdown, validation, cover and reader; no schema/key change, white reading paper unchanged. All ten contrast pairs computed, minimum 5.86:1. Verified normalization and syntax. Added tests for ten choices, persisted draft, reopening, family snapshot and synthetic family reader with turquoise; invalid values fallback to forest. No new images, network requests or dependencies. Source bytes 998492 → 998796; full CI pending, actual Pages/iPad/family archive unverified. No full mandatory rows newly accepted (0/12). Next: exact CI and compatible merge, then physical iPad check.
