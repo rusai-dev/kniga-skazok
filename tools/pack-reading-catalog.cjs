@@ -72,7 +72,7 @@ if(typeof module!=='undefined'){module.exports={packCatalog,packReadingBanks,utf
  const start=html.indexOf('let readingBooksCache;'),end=html.indexOf('const readingAuthorNames=',start);if(start<0||end<start)throw Error('Catalog markers missing');const packed=packCatalog(catalog);
  if(process.argv.includes('--write'))fs.writeFileSync(file,html.slice(0,start)+packed+html.slice(end));else if(html.slice(start,end)!==packed)throw Error('Generated catalog differs. Run node tools/pack-reading-catalog.cjs --write');
  const banks=JSON.parse(fs.readFileSync(path.join(root,'content','reading-banks.json'),'utf8')),generated=packReadingBanks(banks),current=fs.readFileSync(file,'utf8'),a=current.indexOf('const readingComprehension=lazyReadingBank('),b=current.indexOf('function readingQuestions(b)',a);
- if(a<0||b<a)throw Error('Reading bank markers missing');
+ if(a<0||b<a||!current.includes('function readingGlossaryMarkup(')||current.slice(a,b).includes('function readingGlossaryMarkup('))throw Error('Reading bank markers or glossary helper placement invalid');
  if(process.argv.includes('--write'))fs.writeFileSync(file,current.slice(0,a)+generated+current.slice(b));else if(current.slice(a,b)!==generated)throw Error('Generated reading banks differ. Run node tools/pack-reading-catalog.cjs --write');
  console.log('PACKED CATALOG BYTES',utf8(packed),'READING BANK BYTES',utf8(generated));
 }}

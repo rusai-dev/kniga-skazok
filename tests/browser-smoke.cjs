@@ -309,6 +309,7 @@ const server=http.createServer((req,res)=>{
    await page.evaluate(()=>nightRead(1));await page.locator('#nightEcho>summary').click();await page.locator('#nightEchoMore').click();await page.locator('#nightEchoShow').click();assert.ok((await page.locator('#nightEchoFeedback').textContent()).includes('8 м'),'chapter echo works offline');
    await page.evaluate(()=>readingOpen('pea-full',0));await page.locator('#readingNumber').waitFor({state:'visible'});assert.ok((await page.locator('#readingText').textContent()).trim(),'full catalog works on first offline reading');
    assert.deepEqual(await page.evaluate(()=>getReadingBooks()),sourceCatalog,'full decoded catalog matches editable source in actual offline browser');
+   const sourceBanks=JSON.parse(fs.readFileSync(path.join(root,'content','reading-banks.json'),'utf8'));assert.deepEqual(await page.evaluate(()=>({readingComprehension:readingComprehension(),readingGlossary:readingGlossary(),readingInference:readingInference()})),sourceBanks,'all decoded banks exact in offline browser');assert.ok(await page.evaluate(()=>readingGlossaryMarkup('cinderella-full').includes('падчерица')),'offline glossary rendering');
    await page.locator('#readingBack').click();assert.ok(await page.locator('[data-story="pea-full"]').isVisible(),'offline back to book shelf');
    await page.keyboard.press('Escape');
    console.log('PASS service worker offline artwork, catalog and storage');
@@ -781,7 +782,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#readerOptions summary').click();await page.locator('#readingBack').click();
  await page.locator('[data-story="lantern-friends"]').click();
  for(let j=0;j<50&&await page.locator('#readingNext').count();j++)await page.locator('#readingNext').click();
- await page.locator('#readingQuizStart').click();
+ assert.deepEqual(errors,[],'no runtime error before reading quiz');assert.equal(await page.locator('#readingQuizStart').count(),1,'completion opens quiz');await page.locator('#readingQuizStart').click();
  for(let j=0;j<3;j++){
  assert.equal(await page.locator('#rqEvidence').isVisible(),false);
  await page.locator('#rqUnsure').click();
