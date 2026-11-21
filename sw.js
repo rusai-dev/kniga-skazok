@@ -1,12 +1,13 @@
 /* Versioned offline shell; lazy artwork cache. Never modify user storage. */
 'use strict';
-const REV='1.5.168',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
+const REV='1.5.169',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
 const ROOT=new URL('./',self.registration.scope).href,INDEX=new URL('index.html',ROOT).href;
 const LEGACY_CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css'].map(name=>new URL(name,ROOT).href);
 const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1536.webp','assets/ui/writer-squirrel-144-v1.webp'].map(name=>new URL(name,ROOT).href);
 const CORE=[...LEGACY_CORE.map(url=>url+'?v='+REV),...UI_SPRITES];
 const ART=new Set(['andersen-pea-bed.webp','andersen-pea-journey.webp','andersen-pea-morning.webp','andersen-pea-rain.webp','classic-cinder-1.jpg','classic-cinder-11.jpg','classic-cinder-3.jpg','classic-cinder-7.jpg','historic-pea-morning.jpg','historic-sunny.jpg','historic-wind1.jpg','historic-wind2.jpg','premium-coloring.png','premium-storybook.webp'].map(name=>new URL('assets/books/'+name,ROOT).href));
 for(const name of ['egypt-nile-thumb-128-v1.webp','night-owl-thumb-128-v1.webp','night-bats-scene-320-v1.webp','night-bats-scene-504-v1.webp','night-roost-scene-320-v1.webp','night-roost-scene-504-v1.webp','night-owl-cover-320-v1.webp','night-owl-cover-504-v1.webp','egypt-nile-cover-320-v1.webp','egypt-nile-cover-504-v1.webp'])ART.add(new URL('assets/world/'+name,ROOT).href);
+for(const name of ['library-lantern','star-journey'])ART.add(new URL('assets/author/'+name+'-v1.svg',ROOT).href);
 async function fresh(url){return fetch(url,{cache:'no-store',credentials:'same-origin'})}
 function isHTML(r){return r.ok&&/text\/html/i.test(r.headers.get('content-type')||'')}
 function isImage(r){return r.ok&&/^image\//i.test(r.headers.get('content-type')||'')}
