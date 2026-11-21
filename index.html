@@ -4318,7 +4318,7 @@ function startWriter(manual=false){
  $('familyBanner').hidden=false;
  if(fam?.role==='host'&&fam.secret===secret&&fam.tick&&(!ghToken()||fam.ghWriter)){
   if(manual&&fam.ghWriter){fam.ghSaved=null;fam.ghVerifiedAt=0}ftick(fam);
-  if(fam.ghWriter&&fam.ghSaved!==null&&!fam.ghBusy)fstatus('Проверено без входа в GitHub · '+fpublished().length+' книг доступны по семейной ссылке');
+  if(fam.ghWriter&&ghToken()&&!fam.ghBusy&&typeof fam.ghSaved==='string'&&Date.now()-(fam.ghVerifiedAt||0)<300000&&publicationMatches(fam.ghSaved))fstatus('Проверено без входа в GitHub · '+fpublished().length+' книг доступны по семейной ссылке');
  }else fstart('host',secret);
  if(!ghToken()&&!fam?.cloud)fstatus('Сказка на iPad. Для постоянной доставки попроси взрослого проверить архив.');
 }
