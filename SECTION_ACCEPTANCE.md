@@ -1,8 +1,8 @@
 # Section-by-section acceptance / Книга сказок
 
-Active: **01 — Мои сказки / авторская мастерская**. Status: **implementation / technical acceptance pending**.
-Base main: 1.5.150, d2c7b1fc62037df75ef6b5433b932460f677310d.
-Coordinating branch: `section-01-author-acceptance`; candidate 1.5.151. CI must pass on its exact head. Previous #115 passed regression and both browser engines, merged. Pages and physical iPad not confirmed. Preserve all user data; only synthetic fixtures in tests.
+Active: **01 — Мои сказки / авторская мастерская**. Status: **technical release merged; deployment and full acceptance pending**.
+Current verified main: 1.5.162, d66bba0a4d2830642cd0ab0db73388fc30f9560a. Historical entries below retain their original base SHAs.
+Last integrated PR: #126, including #125. Exact integrated candidate passed all three jobs; deployment and physical iPad not confirmed. Preserve all user data; only synthetic fixtures in tests.
 
 ## Acceptance matrix
 Based on master prompt §§114–119, 127–132. A PASS requires evidence for the whole row, not merely code presence. All rows mandatory. No aggregate score; individual axes (function, content, usability, art, data/privacy, accessibility, speed/offline) remain unscored until evidence recorded.
@@ -102,3 +102,8 @@ Candidate section-01-cover-gallery, stacked on #124 head 186ce4dfe3838280b0b7e03
 
 ## 1.5.162 personal/family book page design (A08/A09/A11)
 Candidate section-01-reading-design, stacked on #125 head 1c0540c212b63a848f5fdd44beab2693a36a2aa6, which had regression and Chromium green on 44819671284 at audit, WebKit pending. Main at audit: bccd14a6373318f4be705cac021cc2489c0dde26 (1.5.160). Apply existing validated cover palette to the personal/family paginated reader (border, image surround, subtle inline-start rule); keep text white, no mandatory styling steps, no changes to manuscript, image, data schema or reading position keys. Fit recomputes with real padding. Synthetic family fixture exercises chosen palette, white text page, image page and containment, image bytes unchanged. No new raster assets or requests; startup source estimate 999308 B vs 999041 B. Actual deployment check unavailable (connector rejects Pages URL; external fetch unavailable). Physical iPad, live anonymous family archive, measured launch latency/memory remain open; 0/12 entire mandatory rows accepted. Next: finish #125 exact tests and compatible merge, then test this candidate on exact head before merge; do not transition to package 02.
+
+
+## 1.5.162 — technical acceptance / merge evidence (2026-11-21)
+#126 exact head 62f40d45ac5b91258484ae19e22e85c511c8788c passed regression, Chromium and WebKit (run 44820132064). #125 exact head 1c0540c212b63a848f5fdd44beab2693a36a2aa6 is its ancestor; #125 separate CI was cancelled, not reported as success. Chose integrated #126 rather than merge the intermediate separately: comparison of #124 head against then-main bccd14a6373318f4be705cac021cc2489c0dde26 showed zero file changes; #126 synthetic merge against main also had zero changes relative to exact head. #126 merged d66bba0a4d2830642cd0ab0db73388fc30f9560a, verified main release.json 1.5.162 and comparison against tested head has zero file changes. #125 now closed as merged. Candidate startup estimate 999308 B / 1000000 B (692 B reserve), not network transfer or physical iPad measurement. Public Pages endpoint and release JSON unreachable from current environment (DNS/web access failure); deployment not confirmed, no evidence of outage. No real child data accessed. No full acceptance rows newly passed: 0/12; actual iPad, anonymous live family archive and actual performance remain open.
+Next: check live release.json and test on physical iPad: from My Stories select a new draft, type several Cyrillic lines, choose an optional cover, read, close and reopen; report keyboard obstruction and preservation of original text/illustration. Continue package 01. Before further runtime additions, free startup budget losslessly and measure; do not transition to package 02 without full acceptance.
