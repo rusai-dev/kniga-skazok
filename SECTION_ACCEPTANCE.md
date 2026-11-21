@@ -205,3 +205,20 @@ Exact head 89c404f532a6eab286f97de37ee24acbcaa2de54, run 44879570856: regression
 
 ## Urgent package 01 hotfix: lost touch / drawing controls freeze
 Reported on physical iPad: brush, Clear, Back to story, Insert stop responding with child drawing visible. Code confirms a missing terminal pointer event can leave pointer non-null and block all these paths; actual trigger on iPad unknown. Separate hotfix from main 73f2bf146cb33a8988d18c84eff4b202c1a5e7bd, 1.5.178 candidate. End abandoned stroke (keep pixels and persist) at next primary contact or explicit tool/save/back/export/clear/fullscreen action; secondary contact does not interrupt. No storage reset, new data schema or live child data. Browser fixture exercises lost terminal event and toolbar recovery; full existing CI required. Runtime/version/footer/core URLs/worker consistent; source 994781 B; JS syntax PASS. PR143 remains blocked by stale candidate version footer/core URLs and must be reconciled after hotfix, not merged concurrently. Current live drawing cannot be remotely restored; advise original tab kept open, same-device ordinary new tab, verify saved image before editing. Full acceptance 0/12; physical/device and actual deployment unconfirmed.
+
+## Пакет 01 · контрольная точка PR #145
+
+База `5315cf75cff7dbfcfe893c4b9613223bad117599`, код кандидата 1.5.179 `6800bcb106ed948a0b8a4bb9eb7f70ae2c617db2`, стартовые исходники 999 501 Б. В таблице статус относится ко всей строке.
+
+| Критерии | Статус | Проверено и осталось |
+| --- | --- | --- |
+| A01–A02 | НЕ ПРОВЕРЕНО | Пустой лист, личная полка, поиск, несколько черновиков и возврат проверены в браузере. Остался полный проход на iPad. |
+| A03–A04 | НЕ ПРОВЕРЕНО | Сценарии отказа записи, устаревшей вкладки и аварийного скачивания. Отдельные холсты, транзакционная миграция и реальный IME остаются открыты. |
+| A05–A06 | НЕ ПРОВЕРЕНО | Версии текста и оформление покрыты регрессией. Полная визуальная сверка всех состояний ожидается. |
+| A07 | НЕ ПРОВЕРЕНО | Синтетические касание, давление и пропущенный pointerup, вставка, отмена и экспорт. Редакции вставок, физический Pencil и 30 минут остаются открыты. |
+| A08–A09 | НЕ ПРОВЕРЕНО | Личное чтение и явная семейная публикация через синтетический независимый профиль. Фактическая доставка семье не проверена. |
+| A10–A12 | НЕ ПРОВЕРЕНО | Отмена отложенного восстановления, бюджет, программный офлайн. VoiceOver, физическое устройство и живое обновление остаются открыты. |
+| V01–V03 | НЕ ПРОВЕРЕНО | Геометрия входа в пяти viewport, восемь входов, декодирование, выбор, загрузка одной миниатюры. Память и полные метрики задержки не измерены. |
+| V04–V06 | НЕ ПРОВЕРЕНО | Сделаны снимки полки, письма, клавиатуры, холста, кистей, вставки и книги. Полное покрытие состояний и устройств впереди. |
+
+До приёмки пакета проверять точный HEAD в CI, реализовать оставшиеся операции с оригиналами, затем провести проверку на устройстве. [Визуальные снимки](docs/author-studio-visual-1.5.179.webp)
