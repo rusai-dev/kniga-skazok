@@ -93,9 +93,9 @@ const server=http.createServer((req,res)=>{
  }
  await page.locator('.cover-designer summary').click();await page.locator('#coverGalleryToggle').click();
  const button=name=>page.locator('#coverGallery button').filter({hasText:name});
- const colors=await page.locator('#coverColor option').evaluateAll(es=>es.map(e=>e.value));assert.deepEqual(colors,['forest','rose','sky','honey','lavender','turquoise','violet','mint','peach','berry']);
- for(const color of colors){await page.locator('#coverColor').selectOption(color);const state=await page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem(KEY)).drafts).find(d=>d.title==='Проверка пяти рисунков'));assert.equal(state.rich.cover,color);assert.equal(await page.evaluate(b=>fbook(b).rich.cover,state),color);assert.equal(await page.locator('#coverPreview .custom-cover').evaluate(e=>e.style.background),await page.evaluate(c=>{const e=document.createElement('div');e.style.background=coverPalette(c)[0];return e.style.background},color))}
- await page.locator('#coverColor').selectOption('turquoise');
+ const swatch=c=>page.locator('#coverColor button[value="'+c+'"]');const colors=await page.locator('#coverColor button').evaluateAll(es=>es.map(e=>e.value));assert.equal(await page.locator('#coverColor button[aria-pressed=true]').count(),1);assert.ok(await page.locator('#coverColor button').evaluateAll(es=>es.every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44})));assert.deepEqual(colors,['forest','rose','sky','honey','lavender','turquoise','violet','mint','peach','berry']);
+ for(const color of colors){await swatch(color).click();assert.equal(await swatch(color).getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#coverColor button[aria-pressed=true]').count(),1);const state=await page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem(KEY)).drafts).find(d=>d.title==='Проверка пяти рисунков'));assert.equal(state.rich.cover,color);assert.equal(await page.evaluate(b=>fbook(b).rich.cover,state),color);assert.equal(await page.locator('#coverPreview .custom-cover').evaluate(e=>e.style.background),await page.evaluate(c=>{const e=document.createElement('div');e.style.background=coverPalette(c)[0];return e.style.background},color))}
+ await swatch('turquoise').focus();await page.keyboard.press('Enter');assert.equal(await swatch('turquoise').getAttribute('aria-pressed'),'true');
  const stored=()=>page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem(KEY)).drafts).find(d=>d.title==='Проверка пяти рисунков'));
  for(const [i,name] of ['Лунный лес','Ночные друзья','Лесной домик'].entries()){
  await button(name).click();await page.waitForFunction(n=>$('coverImage').value===String(n)&&!$('publishStory').disabled,i+2);
@@ -114,12 +114,13 @@ const server=http.createServer((req,res)=>{
  await page.evaluate(()=>{window.__qaCoverSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return window.__qaCoverSet.call(this,k,v)}});
  const changed=selected.body+'\nНовая строка.';
  await page.locator('#storyBody').fill(changed);assert.ok((await page.locator('#draftStatus').textContent()).includes('Не удалось'));
+ await swatch('berry').click();assert.equal(await swatch('turquoise').getAttribute('aria-pressed'),'true');assert.equal(await swatch('berry').getAttribute('aria-pressed'),'false');assert.deepEqual(await stored(),selected);assert.equal(await page.locator('#storyBody').inputValue(),changed);
  await button('Лунный лес').click();await page.waitForFunction(()=>$('toast').textContent.includes('Не удалось сохранить')&&!$('publishStory').disabled);
  assert.equal(await page.locator('#storyBody').inputValue(),changed);assert.deepEqual(await stored(),selected);assert.ok(await page.locator('#rescueFull').isVisible());
  await page.evaluate(()=>{Storage.prototype.setItem=window.__qaCoverSet});
  await button('Лунный лес').click();await page.waitForFunction(()=>$('toast').textContent==='Обложка сохранена.'&&!$('publishStory').disabled);
  const saved=await stored();assert.equal(saved.body,changed);assert.deepEqual(saved.rich.images,full.rich.images);assert.equal(saved.rich.coverImage,2);
- await page.locator('#saveStoryNow').click();await page.reload();await page.locator('#homeWrite').click();assert.equal(await page.locator('#storyBody').inputValue(),changed);assert.deepEqual(await stored(),saved);assert.equal(saved.rich.cover,'turquoise');assert.equal(await page.locator('#coverColor').inputValue(),'turquoise');assert.deepEqual(errors,[]);
+ await page.locator('#saveStoryNow').click();await page.reload();await page.locator('#homeWrite').click();assert.equal(await page.locator('#storyBody').inputValue(),changed);assert.deepEqual(await stored(),saved);assert.equal(saved.rich.cover,'turquoise');assert.equal(await swatch('turquoise').getAttribute('aria-pressed'),'true');assert.deepEqual(errors,[]);
  }finally{await ctx.close()}
  console.log('PASS full cover reuse, capacity refusal and failed-save retry');
  }
