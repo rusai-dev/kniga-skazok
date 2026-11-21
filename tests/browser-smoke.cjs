@@ -74,6 +74,45 @@ const server=http.createServer((req,res)=>{
  let browser;
  try{
  browser=await engine.launch({headless:true});
+ // Optional studio art is selected once per visit, with a readable fallback.
+ {
+ const ctx=await browser.newContext({serviceWorkers:'block'}),page=await ctx.newPage();
+ try{
+ await page.goto(url);
+ const image=page.locator('#heroArt img'),motifs=[];
+ for(let i=0;i<8;i++){
+  await page.locator('#homeBooks').click();
+  assert.equal(await image.evaluate(async img=>{await img.decode();return img.naturalWidth}),240);
+  motifs.push(await image.getAttribute('src'));
+  await page.locator('#home').click();
+ }
+ assert.equal(new Set(motifs.slice(0,4)).size,4);
+ assert.equal(new Set(motifs.slice(4)).size,4);
+ assert.ok(motifs.every((m,i)=>m!==motifs[i-1]));
+ await page.locator('#homeBooks').click();
+ await page.locator('#studioInspiration summary').click();
+ const picker=page.locator('#studioMotif');
+ await picker.selectOption('1');
+ const favorite=await image.getAttribute('src');
+ await page.locator('#home').click();
+ await page.locator('#homeBooks').click();
+ assert.equal(await image.getAttribute('src'),favorite);
+ await page.locator('#studioInspiration summary').click();
+ await picker.selectOption('off');
+ assert.equal(await page.locator('#heroArt').isVisible(),false);
+ }finally{await ctx.close()}
+ const cold=await browser.newContext({serviceWorkers:'block'});
+ try{
+ const failed=await cold.newPage();
+ await failed.route('**/assets/author/studio/*-240.webp',r=>r.fulfill({contentType:'image/webp',body:'invalid WebP'}));
+ await failed.goto(url);
+ const badMotif=failed.waitForResponse(r=>r.url().includes('/assets/author/studio/')&&r.url().endsWith('-240.webp'));
+ await failed.locator('#homeBooks').click();
+ await badMotif;
+ await failed.waitForFunction(()=>document.getElementById('heroArt').textContent==='📖'&&!document.querySelector('#heroArt img'));
+ console.log('PASS studio illustration rotation, favorite, disable and decode fallback');
+ }finally{await cold.close()}
+ }
  // Isolated tabs: the stale author's unsaved work stays visible, the latest library survives.
  {
  const ctx=await browser.newContext({serviceWorkers:'block'}),a=await ctx.newPage(),b=await ctx.newPage();
@@ -428,7 +467,7 @@ const server=http.createServer((req,res)=>{
  const cold=await homeSnapshot();assert.ok(cold.resources.every(x=>!x.path.endsWith('/content/reading-catalog.json')&&!x.path.endsWith('/content/reading-banks.json')),'editable catalog and banks never fetched by app');console.log('COLD HOME RESOURCE BYTES',JSON.stringify({viewport,...cold}));assert.ok(cold.encoded>0&&cold.encoded<=1200000,'cold home encoded response budget exceeded: '+cold.encoded);assert.ok(cold.resources.every(x=>!/(\/assets\/(books|world|author)\/|\/(art-152|paintings-154|peerjs\.min)\.js$)/.test(x.path)),'optional full art or peer transport must not load on home');
  const last=await page.locator('#homeBooks').boundingBox();assert.ok(last.y>=0&&last.y+last.height<=viewport.height,'personal books must fit first screen');
  const homeLayout=await page.evaluate(()=>{const r=id=>{const b=$(id).getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height,bottom:b.bottom,right:b.right}};return {books:r('homeBooks'),create:r('homeCreate'),tabs:['readingEntry','homeMath','homeLogic','childWorld'].map(r),actions:['homeWrite','homeNewStory','homeDrafts','childLearn'].map(r),width:innerWidth,height:innerHeight,scroll:document.documentElement.scrollHeight}});assert.ok(homeLayout.books.y<homeLayout.tabs[0].y&&homeLayout.create.y<homeLayout.tabs[0].y,'creative destinations precede learning');for(const r of [...homeLayout.tabs,...homeLayout.actions,homeLayout.books,homeLayout.create])assert.ok(r.x>=0&&r.right<=homeLayout.width+1&&r.bottom<=homeLayout.height+1&&r.h>=44,'home action visible and tappable');assert.ok(homeLayout.books.h>homeLayout.tabs[0].h*1.3,'creative cards dominate');assert.ok(homeLayout.scroll<=homeLayout.height+2,'home fits iPad viewport without scrolling');
- await page.locator('#homeBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());await page.evaluate(()=>{window.__qaTopics=$('topics').firstElementChild;window.__qaHero=$('heroArt').firstElementChild});await page.locator('#bookSearch').fill('Тестовый поиск');assert.equal(await page.evaluate(()=>window.__qaTopics===$('topics').firstElementChild&&window.__qaHero===$('heroArt').firstElementChild),true,'personal search preserves filter and hero DOM');await page.locator('#clearBookSearch').click();assert.ok(await page.locator('#topics button').count()>0,'shelf built on entry');assert.ok(await page.locator('#heroArt svg').count()>0,'hero art retained');assert.ok(await page.locator('#libraryHome .hero').isVisible(),'personal shelf illustrated header visible');assert.equal(await page.locator('#heading').textContent(),'Моя книжная полка');await page.waitForFunction(()=>{const im=$('heroArt').querySelector('img');return im&&!im.hidden&&im.naturalWidth===144});assert.ok(await page.locator('#books .shelf-new-art').isVisible(),'illustrated new story card');assert.ok(await page.locator('#libraryHome').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'personal shelf fits width');assert.ok(await page.evaluate(()=>Array.isArray(readingBooksCache)&&readingBooksCache.length>0),'books initialized on shelf entry');assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);assert.ok(await page.locator('#ownShelfNew').isVisible());assert.ok(await page.locator('#ownShelfContinue').isVisible());assert.ok(await page.locator('#ownShelfDrafts').isVisible());assert.equal(await page.locator('#ownShelfDrafts').textContent(),await page.evaluate(()=>'Мои черновики · '+(ownDraftChoices(data,OWN).length+ownEditChoices(data.stories,data.edits,OWN).length)));await page.locator('#ownShelfNew').click();assert.equal(await page.locator('#storyBody').inputValue(),'');await page.keyboard.press('Escape');assert.ok(await page.locator('#libraryHome').isVisible(),'editor returns to personal shelf');
+ await page.locator('#homeBooks').click();assert.ok(await page.locator('#libraryHome').isVisible());await page.evaluate(()=>{window.__qaTopics=$('topics').firstElementChild;window.__qaHero=$('heroArt').firstElementChild});await page.locator('#bookSearch').fill('Тестовый поиск');assert.equal(await page.evaluate(()=>window.__qaTopics===$('topics').firstElementChild&&window.__qaHero===$('heroArt').firstElementChild),true,'personal search preserves filter and hero DOM');await page.locator('#clearBookSearch').click();assert.ok(await page.locator('#topics button').count()>0,'shelf built on entry');assert.ok(await page.locator('#libraryHome .hero').isVisible(),'personal shelf illustrated header visible');assert.equal(await page.locator('#heading').textContent(),'Моя книжная полка');await page.waitForFunction(()=>{const im=$('heroArt').querySelector('img');return im&&!im.hidden&&im.naturalWidth===240});assert.ok(await page.locator('#books .shelf-new-art').isVisible(),'illustrated new story card');assert.ok(await page.locator('#libraryHome').evaluate(e=>e.scrollWidth<=e.clientWidth+1),'personal shelf fits width');assert.ok(await page.evaluate(()=>Array.isArray(readingBooksCache)&&readingBooksCache.length>0),'books initialized on shelf entry');assert.equal(await page.locator('#libraryFilters').evaluate(e=>e.open),false);assert.ok(await page.locator('#ownShelfNew').isVisible());assert.ok(await page.locator('#ownShelfContinue').isVisible());assert.ok(await page.locator('#ownShelfDrafts').isVisible());assert.equal(await page.locator('#ownShelfDrafts').textContent(),await page.evaluate(()=>'Мои черновики · '+(ownDraftChoices(data,OWN).length+ownEditChoices(data.stories,data.edits,OWN).length)));await page.locator('#ownShelfNew').click();assert.equal(await page.locator('#storyBody').inputValue(),'');await page.keyboard.press('Escape');assert.ok(await page.locator('#libraryHome').isVisible(),'editor returns to personal shelf');
  await page.locator('#libraryFilters summary').click();assert.ok(await page.locator('#authors').isVisible());
  const geometry=await page.evaluate(()=>{const r=id=>document.getElementById(id).getBoundingClientRect();const topic=r('topics'),author=r('authors'),search=r('bookSearch'),visible=[...document.querySelectorAll('#topics button')].filter(b=>getComputedStyle(b).display!=='none');return {searchAbove:search.bottom<=topic.top,authorsBelow:author.top>=topic.bottom,unclipped:visible.every(b=>{const x=b.getBoundingClientRect();return x.top>=topic.top-1&&x.bottom<=topic.bottom+1&&x.left>=topic.left-1&&x.right<=topic.right+1&&x.height>=44}),count:visible.length}});
  assert.deepEqual(geometry,{searchAbove:true,authorsBelow:true,unclipped:true,count:7},'compact, fully visible library filters');
@@ -520,7 +559,11 @@ const server=http.createServer((req,res)=>{
  const rescuePNG=await page.locator('#drawingCanvas').evaluate(c=>c.toDataURL('image/png').split(',')[1]);const drawingDownload=page.waitForEvent('download');await page.locator('#drawingRescue').click();assert.deepEqual(fs.readFileSync(await (await drawingDownload).path()),Buffer.from(rescuePNG,'base64'));
  assert.equal(await page.locator('#drawingCanvas').evaluate(c=>c.toDataURL('image/png').split(',')[1]),rescuePNG);assert.deepEqual(await persistedPicture(),imported);assert.equal(await page.evaluate(()=>localStorage.getItem(DRAWING_DRAFT)),drawingBeforeRescue);
  await page.locator('#drawingFullSave').click();assert.ok(await page.locator('#drawingCanvas').isVisible());assert.deepEqual(await persistedPicture(),imported);
- await page.evaluate(()=>{Storage.prototype.setItem=window.__qaDrawingSet});await page.locator('#drawingFullSave').click();assert.equal(await page.locator('#drawingPanel').isVisible(),false);assert.ok(await page.locator('#imageTray img').isVisible());
+ await page.evaluate(()=>{Storage.prototype.setItem=window.__qaDrawingSet});
+ // Simulate a newer drawing from another tab; neither a stale stroke nor successful insertion may overwrite/remove it.
+ const newerDrawing=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.fillStyle='#6d3aa8';g.fillRect(0,0,64,64);const src=c.toDataURL('image/jpeg',.77);localStorage.setItem(DRAWING_DRAFT,src);return src});
+ await page.locator('#drawingCanvas').click({position:{x:70,y:70}});assert.ok((await page.locator('#drawingStatus').textContent()).includes('Другой рисунок'));assert.ok(await page.locator('#drawingRescue').isVisible());assert.equal(await page.evaluate(()=>localStorage.getItem(DRAWING_DRAFT)),newerDrawing);
+ await page.locator('#drawingFullSave').click();assert.equal(await page.locator('#drawingPanel').isVisible(),false);assert.ok(await page.locator('#imageTray img').isVisible());assert.equal(await page.evaluate(()=>localStorage.getItem(DRAWING_DRAFT)),newerDrawing,'inserting stale canvas preserves newer drawing');await page.evaluate(()=>localStorage.removeItem(DRAWING_DRAFT));
  assert.equal((await persistedPicture()).body.replace(/\n\[\[рисунок:1\]\]\n/,''),imported.body);
  await page.locator('#saveStoryNow').click();
  await page.locator('#homeNewStory').click();assert.equal(await page.locator('#storyBody').inputValue(),'');assert.equal(await page.locator('#storyTheme').inputValue(),'Мои истории');await page.locator('#storyTitle').fill('Вторая свободная сказка');await page.locator('#storyBody').fill('Другой текст в той же теме.');await page.locator('#saveStoryNow').click();
@@ -565,8 +608,15 @@ const server=http.createServer((req,res)=>{
  assert.ok(await page.locator('#clearBookSearch').isVisible());
  await page.locator('#bookSearch').press('Enter');
  assert.equal(await page.locator('#bookSearch').evaluate(e=>document.activeElement===e),false);
- await page.locator('#books .book-title').click();assert.ok(await page.locator('#modal').isVisible());
- await page.keyboard.press('Escape');await page.reload();
+ const searchedCard=page.locator('#books .own-book');const searchedStory=await page.evaluate(()=>JSON.stringify(data.stories));const searchedHash=await page.evaluate(()=>location.hash);
+ for(const [control,exit] of [['.book-title','#ownReadBack'],['.cover','#close'],['.own-read',null]]){
+   const button=searchedCard.locator(control);assert.ok((await button.boundingBox()).height>=44);await button.click();await page.locator('#ownReadText').waitFor();assert.ok((await page.locator('#ownReadText').textContent()).includes('Светлячок'));assert.equal(await page.locator('#shareFamilyBook').count(),0,'direct reading does not open publication');
+   if(exit)await page.locator(exit).click();else await page.keyboard.press('Escape');await page.locator('#modal').waitFor({state:'hidden'});await page.waitForFunction(selector=>document.activeElement===document.querySelector('#books .own-book '+selector),control);
+   assert.equal(await page.locator('#bookSearch').inputValue(),'ежик фонарь');assert.equal(await page.evaluate(()=>location.hash),searchedHash);assert.equal(await page.locator('#books .book-title').count(),1);
+ }
+ await searchedCard.locator('.own-info').click();assert.ok(await page.locator('#shareFamilyBook').isVisible());await page.locator('#close').click();await page.waitForFunction(()=>document.activeElement===document.querySelector('#books .own-info'));
+ assert.equal(await page.evaluate(()=>JSON.stringify(data.stories)),searchedStory,'reading and returning do not mutate books');
+ await searchedCard.locator('.own-edit').click();await page.locator('#saveStoryNow').click();await page.waitForFunction(()=>document.activeElement===document.querySelector('#books .own-edit'));assert.equal(await page.locator('#bookSearch').inputValue(),'ежик фонарь');await page.reload();
  await page.locator('#homeBooks').click();await page.locator('#bookSearch').fill('СИЯНИ');
  assert.equal(await page.locator('#books .book-title').count(),1);
  await page.locator('#clearBookSearch').click();assert.equal(await page.locator('#bookSearch').inputValue(),'');
@@ -959,7 +1009,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('[data-tool="brush"]').click();
  const lifecycle=await page.evaluate(()=>{const c=$('drawingCanvas'),r=c.getBoundingClientRect(),f=$('standaloneDrawing')||$('storyForm'),key=DRAWING_DRAFT,changes=[];const stroke=(id,x,color)=>{$('drawingCustom').value=color;$('drawingCustom').dispatchEvent(new Event('input',{bubbles:true}));c.dispatchEvent(new PointerEvent('pointerdown',{pointerId:id,pointerType:'touch',clientX:r.x+r.width*x,clientY:r.y+r.height*.12,bubbles:true}));c.dispatchEvent(new PointerEvent('pointermove',{pointerId:id,pointerType:'touch',clientX:r.x+r.width*x,clientY:r.y+r.height*.23,bubbles:true}))};for(const [id,x,color,kind] of [[71,.12,'#01eafb','hidden'],[72,.88,'#f900e8','pagehide']]){const before=localStorage.getItem(key);stroke(id,x,color);const pending=f.dataset.drawingDirty==='yes'&&before===localStorage.getItem(key);if(kind==='hidden'){const original=Object.getOwnPropertyDescriptor(document,'hidden');try{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'))}finally{if(original)Object.defineProperty(document,'hidden',original);else delete document.hidden}}else window.dispatchEvent(new Event('pagehide'));const saved=localStorage.getItem(key);c.dispatchEvent(new PointerEvent('pointerup',{pointerId:id,bubbles:true}));changes.push({pending,updated:saved!==before,clean:f.dataset.drawingDirty==='no',stable:saved===localStorage.getItem(key)})}return changes});assert.deepEqual(lifecycle,[{pending:true,updated:true,clean:true,stable:true},{pending:true,updated:true,clean:true,stable:true}]);
  // Missing pointerup: a fresh primary stroke or toolbar action must release stale drawing state without clearing pixels.
- const recovered=await page.evaluate(()=>{const c=$('drawingCanvas'),r=c.getBoundingClientRect(),f=$('standaloneDrawing')||$('storyForm');const stroke=(id,x)=>c.dispatchEvent(new PointerEvent('pointerdown',{pointerId:id,pointerType:'touch',isPrimary:true,clientX:r.x+r.width*x,clientY:r.y+r.height*.55,bubbles:true}));$('drawingCustom').value='#ff00aa';$('drawingCustom').dispatchEvent(new Event('input',{bubbles:true}));stroke(81,.17);const first=c.toDataURL();stroke(82,.83);const second=c.toDataURL();c.dispatchEvent(new PointerEvent('pointerup',{pointerId:82,bubbles:true}));stroke(83,.4);const before=c.toDataURL();document.querySelector('[data-tool="brush"]').click();return {resumed:first!==second,kept:before===c.toDataURL(),saved:f.dataset.drawingDirty==='no'}});assert.deepEqual(recovered,{resumed:true,kept:true,saved:true});
+ const recovered=await page.evaluate(()=>{const c=$('drawingCanvas'),r=c.getBoundingClientRect(),f=$('standaloneDrawing')||$('storyForm');const stroke=(id,x)=>c.dispatchEvent(new PointerEvent('pointerdown',{pointerId:id,pointerType:'touch',isPrimary:true,clientX:r.x+r.width*x,clientY:r.y+r.height*.55,bubbles:true}));$('drawingCustom').value='#ff00aa';$('drawingCustom').dispatchEvent(new Event('input',{bubbles:true}));stroke(81,.17);const first=c.toDataURL();stroke(82,.83);const second=c.toDataURL();c.dispatchEvent(new PointerEvent('pointerup',{pointerId:82,bubbles:true}));stroke(83,.4);const before=c.toDataURL();document.querySelector('[data-tool="brush"]').click();const kept=before===c.toDataURL(),saved=f.dataset.drawingDirty==='no';stroke(84,.62);document.querySelector('[data-width]').click();return {resumed:first!==second,kept,saved,widthSaved:f.dataset.drawingDirty==='no'}});assert.deepEqual(recovered,{resumed:true,kept:true,saved:true,widthSaved:true});
  const draft=await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1'));assert.ok(draft?.startsWith('data:image/jpeg;base64,'));
  await page.evaluate(()=>{window.__encodeCalls=0;const original=HTMLCanvasElement.prototype.toDataURL;HTMLCanvasElement.prototype.toDataURL=function(...args){window.__encodeCalls++;return original.apply(this,args)}});
  await page.locator('#drawingCancel').click();assert.equal(await page.evaluate(()=>window.__encodeCalls),0,'closing an already saved drawing must not encode again');
@@ -993,6 +1043,13 @@ const server=http.createServer((req,res)=>{
  });
  await page.evaluate(()=>backup());
  await page.locator('#importFile').setInputFiles({name:'fixture.json',mimeType:'application/json',buffer:Buffer.from(archiveFixture)});
+ // A delayed restore must not act in a replacement dialog with the same route.
+ const beforeDelayedRestore=await page.evaluate(()=>localStorage.getItem(KEY));
+ await page.evaluate(()=>{window.__qaBeforeRestore=saveBeforeRestore;saveBeforeRestore=async()=>{await window.__qaBeforeRestore();await new Promise(resolve=>window.__qaResumeRestore=resolve)}});
+ await page.locator('#confirmRestore').click();await page.waitForFunction(()=>typeof window.__qaResumeRestore==='function');
+ await page.evaluate(()=>{openModal('Другая проверка копии','<section id="qaReplacement">Другая копия</section>','backup-preview');window.__qaResumeRestore()});
+ await page.waitForFunction(()=>!restoreBusy);assert.ok(await page.locator('#qaReplacement').isVisible());assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),beforeDelayedRestore);assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
+ await page.evaluate(()=>{saveBeforeRestore=window.__qaBeforeRestore;backup()});await page.locator('#importFile').setInputFiles({name:'fixture.json',mimeType:'application/json',buffer:Buffer.from(archiveFixture)});
  await page.locator('#confirmRestore').click();
  await page.waitForFunction(()=>!document.getElementById('modal').hasAttribute('open'));
  assert.equal(await page.evaluate(()=>data.stories.some(b=>b.id==='archive-test-book')),false);
