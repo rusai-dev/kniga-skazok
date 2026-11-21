@@ -1,8 +1,8 @@
 # Section-by-section acceptance / Книга сказок
 
 Active: **01 — Мои сказки / авторская мастерская**. Status: **technical release merged; deployment and full acceptance pending**.
-Current verified main: 1.5.163, 969da911840b3fb343a9233f769892e82a2989b2. Historical entries below retain their original base SHAs.
-Last integrated PR: #128, including #127. Exact integrated candidate passed all three jobs; deployment and physical iPad not confirmed. Preserve all user data; only synthetic fixtures in tests.
+Current verified main: 1.5.164, 8e6bf71aa737315d5bf73d436aaf24cf8b8f5b13. Historical entries below retain their original base SHAs.
+Last integrated PR: #129, including #128. Exact integrated candidate passed all three jobs; deployment and physical iPad not confirmed. Preserve all user data; only synthetic fixtures in tests.
 
 ## Acceptance matrix
 Based on master prompt §§114–119, 127–132. A PASS requires evidence for the whole row, not merely code presence. All rows mandatory. No aggregate score; individual axes (function, content, usability, art, data/privacy, accessibility, speed/offline) remain unscored until evidence recorded.
@@ -118,3 +118,10 @@ PR #128 exact head 5114dfcc0734c828d5506825bd1ee0a9813a4ba0 passed regression, C
 
 ## 1.5.164 cover retry and full-book coverage (A04/A07/A11)
 Base 969da911840b3fb343a9233f769892e82a2989b2. Fix false success on reselecting the current cover when a previous write failed: retry draft persistence and explicitly report continued failure, preserve current text, images and rescue action. No schema, storage keys, artwork or network changes. Add isolated browser scenario with two uploaded synthetic drawings and three optional gallery images, successfully reuse an existing cover at five-image capacity, refuse sixth without persisted mutation, simulate quota failure and restore, retry via same cover, close/reopen and verify full text/image equality. Estimated startup source 997576 → 997692 B (same initialFiles definition). JS syntax checked; full CI pending. No real data touched. Next: exact all-green CI and compatible merge; live Pages and physical iPad test remain required. Do not transition to 02.
+
+
+## 1.5.164 merge evidence (2026-11-21)
+PR #129 exact head 8aa8f984ac4751a5576dce989108e04a4978aabb all three jobs passed in run 44867584649; zero synthetic merge file diff. Merged 8e6bf71aa737315d5bf73d436aaf24cf8b8f5b13; verified release.json 1.5.164. Public release endpoint could not be opened, not proof of outage. No full mandatory row accepted, 0/12.
+
+## 1.5.165 illustrated cover gallery feedback (A07/A11)
+Base 8e6bf71aa737315d5bf73d436aaf24cf8b8f5b13. Show the selected gallery card with visible border, check and aria-pressed, synchronized with cover dropdown, removal and rollback. Gallery-wide loading lock and aria-busy while selecting an image; keep old selected cover visible. Track decoded illustration provenance in current editor session only (four bounded references); after reopening, the existing cover preview and chosen picture in tray remain authoritative; no persisted metadata/schema changes. No new artwork or network endpoints. Browser assertions verify selection, theme cover switch, slow fetch with all four buttons disabled and intact saved snapshot, and capacity failure. Syntax checked; full CI pending. Startup sources 997692 → 998492 B; actual transfer, iPad, family archive and full visual acceptance outstanding. 0/12 full rows accepted. Next: exact CI, then physical iPad test and full action inventory; remain in package 01.

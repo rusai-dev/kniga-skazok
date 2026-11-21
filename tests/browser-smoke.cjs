@@ -98,9 +98,16 @@ const server=http.createServer((req,res)=>{
  await button(name).click();await page.waitForFunction(n=>$('coverImage').value===String(n)&&!$('publishStory').disabled,i+2);
  }
  const full=await stored();assert.equal(full.rich.images.filter(Boolean).length,5);assert.equal(full.rich.coverImage,4);
- await button('Лунный лес').click();await page.waitForFunction(()=>$('coverImage').value==='2'&&!$('publishStory').disabled);
+ assert.equal(await button('Лесной домик').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#coverGallery button[aria-pressed=true]').count(),1);
+ await page.locator('#coverImage').selectOption('-1');assert.equal(await page.locator('#coverGallery button[aria-pressed=true]').count(),0);await page.locator('#coverImage').selectOption('4');assert.equal(await button('Лесной домик').getAttribute('aria-pressed'),'true');
+ let unblock;const gate=new Promise(resolve=>unblock=resolve);await page.route('**/night-owl-cover-504-v1.webp',async route=>{await gate;await route.continue()});
+ try{await button('Лунный лес').click();await page.waitForFunction(()=>$('coverGallery').getAttribute('aria-busy')==='true');
+ assert.equal(await page.locator('#coverGallery button:disabled').count(),4);assert.equal(await page.locator('#coverGallery button[aria-pressed=true]').count(),1);assert.deepEqual(await stored(),full);
+ }finally{unblock()}
+ await page.waitForFunction(()=>$('coverImage').value==='2'&&!$('publishStory').disabled);await page.unroute('**/night-owl-cover-504-v1.webp');
+ assert.equal(await button('Лунный лес').getAttribute('aria-pressed'),'true');assert.equal(await page.locator('#coverGallery button:disabled').count(),0);assert.equal(await page.locator('#coverGallery').getAttribute('aria-busy'),null);
  const selected=await stored();assert.deepEqual(selected.rich.images,full.rich.images);assert.equal(selected.body,full.body);
- await button('Далёкие страны').click();await page.waitForFunction(()=>$('toast').textContent.includes('пять картинок')&&!$('publishStory').disabled);assert.deepEqual(await stored(),selected,'sixth cover refused without modifying stored book');
+ await button('Далёкие страны').click();await page.waitForFunction(()=>$('toast').textContent.includes('пять картинок')&&!$('publishStory').disabled);assert.deepEqual(await stored(),selected,'sixth cover refused without modifying stored book');assert.equal(await button('Лунный лес').getAttribute('aria-pressed'),'true');assert.equal(await button('Далёкие страны').getAttribute('aria-pressed'),'false');assert.equal(await page.locator('#coverGallery button:disabled').count(),0);
  await page.evaluate(()=>{window.__qaCoverSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return window.__qaCoverSet.call(this,k,v)}});
  const changed=selected.body+'\nНовая строка.';
  await page.locator('#storyBody').fill(changed);assert.ok((await page.locator('#draftStatus').textContent()).includes('Не удалось'));
