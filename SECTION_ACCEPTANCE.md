@@ -1,8 +1,8 @@
 # Section-by-section acceptance / Книга сказок
 
 Active: **01 — Мои сказки / авторская мастерская**. Status: **technical release merged; deployment and full acceptance pending**.
-Current verified main: 1.5.173, 33fd79a1feeac3fbd0ae37c9482c3276fd3d17a4. Historical entries retain their base SHAs.
-Last integrated PR: #138. All mandatory CI checks passed; live deployment, physical iPad and full acceptance unverified.
+Current verified main: 1.5.174, 80113a12be7233e258329b2d7bb173f0b79c18bc. Historical entries retain their base SHAs.
+Last integrated PR: #139. All mandatory CI checks passed; live deployment, physical iPad and full acceptance unverified.
 
 ## Acceptance matrix
 Based on master prompt §§114–119, 127–132. A PASS requires evidence for the whole row, not merely code presence. All rows mandatory. No aggregate score; individual axes (function, content, usability, art, data/privacy, accessibility, speed/offline) remain unscored until evidence recorded.
@@ -186,3 +186,7 @@ Initial #139 head 6c2f918d6271e626e6bdc0c02c86ee6cb643650f all three jobs PASS r
 
 ## Package 01 — writer input isolation and save integrity follow-on
 Based on exact 1.5.174 candidate d3065f2932a9c8f34aa9073d96b5d7e553950383; do not merge ahead of #139. A03/A04/A06/A07/A12: only manuscript/title/plan input invokes draft; theme/icon change saves once, drawing tools, temporary chapter title, preview and literacy controls no longer trigger full library writes. Font/size changes roll back on quota failure; photo picker cancel returns to writing, delayed photo refuses changed text rather than silently attaching at end; gallery blocked during pending image read. Added browser assertions for absence of library writes from drawing controls and font quota rollback/retry. Source 996569 → 996903 B, inline and test syntax checked, isolated regression verify PASS; exact CI required. No real data touched, no schema change, no artwork removed; physical iPad and live family archive unverified. Full acceptance 0/12. Remain package 01. Version reserved until coordinated candidate and CI.
+
+
+## Package 01 — 1.5.175 candidate, coordinated PR #140
+#139 exact head d3065f2932a9c8f34aa9073d96b5d7e553950383 regression/Chromium/WebKit all PASS run 44875399634; merged 80113a12be7233e258329b2d7bb173f0b79c18bc with identical tree, release.json 1.5.174. PR #140 retargeted to main; prior input isolation retained. A03/A06/A07/A08: snap image insertion outside whole heading, bold/italic token, existing picture marker and surrogate pair; retain words and render all five pictures. New browser checks insert within formatted text and heading, preview and reopen, plus existing rollback checks. No storage schema change, original artwork unchanged. Source 996569 → 997131 B (same measured five files); canonical catalog exact; script syntax and isolated verify PASS. Version 1.5.175 candidate only; exact new CI and merge required. Live device, real archive and live speed unverified; no actual child data accessed. Full acceptance 0/12. Next: exact CI, correct failures within #140, merge only matching main tree, then live site and physical iPad test.
