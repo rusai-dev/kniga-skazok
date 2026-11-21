@@ -1002,6 +1002,13 @@ const server=http.createServer((req,res)=>{
  });
  await page.evaluate(()=>backup());
  await page.locator('#importFile').setInputFiles({name:'fixture.json',mimeType:'application/json',buffer:Buffer.from(archiveFixture)});
+ // A delayed restore must not act in a replacement dialog with the same route.
+ const beforeDelayedRestore=await page.evaluate(()=>localStorage.getItem(KEY));
+ await page.evaluate(()=>{window.__qaBeforeRestore=saveBeforeRestore;saveBeforeRestore=async()=>{await window.__qaBeforeRestore();await new Promise(resolve=>window.__qaResumeRestore=resolve)}});
+ await page.locator('#confirmRestore').click();await page.waitForFunction(()=>typeof window.__qaResumeRestore==='function');
+ await page.evaluate(()=>{openModal('Другая проверка копии','<section id="qaReplacement">Другая копия</section>','backup-preview');window.__qaResumeRestore()});
+ await page.waitForFunction(()=>!restoreBusy);assert.ok(await page.locator('#qaReplacement').isVisible());assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),beforeDelayedRestore);assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
+ await page.evaluate(()=>{saveBeforeRestore=window.__qaBeforeRestore;backup()});await page.locator('#importFile').setInputFiles({name:'fixture.json',mimeType:'application/json',buffer:Buffer.from(archiveFixture)});
  await page.locator('#confirmRestore').click();
  await page.waitForFunction(()=>!document.getElementById('modal').hasAttribute('open'));
  assert.equal(await page.evaluate(()=>data.stories.some(b=>b.id==='archive-test-book')),false);
