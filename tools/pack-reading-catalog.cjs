@@ -16,6 +16,13 @@ function packFragments(packed,literal){
   const code=String.fromCharCode(0x500+dictionary.length);
   dictionary.push(word);output=pieces.join(code);
  }
+ // Fill remaining slots only when the escaped literal becomes smaller.
+ const extras=[...counts].filter(x=>x[1]>=2).map(([word,n])=>{const b=utf8(literal(word))-2;return {word,b,score:(b-2)*n-b-3}}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||(a.word<b.word?-1:a.word>b.word?1:0));
+ for(const {word,b} of extras.slice(0,20000)){
+  if(dictionary.length>=768)break;
+  const pieces=output.split(word),n=pieces.length-1;if(n<2||n*(b-2)<=b+3)continue;
+  dictionary.push(word);output=pieces.join(String.fromCharCode(0x500+dictionary.length-1));
+ }
  if(output.replace(/[\u0500-\u07FF]/g,c=>dictionary[c.charCodeAt(0)-0x500])!==packed)throw Error('Fragment round-trip failed');
  return {output,dictionary};
 }
