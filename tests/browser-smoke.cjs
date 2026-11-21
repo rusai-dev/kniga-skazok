@@ -217,10 +217,11 @@ const server=http.createServer((req,res)=>{
  assert.equal(await body.evaluate(e=>e.selectionStart), 'Начало.\n[[рисунок:1]]\n'.length);
  assert.equal(await page.locator('#imageTray img').count(),1);
  await page.locator('#drawStory').click();await page.locator('#drawingCanvas').waitFor({state:'visible'});await page.locator('#drawingCancel').click();assert.equal(await body.inputValue(),'Начало.\n[[рисунок:1]]\n Конец.');
- await body.evaluate(e=>e.setSelectionRange(e.value.length,e.value.length));await page.locator('#drawStory').click();const box=await page.locator('#drawingCanvas').boundingBox();await page.mouse.move(box.x+30,box.y+30);await page.mouse.down();await page.mouse.move(box.x+90,box.y+90,{steps:4});await page.mouse.up();await page.locator('#drawingFullSave').click();assert.equal(await page.locator('#drawingPanel').isVisible(),false);assert.equal(await page.locator('#imageTray img').count(),2);assert.ok((await body.inputValue()).endsWith('\n[[рисунок:2]]\n'));
+ await body.evaluate(e=>e.setSelectionRange(e.value.length,e.value.length));await page.locator('#drawStory').click();const box=await page.locator('#drawingCanvas').boundingBox();await page.mouse.move(box.x+30,box.y+30);await page.mouse.down();await page.mouse.move(box.x+90,box.y+90,{steps:4});await page.mouse.up();await page.locator('#drawingSave').click();assert.equal(await page.locator('#drawingPanel').isVisible(),false);assert.equal(await page.locator('#imageTray img').count(),2);assert.ok((await body.inputValue()).endsWith('\n[[рисунок:2]]\n'));
  assert.equal(await body.evaluate(e=>e.selectionStart===e.value.length),true);
+ await body.evaluate(e=>e.setSelectionRange(e.value.indexOf('рисунок:1')+2,e.value.indexOf('рисунок:1')+2));await page.locator('#writerGallery').click();await page.locator('#writerGalleryItems button').click();assert.ok((await body.inputValue()).includes('[[рисунок:1]]\n[[рисунок:3]]'));assert.equal(await page.locator('#imageTray img').count(),3);
  await page.evaluate(()=>{const e=$('storyBody');e.focus();writerViewportFit({height:390,offsetTop:0,scale:1})});assert.ok(await page.locator('#drawStory').isVisible());assert.ok(await page.locator('#saveStoryNow').isVisible());await page.evaluate(()=>writerViewportFit({height:innerHeight,offsetTop:0,scale:1}));
- await page.locator('#saveStoryNow').click();await page.reload();await page.locator('#homeWrite').click();assert.equal(await page.locator('#imageTray img').count(),2);
+ await page.locator('#saveStoryNow').click();await page.reload();await page.locator('#homeWrite').click();assert.equal(await page.locator('#imageTray img').count(),3);
  }finally{await ctx.close()}
  console.log('PASS direct art toolbar, gallery insert, draw, return and reopen');
  }
