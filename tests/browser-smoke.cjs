@@ -96,6 +96,25 @@ const server=http.createServer((req,res)=>{
  console.log('PASS stale library and publication lock');
  }
 
+ // Exact text/notes preservation and failed family metadata must not block personal authoring.
+ {
+ const ctx=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ try{
+ await page.goto(url);await page.locator('#homeNewStory').click();const original='\n\n  Ёжик написал сказку.\n\n  Конец.  \n',note='\n Герой сам выбирает свой путь.';
+ await page.locator('#storyBody').fill(original);await page.locator('#storyTitle').fill('Личная история');
+ await page.locator('#writerExtras > summary').click();await page.locator('.story-notebook > summary').click();await page.locator('[data-story-plan="hero"]').fill(note);await page.locator('#saveStoryNow').click();
+ await page.reload();await page.locator('#homeWrite').click();assert.equal(await page.locator('#storyBody').inputValue(),original);assert.equal(await page.locator('[data-story-plan="hero"]').inputValue(),note);
+ await page.locator('#publishStory').click();const bid=await page.evaluate(()=>data.stories.find(b=>b.title==='Личная история').id);assert.equal(await page.evaluate(bid=>bookOf(bid).body,bid),original);assert.equal(await page.evaluate(bid=>bookOf(bid).plan.hero,bid),note);
+ await page.evaluate(bid=>{if(!commitLibrary({...data,familyPublished:{bad:true}}))throw Error('fixture');navigate(OWN,'')},bid);
+ assert.equal(await page.locator('.own-share-state').textContent(),'Семейная полка требует проверки');await page.locator('.own-info').click();assert.ok(await page.locator('#shareFamilyBook').isDisabled());await page.locator('#editStory').click();assert.equal(await page.locator('#storyBody').inputValue(),original);await page.locator('#saveStoryNow').click();
+ await page.evaluate(()=>{if(!commitLibrary({...data,familyPublished:[]}))throw Error('fixture restore');homeScreen('home')});await page.locator('#homeNewStory').click();await page.locator('#storyBody').fill('Сказка без фотографии.');
+ const before=await page.evaluate(()=>localStorage.getItem(KEY));
+ await page.evaluate(()=>{window.qaImageOriginal=imageForStory;imageForStory=()=>new Promise(resolve=>{window.qaImageResolve=resolve});const input=$('pictureFile'),transfer=new DataTransfer();transfer.items.add(new File(['qa'],'qa.png',{type:'image/png'}));input.files=transfer.files;input.dispatchEvent(new Event('change'))});
+ await page.waitForFunction(()=>typeof window.qaImageResolve==='function');await page.keyboard.press('Escape');assert.ok(!(await page.locator('#modal').isVisible()));await page.evaluate(async()=>{window.qaImageResolve('data:image/png;base64,iVBORw0KGgo=');await Promise.resolve();await Promise.resolve();imageForStory=window.qaImageOriginal});assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),before,'late image cannot mutate closed editor');
+ await page.locator('#homeWrite').click();assert.equal(await page.locator('#storyBody').inputValue(),'Сказка без фотографии.');assert.deepEqual(errors,[]);
+ }finally{await ctx.close()}
+ console.log('PASS exact manuscript, invalid family shelf and closed image request');
+ }
  // Full personal book: repeat an existing cover, refuse a sixth, and retry a failed save.
  {
  const ctx=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));

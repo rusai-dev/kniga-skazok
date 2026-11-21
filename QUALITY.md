@@ -763,3 +763,7 @@ Base 4c22bbd4f08f43e0ba8dd3d67407b85a5089a9f0 (1.5.168, #133 exact head b6e99036
 
 ### Integrated package 01 follow-on (unversioned)
 Guard GitHub, optional cloud and peer family transport immediately before sending after asynchronous reads/encryption; compare exact published snapshot without touching draft data. Do not claim outdated verification is current. Synthetic race fixtures and normal retries exercised in extracted code; browser CI required. Startup source estimate 998375 B. No real archive used.
+
+
+### 1.5.170 candidate
+Integrates guarded async publication from #135 (prior head all three jobs passed), exact authored whitespace/reopen, corrupt-family shelf graceful failure, delayed image cancellation, preserved old optional theme/icon. Synthetic browser coverage added; current exact head CI pending. Startup source estimate 999207 B. No storage migration, new artwork or external calls. Physical iPad and live archive not verified.
