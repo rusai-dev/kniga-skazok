@@ -2837,8 +2837,7 @@ finally{busy=false;if($('storyForm')===form){g.removeAttribute('aria-busy');g.qu
 }
 };
 for(const btn of $('coverColor').children)btn.onclick=()=>chooseCover('coverColor',btn.value);$('coverImage').onchange=()=>chooseCover('coverImage',Number($('coverImage').value));
-$('storyFont').onchange=()=>{rich.font=$('storyFont').value;draft()};
-$('storySize').onchange=()=>{rich.size=Number($('storySize').value);draft()};
+for(const [field,k] of [['storyFont','font'],['storySize','size']])$(field).onchange=()=>{const old=rich[k];rich[k]=k==='size'?Number($(field).value):$(field).value;if(!draft()){rich[k]=old;$(field).value=String(old);draft();toast('Оформление осталось прежним. Не удалось сохранить.')}};
 $('boldStory').onclick=()=>insert('**','**','важные слова');
 $('italicStory').onclick=()=>insert('_','_','волшебные слова');
 $('chapterStory').onclick=()=>insert('\n## ','\n','Новая глава');
@@ -2861,15 +2860,17 @@ return true;
 initDrawing(form,addDrawnPicture);const openDrawing=$('drawStory').onclick;
 $('drawStory').onclick=()=>{if(busy||!readyMarkup())return;if(rich.images.filter(Boolean).length>=5){toast('В книге уже пять рисунков.');return}rememberArt();closeArtShelf();openDrawing()};
 form.returnToWords=()=>{artCaret=null;returnToWords()};
-$('writerGallery').onclick=()=>{const shelf=$('writerArtShelf'),open=shelf.hidden;shelf.hidden=!open;$('writerGallery').setAttribute('aria-expanded',String(open));if(!open){form.returnToWords();return}if(!readyMarkup()){closeArtShelf();return}rememberArt();const root=$('writerGalleryItems'),list=galleryRead();root.replaceChildren();if(!list?.length){root.textContent=list?'Здесь появятся рисунки из мастерской.':'Галерея пока недоступна.';return}for(const [i,item] of list.entries()){const btn=document.createElement('button');btn.type='button';btn.innerHTML='<img alt="" loading="lazy" src="'+item.src+'">Вставить рисунок '+(i+1);btn.onclick=()=>{if(addDrawnPicture(item.src)){closeArtShelf();form.returnToWords()}};root.append(btn)}};
+$('writerGallery').onclick=()=>{if(busy)return;const shelf=$('writerArtShelf'),open=shelf.hidden;shelf.hidden=!open;$('writerGallery').setAttribute('aria-expanded',String(open));if(!open){form.returnToWords();return}if(!readyMarkup()){closeArtShelf();return}rememberArt();const root=$('writerGalleryItems'),list=galleryRead();root.replaceChildren();if(!list?.length){root.textContent=list?'Здесь появятся рисунки из мастерской.':'Галерея пока недоступна.';return}for(const [i,item] of list.entries()){const btn=document.createElement('button');btn.type='button';btn.innerHTML='<img alt="" loading="lazy" src="'+item.src+'">Вставить рисунок '+(i+1);btn.onclick=()=>{if(addDrawnPicture(item.src)){closeArtShelf();form.returnToWords()}};root.append(btn)}};
 $('pictureStory').onclick=()=>{if(busy||!readyMarkup())return;if(rich.images.filter(Boolean).length>=5){toast('В одной книжке можно разместить до пяти рисунков.');return}rememberArt();closeArtShelf();$('pictureFile').click()};
+$('pictureFile').addEventListener('cancel',()=>{if(!busy&&$('storyForm')===form)form.returnToWords()});
 $('pictureFile').onchange=async e=>{
 const file=e.target.files[0];e.target.value='';if(!file||busy)return;
 const start=artCaret??body.selectionStart??0,original=body.value;busy=true;$('publishStory').disabled=true;
 try{const src=await imageForStory(file);if($('storyForm')!==form||activeDialog!=='editor'||!$('modal').open)return;
 if(form.dataset.drawingDirty==='yes'){toast('Сначала закончи рисунок, затем выбери фото ещё раз.');return}
 let i=rich.images.findIndex(x=>!x);if(i<0)i=rich.images.length;if(i>=5)throw Error('limit');
-if(!addDrawnPicture(src,true,body.value===original?start:body.value.length))return;form.returnToWords();toast('Рисунок добавлен в сказку.');
+if(body.value!==original){toast('Текст изменился. Выбери фото ещё раз.');return}
+if(!addDrawnPicture(src,true,start))return;form.returnToWords();toast('Рисунок добавлен в сказку.');
 }catch(e){if($('storyForm')===form&&activeDialog==='editor'&&$('modal').open)toast('Не удалось открыть рисунок. Попробуй JPEG или PNG до 15 МБ.')}
 finally{busy=false;if($('storyForm')===form)$('publishStory').disabled=false}
 };
@@ -2902,7 +2903,7 @@ if(!draft()){versions=previousVersions;body.value=initialBody;$('storyTitle').va
 renderVersions();toast('Текст загружен и сохранён.');
 }catch(e){if($('storyForm')===form&&activeDialog==='editor')toast('Выбери TXT-файл до 2 МБ.')}
 };
-form.addEventListener('input',e=>{if(e.target?.closest('.literacy')||['ideaStage','writerWordSelect','newChapterTitle','bookPreviewChapter'].includes(e.target?.id))return;draft()});$('storyTheme').addEventListener('change',draft);
+form.addEventListener('input',e=>{if(e.target?.matches('#storyTitle,#storyBody,[data-story-plan]'))draft()});for(const id of ['storyTheme','storyIcon'])$(id).addEventListener('change',draft);
 $('rescueDraft').onclick=()=>exportDraftText(snapshot());$('rescueFull').onclick=()=>{try{const raw=JSON.stringify({kind:'story-draft',version:1,draft:snapshot()});parseDraftRescue(raw);if(window.__nativeMode){sendNative('export','Черновик.json',raw);return}const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),link=document.createElement('a');link.href=url;link.download='Черновик.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}catch(e){toast('Не удалось подготовить копию. Сказка пока открыта.')}};
 $('saveStoryNow').onclick=()=>{if(busy){toast('Картинка ещё загружается.');return}if(!draft())return;closeModal(true);render()};
 function publishNotice(message){const p=$('familyPublishNotice');p.hidden=false;p.textContent=message;p.scrollIntoView({block:'nearest'})}
