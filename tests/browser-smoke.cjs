@@ -100,12 +100,18 @@ const server=http.createServer((req,res)=>{
  await page.locator('#studioInspiration summary').click();
  await picker.selectOption('off');
  assert.equal(await page.locator('#heroArt').isVisible(),false);
- await page.route('**/assets/author/studio/*.webp',r=>r.fulfill({contentType:'image/webp',body:'invalid WebP'}));
- await picker.selectOption('3');
- await image.waitFor({state:'detached'});
- assert.equal(await page.locator('#heroArt').textContent(),'📖');
- console.log('PASS studio illustration rotation, favorite, disable and decode fallback');
  }finally{await ctx.close()}
+ const cold=await browser.newContext({serviceWorkers:'block'});
+ try{
+ const failed=await cold.newPage();
+ await failed.route('**/assets/author/studio/*-240.webp',r=>r.fulfill({contentType:'image/webp',body:'invalid WebP'}));
+ await failed.goto(url);
+ const badMotif=failed.waitForResponse(r=>r.url().includes('/assets/author/studio/')&&r.url().endsWith('-240.webp'));
+ await failed.locator('#homeBooks').click();
+ await badMotif;
+ await failed.waitForFunction(()=>document.getElementById('heroArt').textContent==='📖'&&!document.querySelector('#heroArt img'));
+ console.log('PASS studio illustration rotation, favorite, disable and decode fallback');
+ }finally{await cold.close()}
  }
  // Isolated tabs: the stale author's unsaved work stays visible, the latest library survives.
  {
