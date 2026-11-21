@@ -32,16 +32,31 @@ async function verifySpriteReuse(source){
 }
 async function verifyWriterRetry(source){
  const a=[{id:'a',title:'A'}],b=[{id:'b',title:'B'}],shaA='a'.repeat(40),shaB='b'.repeat(40),shaC='c'.repeat(40);
- let local=a,remote={books:a,revision:1,sha:shaA},fail=false,reads=0,writes=0,status='';
+ let local=a,remote={books:a,revision:1,sha:shaA},fail=false,reads=0,writes=0,status='',onRead=()=>{},onSeal=()=>{},onPublic=()=>{};
  const state={room:'test',key:null,ghSaved:JSON.stringify(a),ghVerifiedAt:Date.now()},store=new Map([['skazki-gh-state-test',JSON.stringify({sha:shaA})]]);
- const tick=new Function('fam','ghToken','publicationWritable','$','fstatus','fget','fput','ghReadWriter','ghPublicAPI','fseal','ghRequest','ghPath','cloudEncode','toast','TextEncoder',source+'return ghWriterTick')(state,()=> 'test',()=>local,()=>null,v=>{status=v},k=>store.get(k), (k,v)=>{store.set(k,v);return true},async()=>{reads++;return remote},async()=>{if(fail)throw Error('offline');return {books:remote.books,revision:remote.revision}},async()=>({iv:'test',cipher:new Uint8Array(0)}),async()=>{writes++;const sha=writes===1?shaB:shaC;remote={books:local,revision:remote.revision+1,sha};return {content:{sha}}},()=> 'test',()=>'',()=>{},class{encode(){return new Uint8Array(0)}});
+ const tick=new Function('fam','ghToken','publicationWritable','$','fstatus','fget','fput','ghReadWriter','ghPublicAPI','fseal','ghRequest','ghPath','cloudEncode','toast','TextEncoder',source+'return ghWriterTick')(state,()=> 'test',()=>local,()=>null,v=>{status=v},k=>store.get(k), (k,v)=>{store.set(k,v);return true},async()=>{reads++;onRead();return remote},async()=>{onPublic();if(fail)throw Error('offline');return {books:remote.books,revision:remote.revision}},async()=>{onSeal();return {iv:'test',cipher:new Uint8Array(0)}},async()=>{writes++;const sha=writes===1?shaB:shaC;remote={books:local,revision:remote.revision+1,sha};return {content:{sha}}},()=> 'test',()=>'',()=>{},class{encode(){return new Uint8Array(0)}});
  await tick(state);if(reads!==0)throw Error('recent verified snapshot should be reused');
  local=b;fail=true;await tick(state);
  if(writes!==1||remote.books!==b||state.ghSaved!==null||state.ghVerifiedAt!==0||!status.includes('не подтверждено'))throw Error('failed verification must invalidate old confirmation: '+JSON.stringify({writes,status,state}));
  local=a;fail=false;await tick(state);
  if(writes!==2||remote.books!==a||state.ghSaved!==JSON.stringify(a)||!status.includes('Проверено'))throw Error('reverted publication must be sent and verified');
  await tick(state);if(reads!==2||writes!==2)throw Error('recent reverified snapshot should be reused');
+ local=b;onRead=()=>{local=null};await tick(state);assert.equal(writes,2,'stale tab during remote read must not write');assert.equal(state.ghSaved,null);onRead=()=>{};
+ local=b;onSeal=()=>{local=a};await tick(state);assert.equal(writes,2,'withdrawn snapshot during encryption must not write');onSeal=()=>{};
+ local=b;onPublic=()=>{local=null};await tick(state);assert.equal(writes,3,'already dispatched write may complete');assert.equal(state.ghSaved,null,'stale result may not confirm latest snapshot');assert.equal(store.get('skazki-gh-state-test'),JSON.stringify({sha:shaC}),'retain confirmed write SHA for conflict detection');
  return true;
+}
+async function verifyOtherTransportRaces(helper,peerSource,cloudSource){
+ const a=[{id:'a',title:'A'}],b=[{id:'b',title:'B'}],encoded=JSON.stringify(a);let local=a,release,sent=0,status='';
+ const s={revision:1,key:null},c={open:true,send(){sent++}},st={ready:true,seq:0,challenge:'qa'};
+ const send=new Function('fam','publicationWritable','fstatus','fseal',helper+peerSource+'return fsend')(s,()=>local,v=>{status=v},()=>new Promise(r=>{release=r}));
+ send(s,c,st,a,encoded);local=b;release({});await Promise.resolve();await Promise.resolve();assert.equal(sent,0);assert.equal(st.busy,false);assert.equal(st.sent,undefined);
+ local=a;send(s,c,st,a,encoded);release({});await Promise.resolve();await Promise.resolve();assert.equal(sent,1);assert.equal(st.sent,encoded);
+ const cloud={role:'host',secret:'qa',cloud:{readId:'test'},key:null};let writes=0,onSeal=()=>{},onHash=()=>{},prior=null;
+ const tick=new Function('fam','publicationWritable','fstatus','cloudRPC','fopen','cloudDecode','fbooks','cloudHash','fget','fput','cloudDecision','cloudWriter','fseal','cloudEncode','toast',helper+cloudSource+'return cloudTick')(cloud,()=>local,v=>{status=v},async(cfg,op)=>{if(op==='storybook_read_v1')return {revision:0};writes++;return {ok:true,revision:1}},async()=>({}),()=>'',x=>x,async x=>{onHash();return x},()=>prior,(k,v)=>{prior=v},()=> 'write',()=> 'writer',async()=>{onSeal();return {iv:'test',cipher:[]}},()=>'',()=>{});
+ local=a;onHash=()=>{local=null};await tick(cloud);assert.equal(writes,0);onHash=()=>{};
+ local=a;onSeal=()=>{local=b};await tick(cloud);assert.equal(writes,0);onSeal=()=>{};
+ local=a;await tick(cloud);assert.equal(writes,1);assert.ok(status.includes('сохранено на сервере'));
 }
 const server=http.createServer((req,res)=>{
  const name=new URL(req.url,'http://127.0.0.1').pathname;
@@ -51,7 +66,8 @@ const server=http.createServer((req,res)=>{
 });
 (async()=>{
  await verifySpriteReuse(fs.readFileSync(path.join(root,'sw.js'),'utf8'));
- assert.ok(await verifyWriterRetry(entry.slice(entry.indexOf('function ghDecision('),entry.indexOf('function ghCachedRevision('))+entry.slice(entry.indexOf('async function ghWriterTick('),entry.indexOf('function ghWriterStart('))));
+ assert.ok(await verifyWriterRetry(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext('))+entry.slice(entry.indexOf('function ghDecision('),entry.indexOf('function ghCachedRevision('))+entry.slice(entry.indexOf('async function ghWriterTick('),entry.indexOf('function ghWriterStart('))));
+ await verifyOtherTransportRaces(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext(')),entry.slice(entry.indexOf('function fsend('),entry.indexOf('function ftick(')),entry.slice(entry.indexOf('async function cloudTick('),entry.indexOf('function cloudStart(')));
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const url='http://127.0.0.1:'+server.address().port+'/?view=personal';
  const engine=process.env.BROWSER==='webkit'?webkit:chromium;

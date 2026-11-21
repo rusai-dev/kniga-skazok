@@ -4131,6 +4131,7 @@ function fbooks(x){if(!Array.isArray(x)||x.length>1000||!x.every(b=>b&&['id','ti
 function fpublishedChecked(value){try{return fbooks(value===undefined?[]:value)}catch(e){return null}}
 function fpublished(){return fpublishedChecked(data.familyPublished)||[]}
 function publicationWritable(){if(!libraryCurrent()){fstatus('Библиотека изменилась. Отправка остановлена.');return null}const books=fpublishedChecked(data.familyPublished);if(books!==null)return books;const message='Семейная полка не читается. Отправка и изменение публикаций остановлены. Сохрани резервную копию и обратись к взрослому.';fstatus(message);if($('familyPublishedCount'))$('familyPublishedCount').textContent='Семейная полка требует проверки';return null}
+function publicationMatches(encoded){const latest=publicationWritable();if(latest===null)return false;if(JSON.stringify(latest)===encoded)return true;fstatus('Есть новые изменения · проверяем семейную полку…');return false}
 function fnext(books,b){return [...books.filter(x=>x.id!==b.id),fbook(b)]}
 function fstatus(t){for(const k of ['familyStatus','familyViewStatus'])if($(k))$(k).textContent=t}
 async function fcredentials(secret){
@@ -4168,7 +4169,7 @@ function deliveryAck(st,m){
 function fsend(s,c,st,books,encoded){
  if(!st.ready||!c.open||st.sent===encoded||st.busy)return;
  st.busy=true;const revision=s.revision;
- (async()=>{try{st.revision=revision;const p=await fseal(s.key,{type:'books',seq:++st.seq,challenge:st.challenge,books});if(fam===s&&c.open){c.send(p);st.sent=encoded}}catch(e){fstatus('Не удалось передать книги. На iPad они сохранены.')}finally{st.busy=false}})();
+ (async()=>{try{st.revision=revision;const p=await fseal(s.key,{type:'books',seq:++st.seq,challenge:st.challenge,books});if(fam===s&&c.open&&publicationMatches(encoded)){c.send(p);st.sent=encoded}}catch(e){fstatus('Не удалось передать книги. На iPad они сохранены.')}finally{st.busy=false}})();
 }
 function ftick(s){
  if(fam!==s)return;if(s.ghWriter){ghWriterTick(s);return}if(s.cloud){cloudTick(s);return}
@@ -4383,23 +4384,22 @@ async function cloudTick(s){
    fstatus('Семейный архив · '+books.length+' книг. Доступен без iPad.');return;
   }
   const local=publicationWritable();if(local===null)return;const writer=cloudWriter(s.secret);
-  const localDigest=await cloudHash(JSON.stringify(local)),remoteDigest=await cloudHash(JSON.stringify(books));
+  const encoded=JSON.stringify(local),localDigest=await cloudHash(encoded),remoteDigest=await cloudHash(JSON.stringify(books));
   let prior=null;try{prior=JSON.parse(fget(key)||'null')}catch(e){}
-  if(fam!==s)return;
+  if(fam!==s||!publicationMatches(encoded))return;
   const decision=cloudDecision(localDigest,remoteDigest,remote.revision,prior);
   if(decision==='current'){fput(key,JSON.stringify({revision:remote.revision,digest:localDigest}));fstatus('В семейном архиве: '+local.length+' · сохранено на сервере.');return}
   if(!writer){fstatus('Книги сохранены на iPad. Нужна разовая настройка облачного доступа взрослым.');return}
   if(decision==='conflict'){fstatus('В архиве есть другая версия. Книги сохранены на iPad, автоматическая перезапись заблокирована.');return}
   const sealed=await fseal(s.key,{type:'archive',books:local});
-  if(fam!==s)return;
+  if(fam!==s||!publicationMatches(encoded)||cloudWriter(s.secret)!==writer)return;
   const result=await cloudRPC(cfg,'storybook_write_v1',{p_read_id:cfg.readId,p_writer:writer,p_revision:remote.revision,p_envelope:{iv:sealed.iv,cipher:cloudEncode(sealed.cipher)}});
   if(fam!==s)return;
   if(result?.ok!==true||result.revision!==remote.revision+1)throw Error('write not confirmed');
   fput(key,JSON.stringify({revision:result.revision,digest:localDigest}));
-  const latest=publicationWritable();if(latest===null)return;
-  if(await cloudHash(JSON.stringify(latest))===localDigest){
+  if(publicationMatches(encoded)){
    fstatus('В семейном архиве: '+local.length+' · сохранено на сервере.');toast('Семейный архив обновлён. Теперь сказки доступны без iPad.');
-  }else fstatus('Есть новые изменения · сохраняем в архив…');
+  }
  }catch(e){if(fam===s)fstatus(s.role==='host'?'Архив пока не подтвердил сохранение. Сказки на iPad, повторяем попытку…':'Архив недоступен. Показаны ранее полученные сказки.')}
  finally{s.cloudBusy=false}
 }
@@ -4549,7 +4549,7 @@ async function ghWriterTick(s){
  s.ghBusy=true;s.ghPending=false;let confirmed=false,archived=false;fstatus('Отправляем '+local.length+' книг в семейный архив…');
  const stateKey='skazki-gh-state-'+s.room;
  try{
-  const remote=await ghReadWriter(s,token);if(fam!==s)return;
+  const remote=await ghReadWriter(s,token);if(fam!==s||!publicationMatches(serialized)||ghToken()!==token)return;
   let prior=null;try{prior=JSON.parse(fget(stateKey)||'null')}catch(e){}
   const decision=ghDecision(serialized,JSON.stringify(remote.books),remote.sha,prior);
   if(decision==='conflict'){fstatus('В архиве другая версия. Перезапись заблокирована, книги сохранены на iPad.');return}
@@ -4560,6 +4560,7 @@ async function ghWriterTick(s){
     if(fam!==s)return;
     if(!publicCopy||publicCopy.revision!==remote.revision||JSON.stringify(publicCopy.books)!==serialized)throw Error('public verification pending');
     fput(stateKey,JSON.stringify({sha:remote.sha}));
+    if(!publicationMatches(serialized)||ghToken()!==token)return;
     s.ghSaved=serialized;s.ghVerifiedAt=Date.now();confirmed=true;
     fstatus('Проверено без входа в GitHub · '+local.length+' книг доступны по семейной ссылке');
    }else{
@@ -4574,6 +4575,7 @@ async function ghWriterTick(s){
   const envelope=JSON.stringify({version:1,revision,iv:packet.iv,cipher:cloudEncode(packet.cipher)});
   const body={message:'Update encrypted family archive',branch:'main',content:cloudEncode(new TextEncoder().encode(envelope))};
   if(remote.sha)body.sha=remote.sha;
+  if(!publicationMatches(serialized)||ghToken()!==token)return;
   const result=await ghRequest('/contents/'+ghPath(s.room),token,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   if(fam!==s)return;
   const sha=result?.content?.sha;if(!/^[0-9a-f]{40}$/.test(sha||''))throw Error('unconfirmed write');
@@ -4582,6 +4584,7 @@ async function ghWriterTick(s){
   const publicCopy=await ghPublicAPI(s);
   if(fam!==s)return;
   if(!publicCopy||publicCopy.revision!==revision||JSON.stringify(publicCopy.books)!==serialized)throw Error('public verification pending');
+  if(!publicationMatches(serialized)||ghToken()!==token)return;
   s.ghSaved=serialized;s.ghVerifiedAt=Date.now();confirmed=true;
   fstatus('Проверено без входа в GitHub · '+local.length+' книг доступны по семейной ссылке');
   toast('Сказки доступны в семейном архиве.');
