@@ -252,7 +252,12 @@ const server=http.createServer((req,res)=>{
    await page.evaluate(()=>writerViewportFit({height:innerHeight,offsetTop:0,scale:1}));
    await page.locator('#drawStory').click();
    const canvas=page.locator('#drawingCanvas');
-   await page.waitForFunction(()=>$('drawingCanvas').getBoundingClientRect().height>=44);
+   try{
+    await page.waitForFunction(()=>$('drawingCanvas').getBoundingClientRect().height>=44,undefined,{timeout:5000});
+   }catch(error){
+    const layout=await page.evaluate(()=>Object.fromEntries(['modal','drawingPanel','studioViewport','drawingCanvas'].map(id=>[id,$(id).getBoundingClientRect().toJSON()])));
+    throw Error('Studio canvas geometry at '+width+'×'+height+' '+JSON.stringify(layout),{cause:error});
+   }
    await canvas.click();
    await targets(['#drawingCancel','#drawingSave','#drawingRescue']);
    await page.locator('#drawingExpand').click();
