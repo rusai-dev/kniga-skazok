@@ -586,6 +586,17 @@ const server=http.createServer((req,res)=>{
     return {modal:r('modal'),text:r('storyBody'),save:r('saveStoryNow'),done:r('writerDoneTyping'),title:r('storyTitle'),tools:r('writerExtras'),focused:document.activeElement===body,selection:body.selectionStart,value:body.value}
    },{height});
    assert.ok(fit.modal.top>=11&&fit.modal.bottom<=height+13,'dialog fits the visible viewport');assert.ok(fit.text.height>=100&&fit.text.bottom<=fit.save.top&&fit.save.bottom<=height+13&&fit.done.bottom<=height+13,'text and both actions remain above keyboard '+JSON.stringify(fit));assert.equal(fit.title.height,0);assert.equal(fit.tools.height,0);assert.equal(fit.focused,true);assert.equal(fit.selection,value.length);assert.equal(fit.value,value);
+   if(viewport.width>=640){
+    const compact=await page.evaluate(()=>{
+     const h=230,top=12;writerViewportFit({height:h,offsetTop:top,scale:1});
+     const rect=id=>$(id).getBoundingClientRect(),paper=rect('storyBody'),dlg=rect('modal');
+     const buttons=['drawStory','writerGallery','pictureStory','writerDoneTyping','saveStoryNow'].map(id=>{const b=rect(id);return {id,w:b.width,h:b.height,top:b.top,bottom:b.bottom,hit:$(id).contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2))}});
+     return {paper:paper.height,dialog:dlg.height,buttons,focused:document.activeElement===$('storyBody'),selection:$('storyBody').selectionStart};
+    });
+    assert.ok(compact.paper>=138&&compact.dialog<=231,'230px viewport prioritizes paper '+JSON.stringify(compact));
+    assert.ok(compact.buttons.every(b=>b.w>=43.9&&b.h>=43.9&&b.top>=12-.5&&b.bottom<=242+.5&&b.hit),'all five compact actions reachable '+JSON.stringify(compact));
+    assert.equal(compact.focused,true);assert.equal(compact.selection,value.length);
+   }
    const safe=await page.evaluate(({height,value})=>{
     const body=$('storyBody'),original=Storage.prototype.setItem;body.focus();
     try{Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return original.call(this,k,v)};body.value=value+'Конец.';body.dispatchEvent(new Event('input',{bubbles:true}));writerViewportFit({height,offsetTop:0,scale:1});$('saveStoryNow').click();return {open:$('modal').hasAttribute('open'),value:body.value,rescue:!$('rescueDraft').hidden&&$('rescueDraft').getBoundingClientRect().height>0,full:!$('rescueFull').hidden&&$('rescueFull').getBoundingClientRect().height>=44&&$('rescueFull').getBoundingClientRect().bottom<=height,failed:$('storyForm').dataset.saveFailed==='yes'}}finally{Storage.prototype.setItem=original;body.value=value;body.dispatchEvent(new Event('input',{bubbles:true}))}
