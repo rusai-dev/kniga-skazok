@@ -112,6 +112,21 @@ function storyStudio(form, from, host) {
     return saved;
   }
 
+  function remove(slot, preview) {
+    const original = state.originals[slot];
+    if (!original || original.previewKey !== drawingFingerprint(preview)) return host.save();
+    const sheets = state.sheets.map(sheet => sheet.slot === slot ? { ...sheet, slot: undefined, base: undefined } : sheet);
+    const kept = [{ id: host.id(), src: original.src, revision: host.id() }];
+    if (original.previous && original.previous !== original.src) kept.push({ id: host.id(), src: original.previous, revision: host.id() });
+    if (sheets.length + kept.length > 8) {
+      toast('Сначала освободи место в черновиках. Рисунок остаётся в книге.');
+      return false;
+    }
+    const originals = state.originals.slice();
+    originals[slot] = null;
+    return write({ originals, sheets: [...kept, ...sheets] });
+  }
+
   function revisions(tray) {
     Array.from(tray.children).forEach(card => {
       const slot = Number(card.querySelector('[data-picture]').dataset.picture);
@@ -169,7 +184,7 @@ function storyStudio(form, from, host) {
     },
     get pending() { return state.sheets.some(sheet => sheet.slot === undefined); },
     get editing() { return current?.slot !== undefined; },
-    open, edit, menu, store, finish, revisions, result
+    open, edit, menu, store, finish, remove, revisions, result
   };
 }
 

@@ -2868,8 +2868,8 @@ if(busy||form.dataset.drawingDirty==='yes')return;
 const next=storyPictureRemoval(body.value,rich,Number(btn.dataset.picture));if(!next||!confirm('Убрать этот рисунок из сказки?'))return;
 const oldBody=body.value,oldRich=rich,start=body.selectionStart,end=body.selectionEnd;
 rich=next.rich;body.value=next.body;tray();
-if(!draft()){rich=oldRich;body.value=oldBody;body.setSelectionRange(start,end);tray();draft();toast('Не удалось сохранить удаление. Рисунок возвращён.');return}
-toast('Рисунок убран.');
+if(!(form.storyArt?.remove(Number(btn.dataset.picture),oldRich.images[Number(btn.dataset.picture)])??draft())){rich=oldRich;body.value=oldBody;body.setSelectionRange(start,end);tray();draft();toast('Возвращён.');return}
+toast('Убран.');
 });
 }
 function renderVersions(){
