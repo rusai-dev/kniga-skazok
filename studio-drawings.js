@@ -235,3 +235,33 @@ function drawingStorage(legacyKey, outlineKey, story, fingerprint) {
     }
   };
 }
+
+// Approved watercolors replace the decorative navigation art, never the work surface.
+// Keep the original vector underneath until the new thumbnail really decodes.
+document.addEventListener('DOMContentLoaded', () => {
+  const draw = (root, motif) => {
+    if (!root || root.querySelector('.studio-entry-watercolor')) return;
+    const img = new Image(240, 240);
+    img.alt = '';
+    img.className = 'studio-entry-watercolor';
+    img.hidden = true;
+    img.decoding = 'async';
+    img.onload = () => { if (img.naturalWidth) img.hidden = false; };
+    img.onerror = () => img.remove();
+    root.classList.add('studio-entry-art');
+    root.append(img);
+    img.src = './assets/author/studio/art-' + motif + '-240.webp';
+  };
+  draw(document.getElementById('myBooksArt'), 'n03-owl-library');
+  draw(document.getElementById('createArt'), 'n02-rabbit-painting');
+  const creative = document.getElementById('creativeHome');
+  const paint = () => {
+    if (creative.hidden) return;
+    for (const [key, motif] of [['childWrite','n01-squirrel-writing-room'],['childDraw','n02-rabbit-painting'],['childBooks','n04-hedgehog-book-show']]) {
+      draw(document.querySelector('#'+key+' .child-picture'), motif);
+    }
+  };
+  // Run after the synchronous route has rendered the original SVG fallback.
+  new MutationObserver(paint).observe(creative, { attributes: true, attributeFilter: ['hidden'] });
+  paint();
+});
