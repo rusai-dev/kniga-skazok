@@ -248,3 +248,41 @@
 @media (max-height: 850px) {
   #storybookHome .home-paths .studio-entry-art { max-height: 90px; }
 }
+
+/* Keyboard focus: spend the visual viewport on the existing textarea, not chrome. */
+#modal:has(#storyForm.keyboard-writing):not(.drawing-focus) .dialog-head {
+  display: none;
+}
+#modal:has(#storyForm.keyboard-writing):not(.drawing-focus) #modalBody {
+  padding: 3px 8px;
+  overflow: auto;
+}
+#storyForm.keyboard-writing > .writer-title { order: -2; }
+#storyForm.keyboard-writing > .story-page { order: -1; min-height: 0; }
+#storyForm.keyboard-writing #storyBody {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  width: 100%;
+  margin: 0;
+  scroll-margin: 0;
+  padding: 8px 12px;
+}
+#storyForm.keyboard-writing > .writer-status { flex: none; gap: 2px; }
+#storyForm.keyboard-writing > .writer-artbar { margin: 0; min-width: 0; }
+#storyForm.keyboard-writing .writer-quick button { min-width: 0; }
+@media (min-width: 640px) {
+  #storyForm.keyboard-writing {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas: "title title" "page page" "status status" "rescue rescue" "art quick";
+    gap: 2px 6px;
+  }
+  #storyForm.keyboard-writing > .writer-title { grid-area: title; }
+  #storyForm.keyboard-writing > .story-page { grid-area: page; }
+  #storyForm.keyboard-writing > .writer-status { grid-area: status; }
+  #storyForm.keyboard-writing > #rescueActions { grid-area: rescue; }
+  #storyForm.keyboard-writing > .writer-artbar { grid-area: art; align-self: stretch; }
+  #storyForm.keyboard-writing > .writer-quick { grid-area: quick; min-width: 0; }
+}
