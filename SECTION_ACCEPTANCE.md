@@ -241,3 +241,10 @@ Exact prior HEAD 1b7a4bda15c7eeb61d519b04e8b03f4870a5b0f4 passed regression, Chr
 
 ## 1.5.181 — visible approved studio artwork
 Owner confirmed 1.5.180 delivery but did not see the new watercolors. Two approved thumbnails (owl library and rabbit painting) now decorate existing large home navigation cards; all three creative entries show approved artwork on entry, including squirrel writing and hedgehog book. Original SVG remains on decode failure. No new layout rows, editor/canvas changes, data changes or full-size art on home. Cold-home budget unchanged (1,200,000 encoded bytes); two explicitly allowlisted 240px thumbnails are the only new startup requests. Syntax PASS, exact new Chromium/WebKit/regression CI and real-device visual approval required. Full previous package acceptance remains open.
+
+## 1.5.182 — keyboard-first editor on iPad
+Field report: in landscape Safari with keyboard open, controls left only a thin writing area. Reuse the existing textarea and visualViewport fit; remove the redundant dialog header in typing mode, prioritize the paper, combine drawing and save actions into one row at tablet widths, retain failure recovery and normal mode on keyboard dismissal. No storage/schema, artwork, fonts, or drawing engine changes. Synthetic tests now require >= 60% of a 230px visible tablet viewport for the writing surface, and reachable draw/save/done controls. Exact Chromium/WebKit/regression CI and physical iPad keyboard/caret checks are required; no physical-device acceptance claimed.
+
+### IPAD WRITING STUDIO FINAL · приёмка режима письма
+
+Матрица `tests/browser-smoke.cjs` проверяет размеры листа, попадание в видимую зону, три точки попадания по каждой основной кнопке, положение активной границы выделения и отсутствие внешней прокрутки. Синтетическое снижение VisualViewport на широком iPad даёт 296/300 и 216/220 px. Проверка 20 событийных циклов включает отсутствие записи при изменении геометрии. В отдельном сценарии проверяется выход из рисования и вставка без изменения выделенного фрагмента. При отказе записи доступны выгрузка текста и сказки с рисунками. Физический iPad остаётся отдельным испытанием.

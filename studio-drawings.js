@@ -265,3 +265,73 @@ document.addEventListener('DOMContentLoaded', () => {
   new MutationObserver(paint).observe(creative, { attributes: true, attributeFilter: ['hidden'] });
   paint();
 });
+
+// Safari reports the space above its keyboard in layout-viewport coordinates.
+let writerCaretTimer = 0;
+function fitStoryViewport(form, dialog, viewport) {
+  if (!form) return;
+  const body = form.querySelector('#storyBody');
+  const title = form.querySelector('#storyTitle');
+  const field = document.activeElement;
+  const writing = field === body || field === title;
+  const otherInput = form.contains(field) && field.matches('input, textarea, select, [contenteditable="true"]') && !writing;
+  const wasTyping = form.classList.contains('keyboard-writing');
+  const root = document.documentElement;
+  const on = dialog.open && !dialog.classList.contains('drawing-focus') && viewport &&
+    Math.max(innerHeight, root.clientHeight) - viewport.height * (viewport.scale || 1) > 32 &&
+    !otherInput && (writing || wasTyping);
+  form.classList.toggle('keyboard-writing', !!on);
+  form.classList.toggle('keyboard-title', !!on && (field === title || (!writing && form.classList.contains('keyboard-title'))));
+
+  let changed = !!on !== wasTyping;
+  if (on) {
+    const values = {
+      top: Math.max(0, viewport.offsetTop || 0),
+      left: Math.max(0, viewport.offsetLeft || 0),
+      width: viewport.width || root.clientWidth,
+      height: Math.floor(viewport.height)
+    };
+    for (const [key, size] of Object.entries(values)) {
+      const name = '--writer-' + key;
+      const value = size + 'px';
+      if (dialog.style.getPropertyValue(name) === value) continue;
+      dialog.style.setProperty(name, value);
+      changed = true;
+    }
+  }
+  if (changed) {
+    clearTimeout(writerCaretTimer);
+    writerCaretTimer = setTimeout(() => {
+      if (dialog.open && document.activeElement === body) keepWriterCaretVisible(body);
+    }, 60);
+  }
+}
+
+// Measure the wrapped insertion point without moving the selection or focusing
+// another node. Run once after the viewport has settled, never during typing.
+function writerCaretBounds(body) {
+  const caret = body.selectionDirection === 'backward' ? body.selectionStart : body.selectionEnd;
+  const style = getComputedStyle(body);
+  const mirror = document.createElement('div');
+  mirror.style.cssText = 'position:fixed;inset:0 auto auto 0;visibility:hidden;pointer-events:none;box-sizing:border-box;white-space:pre-wrap';
+  for (const key of ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'letterSpacing', 'wordSpacing', 'lineHeight', 'textIndent', 'overflowWrap',
+    'wordBreak', 'tabSize', 'padding', 'direction', 'textAlign']) mirror.style[key] = style[key];
+  mirror.style.width = body.clientWidth + 'px';
+  const rest = document.createElement('span');
+  rest.textContent = body.value.slice(caret) || '\u200b';
+  mirror.append(document.createTextNode(body.value.slice(0, caret)), rest);
+  document.body.append(mirror);
+  const first = rest.getClientRects()[0];
+  const top = first ? first.top - mirror.getBoundingClientRect().top : 0;
+  const height = parseFloat(style.lineHeight) || parseFloat(style.fontSize);
+  mirror.remove();
+  return { top, bottom: top + height };
+}
+
+function keepWriterCaretVisible(body) {
+  if (!body.clientHeight || body.scrollHeight <= body.clientHeight) return;
+  const { top, bottom } = writerCaretBounds(body);
+  const inset = 4;
+  if (top < body.scrollTop + inset) body.scrollTop = Math.max(0, top - inset);
+  else if (bottom > body.scrollTop + body.clientHeight - inset) body.scrollTop = bottom - body.clientHeight + inset;
+}

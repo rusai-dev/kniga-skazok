@@ -585,16 +585,119 @@ const server=http.createServer((req,res)=>{
     const r=id=>{const b=$(id).getBoundingClientRect();return {top:b.top,bottom:b.bottom,height:b.height}};
     return {modal:r('modal'),text:r('storyBody'),save:r('saveStoryNow'),done:r('writerDoneTyping'),title:r('storyTitle'),tools:r('writerExtras'),focused:document.activeElement===body,selection:body.selectionStart,value:body.value}
    },{height});
-   assert.ok(fit.modal.top>=11&&fit.modal.bottom<=height+13,'dialog fits the visible viewport');assert.ok(fit.text.height>=100&&fit.text.bottom<=fit.save.top&&fit.save.bottom<=height+13&&fit.done.bottom<=height+13,'text and both actions remain above keyboard '+JSON.stringify(fit));assert.equal(fit.title.height,0);assert.equal(fit.tools.height,0);assert.equal(fit.focused,true);assert.equal(fit.selection,value.length);assert.equal(fit.value,value);
+   assert.ok(fit.modal.top>=11&&fit.modal.bottom<=height+13,'dialog fits the visible viewport');assert.ok(fit.text.height>=height*.75&&fit.save.bottom<=height+13&&fit.done.bottom<=height+13,'text and both actions remain above keyboard '+JSON.stringify(fit));assert.equal(fit.title.height,0);assert.equal(fit.tools.height,0);assert.equal(fit.focused,true);assert.equal(fit.selection,value.length);assert.equal(fit.value,value);
    const safe=await page.evaluate(({height,value})=>{
     const body=$('storyBody'),original=Storage.prototype.setItem;body.focus();
     try{Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return original.call(this,k,v)};body.value=value+'Конец.';body.dispatchEvent(new Event('input',{bubbles:true}));writerViewportFit({height,offsetTop:0,scale:1});$('saveStoryNow').click();return {open:$('modal').hasAttribute('open'),value:body.value,rescue:!$('rescueDraft').hidden&&$('rescueDraft').getBoundingClientRect().height>0,full:!$('rescueFull').hidden&&$('rescueFull').getBoundingClientRect().height>=44&&$('rescueFull').getBoundingClientRect().bottom<=height,failed:$('storyForm').dataset.saveFailed==='yes'}}finally{Storage.prototype.setItem=original;body.value=value;body.dispatchEvent(new Event('input',{bubbles:true}))}
    },{height,value});assert.deepEqual(safe,{open:true,value:value+'Конец.',rescue:true,full:true,failed:true},'a failed compact save leaves the full text and rescue action available');
+   const typography=await page.evaluate(()=>{
+    const body=$('storyBody'),size=$('storySize');
+    const before=parseFloat(getComputedStyle(body).fontSize);
+    size.value='28';size.dispatchEvent(new Event('change',{bubbles:true}));
+    writerViewportFit({height:220,offsetTop:10,scale:1});
+    return [before,parseFloat(getComputedStyle(body).fontSize)];
+   });
+   assert.deepEqual(typography,[24,28],'writing keeps the default and the chosen text size above the keyboard');
    const restored=await page.evaluate(()=>{writerViewportFit({height:innerHeight,offsetTop:0,scale:1});return !$('storyForm').classList.contains('keyboard-writing')&&$('writerExtras').getBoundingClientRect().height>0});assert.ok(restored,'tools restored when keyboard closes');
    await page.locator('#storyTitle').fill('Звёзды');const titleFit=await page.evaluate(height=>{writerViewportFit({height,offsetTop:0,scale:1});return {visible:$('storyTitle').getBoundingClientRect().height>0,focus:document.activeElement===$('storyTitle')}},height);assert.deepEqual(titleFit,{visible:true,focus:true});
    await page.evaluate(()=>{ $('writerDoneTyping').click();writerViewportFit({height:innerHeight,offsetTop:0,scale:1})});assert.equal(await body.inputValue(),value);
    await page.locator('#saveStoryNow').tap();await page.locator('#modal').waitFor({state:'hidden'});await page.reload();await page.locator('#homeWrite').tap();assert.equal(await page.locator('#storyBody').inputValue(),value);assert.equal(await page.locator('#storyTitle').inputValue(),'Звёзды');assert.deepEqual(errors,[]);console.log('PASS compact writing visual viewport and draft recovery',viewport);
   }finally{await ctx.close()}
+ }
+ // Measure reachability and wrapped caret position, including very short keyboards.
+ {
+ const sizes=[[768,1024],[1024,768],[834,1194],[1194,834],[1024,1366],[1366,1024],[600,800],[390,844],[844,390]];
+ const heights=[180,220,250,300,350,480];
+ const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,serviceWorkers:'block'});
+ try{
+  await context.addInitScript(()=>{
+   const viewport=new EventTarget();
+   Object.defineProperty(window,'visualViewport',{value:viewport});
+   viewport.scale=1;
+   window.fitTestViewport=(w,h,left=0,top=0)=>{
+    Object.assign(viewport,{width:w,height:h,offsetLeft:left,offsetTop:top});
+    viewport.dispatchEvent(new Event('resize'));
+   };
+   fitTestViewport(innerWidth,innerHeight);
+  });
+  const page=await context.newPage();
+  await page.goto(url);
+  await page.locator('#homeNewStory').tap();
+  const manuscript='Ёжик и сова нашли старый фонарик.\n'.repeat(1700);
+  await page.locator('#storyBody').fill(manuscript);
+  const results=[];
+  for(const [width,height] of sizes){
+   await page.setViewportSize({width,height});
+   for(const visible of heights.filter(h=>h<=height-34)){
+    const state=await page.evaluate(({width,height,visible})=>{
+     const body=$('storyBody'),start=body.value.length-14,end=start+7;
+     body.focus({preventScroll:true});
+     body.setSelectionRange(start,end,'backward');
+     body.scrollTop=0;
+     writerViewportFit({width,height:visible,offsetLeft:0,offsetTop:11,scale:1});
+     keepWriterCaretVisible(body);
+     const rect=id=>$(id).getBoundingClientRect(),paper=rect('storyBody'),dialog=rect('modal');
+     const hits=['drawStory','saveStoryNow','writerDoneTyping'].map(id=>{
+      const button=$(id),r=rect(id);
+      return [id,r.width,r.height,r.top,r.bottom,[.25,.5,.75].every(x=>button.contains(document.elementFromPoint(r.left+r.width*x,r.top+r.height/2)))];
+     });
+     const caret=writerCaretBounds(body);
+     return {
+      width,height,visible,paper:paper.height,paperWidth:paper.width,dialogWidth:dialog.width,side:rect('drawStory').left>=paper.right,
+      fits:dialog.top>=10.5&&dialog.bottom<=visible+11.5&&paper.top>=dialog.top-.5&&paper.bottom<=dialog.bottom+.5,
+      scrolling:$('modalBody').scrollTop===0&&dialog.width<=width+.5&&document.documentElement.scrollWidth<=width+1,
+      hits,caret:caret.top>=body.scrollTop-2&&caret.bottom<=body.scrollTop+body.clientHeight+2,
+      selection:body.selectionStart===start&&body.selectionEnd===end&&body.selectionDirection==='backward'
+     };
+    },{width,height,visible});
+    assert.ok(state.fits&&state.scrolling&&state.caret&&state.selection,'compact editor state '+JSON.stringify(state));
+    assert.ok(state.hits.every(([,w,h,t,b,hit])=>w>=43.9&&h>=43.9&&t>=10.5&&b<=visible+11.5&&hit),'keyboard action hit testing '+JSON.stringify(state));
+    if(width>=640){
+     assert.ok(state.side&&state.paper>=visible*.75,'wide keyboard dedicates at least 75% of usable height to paper '+JSON.stringify(state));
+     if(visible===300)assert.ok(state.paper>=225);
+    }
+    results.push([width,height,visible,Math.round(state.paper)]);
+   }
+  }
+  await page.setViewportSize({width:1024,height:768});
+  const baseline=await page.evaluate(()=>{
+   writerViewportFit({width:1024,height:768,offsetTop:0,scale:1});
+   $('storyBody').focus({preventScroll:true});
+   return localStorage.getItem(KEY);
+  });
+  const stable=[];
+  for(let i=0;i<20;i++){
+   await page.evaluate(()=>fitTestViewport(1016,220,4,13));
+   await page.waitForFunction(()=>$('storyForm').classList.contains('keyboard-writing')&&Math.abs($('modal').getBoundingClientRect().top-13)<.5);
+   stable.push(await page.locator('#storyBody').evaluate(e=>e.getBoundingClientRect().height));
+   await page.evaluate(()=>fitTestViewport(1024,768));
+   await page.waitForFunction(()=>!$('storyForm').classList.contains('keyboard-writing'));
+  }
+  assert.equal(new Set(stable).size,1,'twenty keyboard transitions keep stable geometry');
+  assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),baseline,'viewport changes never write or replace the manuscript');
+  assert.equal(await page.locator('#storyBody').inputValue(),manuscript);
+  const selected=await page.evaluate(()=>{
+   const body=$('storyBody'),start=body.value.indexOf('нашли',Math.floor(body.value.length/2))+2;
+   body.focus({preventScroll:true});
+   body.setSelectionRange(start,start+11,'backward');
+   fitTestViewport(1024,300);
+   return body.value.slice(body.selectionStart,body.selectionEnd);
+  });
+  await page.waitForFunction(()=>$('storyForm').classList.contains('keyboard-writing'));
+  await page.locator('#drawStory').tap();
+  const canvas=page.locator('#drawingCanvas');
+  await canvas.tap();
+  await page.evaluate(()=>fitTestViewport(1024,768));
+  await page.locator('#drawingCancel').tap();
+  const selection=()=>page.locator('#storyBody').evaluate(body=>[body.value.slice(body.selectionStart,body.selectionEnd),body.selectionDirection]);
+  assert.deepEqual(await selection(),[selected,'backward']);
+  await page.locator('#drawStory').tap();
+  await page.locator('#drawingSave').tap();
+  assert.deepEqual(await selection(),[selected,'backward'],'insertions keep the selected manuscript fragment');
+  assert.equal((await page.locator('#storyBody').inputValue()).replace('\n[[рисунок:1]]\n',''),manuscript);
+  assert.equal(await page.locator('#imageTray img').count(),1);
+  console.log('PASS keyboard viewport matrix, long Cyrillic manuscript, caret, 20 event-driven transitions',JSON.stringify(results));
+ }finally{await context.close()}
  }
  // Separate touch-enabled contexts: follow public entry buttons, not internal artRoom().
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
