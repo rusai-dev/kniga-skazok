@@ -190,6 +190,12 @@ const server=http.createServer((req,res)=>{
  assert.equal((await read('Две картинки')).rich.images[0],inserted.rich.images[0]);
  await page.getByRole('button',{name:'Вернуть прежний рисунок'}).click();
  assert.equal((await read('Две картинки')).rich.images[0],edited.rich.images[0]);
+ const beforeRemoval=await read('Две картинки');
+ await page.evaluate(()=>{window.__savedSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return window.__savedSet.call(this,k,v)}});
+ page.once('dialog',dialog=>dialog.accept());await page.locator('#imageTray [data-picture="0"]').click();
+ assert.deepEqual(await read('Две картинки'),beforeRemoval);
+ assert.ok(await page.locator('#imageTray [data-edit-pic="0"]').isVisible());
+ await page.evaluate(()=>{Storage.prototype.setItem=window.__savedSet});
  page.once('dialog',dialog=>dialog.accept());await page.locator('#imageTray [data-picture="0"]').click();
  const removed=await read('Две картинки');
  assert.equal(removed.rich.images[0],null);

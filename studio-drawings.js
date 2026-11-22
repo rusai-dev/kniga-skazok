@@ -36,7 +36,7 @@ function storyStudio(form, from, host) {
       // A removed or replaced illustration must never receive an old edit.
       sheet = { ...sheet, slot: undefined, base: undefined };
     }
-    if (sheet?.id !== current?.id || !current) {
+    if (sheet?.id !== current?.id || !current || sheet?.slot !== current.slot) {
       current = sheet ? { ...sheet } : { id: host.id() };
       form.loadDrawing(current.src, current.outline);
     }
@@ -119,7 +119,7 @@ function storyStudio(form, from, host) {
     const kept = [{ id: host.id(), src: original.src, revision: host.id() }];
     if (original.previous && original.previous !== original.src) kept.push({ id: host.id(), src: original.previous, revision: host.id() });
     if (sheets.length + kept.length > 8) {
-      toast('Сначала освободи место в черновиках. Рисунок остаётся в книге.');
+      toast('Черновики заполнены. Попроси взрослого. Рисунок остаётся в книге.');
       return false;
     }
     const originals = state.originals.slice();
