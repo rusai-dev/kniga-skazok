@@ -223,3 +223,28 @@
     display: none;
   }
 }
+
+/* Visible approved art in the existing navigation cards; no additional rows. */
+.studio-entry-art {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.studio-entry-watercolor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  background: var(--soft);
+  border-radius: inherit;
+}
+.studio-entry-watercolor[hidden] { display: none; }
+#storybookHome .home-paths .studio-entry-art {
+  aspect-ratio: 1;
+  max-height: clamp(66px, 13vh, 128px);
+}
+@media (max-height: 850px) {
+  #storybookHome .home-paths .studio-entry-art { max-height: 90px; }
+}
