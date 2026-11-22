@@ -160,3 +160,36 @@
 #modal.canvas-full #storyForm .studio-tools #drawingFullSave {
   min-height: 48px;
 }
+
+#storyForm #imageTray [data-edit-pic] {
+  position: static;
+  width: 100%;
+  margin-top: 4px;
+  border-radius: 9px;
+  font-size: 14px;
+  padding: 4px;
+}
+
+@media (max-width: 500px), (max-height: 520px) {
+  #modal[open]:not(.drawing-focus):has(#storyForm:not(.keyboard-writing)) {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #modal:not(.drawing-focus):has(#storyForm:not(.keyboard-writing)) .dialog-head {
+    flex: none;
+    position: static;
+  }
+
+  #modal:not(.drawing-focus):has(#storyForm:not(.keyboard-writing)) #modalBody {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  #storyForm:not(.keyboard-writing) .writer-artbar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
+  }
+}

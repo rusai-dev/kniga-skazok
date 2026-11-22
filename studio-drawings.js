@@ -52,6 +52,7 @@ function storyStudio(form, from, host) {
     button.textContent = title;
     button.onclick = action;
     root.append(button);
+    return button;
   }
 
   function menu(root) {
@@ -125,7 +126,7 @@ function storyStudio(form, from, host) {
         };
         write({ ...state, originals }, () => host.replace(slot, prior.previousPreview));
         host.paint();
-      });
+      }).className = 'cover-choice';
     });
   }
 
