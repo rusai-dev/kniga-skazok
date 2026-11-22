@@ -244,3 +244,7 @@ Owner confirmed 1.5.180 delivery but did not see the new watercolors. Two approv
 
 ## 1.5.182 — keyboard-first editor on iPad
 Field report: in landscape Safari with keyboard open, controls left only a thin writing area. Reuse the existing textarea and visualViewport fit; remove the redundant dialog header in typing mode, prioritize the paper, combine drawing and save actions into one row at tablet widths, retain failure recovery and normal mode on keyboard dismissal. No storage/schema, artwork, fonts, or drawing engine changes. Synthetic tests now require >= 60% of a 230px visible tablet viewport for the writing surface, and reachable draw/save/done controls. Exact Chromium/WebKit/regression CI and physical iPad keyboard/caret checks are required; no physical-device acceptance claimed.
+
+### IPAD WRITING STUDIO FINAL · приёмка режима письма
+
+Матрица `tests/browser-smoke.cjs` проверяет размеры листа, попадание в видимую зону, три точки попадания по каждой основной кнопке, положение активной границы выделения и отсутствие внешней прокрутки. Синтетическое снижение VisualViewport на широком iPad даёт 296/300 и 216/220 px. Проверка 20 событийных циклов включает отсутствие записи при изменении геометрии. В отдельном сценарии проверяется выход из рисования и вставка без изменения выделенного фрагмента. При отказе записи доступны выгрузка текста и сказки с рисунками. Физический iPad остаётся отдельным испытанием.

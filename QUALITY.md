@@ -849,3 +849,9 @@ Owner confirmed 1.5.180 delivery but did not see the new watercolors. Two approv
 
 ## 1.5.182 — keyboard-first editor on iPad
 Field report: in landscape Safari with keyboard open, controls left only a thin writing area. Reuse the existing textarea and visualViewport fit; remove the redundant dialog header in typing mode, prioritize the paper, combine drawing and save actions into one row at tablet widths, retain failure recovery and normal mode on keyboard dismissal. No storage/schema, artwork, fonts, or drawing engine changes. Synthetic tests now require >= 60% of a 230px visible tablet viewport for the writing surface, and reachable draw/save/done controls. Exact Chromium/WebKit/regression CI and physical iPad keyboard/caret checks are required; no physical-device acceptance claimed.
+
+### IPAD WRITING STUDIO FINAL · PR #147
+
+Продолжение ветки 1.5.182 от main `92e56b5519df44c06dec0a2b16117fa628e68d90` (1.5.181). Режим письма использует ширину, высоту и смещение VisualViewport, оставляет прежний textarea, а на широком экране выносит рисование, завершение ввода и сохранение сбоку. У текстового листа единственная прокрутка. Отложенная проверка после изменения viewport прокручивает только лист до активной границы выделения. Размер по умолчанию 24 px, выбор размера действует при закрытой и открытой клавиатуре. Существующая защита записи и выгрузки сохранена.
+
+В синтетической матрице Chromium при 300 CSS px над клавиатурой широкие iPad получили текстовый лист высотой 296 px, при 220 px — 216 px. Проверены доступность касания в трёх точках каждой кнопки, девять размеров (включая Split View и обе ориентации телефона), высоты 180/220/250/300/350/480 в пределах экрана, 20 циклов VisualViewport и 11 900 русских слов. Выделение с направлением сохраняется при возврате из рисования и вставке. Тесты Chromium и WebKit для точного SHA отслеживаются в PR #147. Физическая клавиатура iPad не проверялась.

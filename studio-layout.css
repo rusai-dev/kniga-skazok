@@ -249,40 +249,126 @@
   #storybookHome .home-paths .studio-entry-art { max-height: 90px; }
 }
 
-/* Keyboard focus: spend the visual viewport on the existing textarea, not chrome. */
+/* Use the native textarea and scroll its contents inside the visible viewport. */
+#modal:has(#storyForm.keyboard-writing):not(.drawing-focus)[open] {
+  inset: var(--writer-top) auto auto var(--writer-left, 0px);
+  width: var(--writer-width, 100%);
+  max-width: none;
+  min-height: 0;
+  border-radius: 0;
+}
+
 #modal:has(#storyForm.keyboard-writing):not(.drawing-focus) .dialog-head {
   display: none;
 }
+
 #modal:has(#storyForm.keyboard-writing):not(.drawing-focus) #modalBody {
-  padding: 3px 8px;
-  overflow: auto;
+  min-height: 0;
+  padding: max(2px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-right))
+    2px max(4px, env(safe-area-inset-left));
+  overflow: hidden;
 }
-#storyForm.keyboard-writing > .writer-title { order: -2; }
-#storyForm.keyboard-writing > .story-page { order: -1; min-height: 0; }
+
+#storyForm.keyboard-writing {
+  container: writing-surface / size;
+  --writing-inset: clamp(12px, 3vw, 36px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  grid-template-areas: "title title" "page page" "art quick" "status status" "rescue rescue";
+  gap: 2px 4px;
+}
+
+#storyForm.keyboard-writing > .writer-title { grid-area: title; }
+#storyForm.keyboard-writing > .story-page { grid-area: page; min-height: 0; }
+#storyForm.keyboard-writing > .writer-status { grid-area: status; min-width: 0; margin: 0; }
+#storyForm.keyboard-writing > #rescueActions { grid-area: rescue; }
+#storyForm.keyboard-writing > .writer-artbar { grid-area: art; }
+#storyForm.keyboard-writing > .writer-quick { grid-area: quick; }
+
 #storyForm.keyboard-writing #storyBody {
   flex: 1 1 0;
+  width: 100%;
   height: 0;
   min-height: 0;
-  width: 100%;
   margin: 0;
+  padding: 8px var(--writing-inset);
+  border: 1px solid #a8d3cf;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  caret-color: var(--green);
+  line-height: 1.6;
+  box-shadow: none;
   scroll-margin: 0;
-  padding: 8px 12px;
+  overscroll-behavior: contain;
 }
-#storyForm.keyboard-writing > .writer-status { flex: none; gap: 2px; }
-#storyForm.keyboard-writing > .writer-artbar { margin: 0; min-width: 0; }
-#storyForm.keyboard-writing .writer-quick button { min-width: 0; }
+
+#storyForm.keyboard-writing .writer-artbar,
+#storyForm.keyboard-writing .writer-quick {
+  min-width: 0;
+  gap: 4px;
+  margin: 0;
+}
+
+#storyForm.keyboard-writing .writer-artbar button,
+#storyForm.keyboard-writing .writer-quick button,
+#storyForm.keyboard-writing #rescueActions button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 3px 5px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+
+#storyForm.keyboard-writing .writer-artbar > :not(#drawStory),
+#storyForm.keyboard-writing #wordCount {
+  display: none !important;
+}
+
+#storyForm.keyboard-writing #draftStatus {
+  font-size: 11px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+#storyForm.keyboard-writing:has(#rescueActions:not([hidden])) > .writer-quick {
+  grid-column: 1 / -1;
+}
+
+#storyForm.keyboard-writing #rescueActions:not([hidden]) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+}
+
 @media (min-width: 640px) {
   #storyForm.keyboard-writing {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto auto auto;
-    grid-template-areas: "title title" "page page" "status status" "rescue rescue" "art quick";
-    gap: 2px 6px;
+    grid-template-columns: minmax(0, 1fr) clamp(122px, 16%, 156px);
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+    grid-template-areas: none;
   }
-  #storyForm.keyboard-writing > .writer-title { grid-area: title; }
-  #storyForm.keyboard-writing > .story-page { grid-area: page; }
-  #storyForm.keyboard-writing > .writer-status { grid-area: status; }
-  #storyForm.keyboard-writing > #rescueActions { grid-area: rescue; }
-  #storyForm.keyboard-writing > .writer-artbar { grid-area: art; align-self: stretch; }
-  #storyForm.keyboard-writing > .writer-quick { grid-area: quick; min-width: 0; }
+
+  #storyForm.keyboard-writing > .story-page { grid-area: 1 / 1 / -1 / 2; }
+  #storyForm.keyboard-writing.keyboard-title > .writer-title { grid-area: 1 / 1; }
+  #storyForm.keyboard-writing.keyboard-title > .story-page { grid-area: 2 / 1 / -1 / 2; }
+  #storyForm.keyboard-writing > .writer-artbar { grid-area: 1 / 2; }
+  #storyForm.keyboard-writing > .writer-quick { grid-area: 2 / 2; flex-direction: column; }
+  #storyForm.keyboard-writing > #rescueActions { grid-area: 3 / 2; }
+  #storyForm.keyboard-writing > .writer-status { grid-area: 4 / 2; }
+  #storyForm.keyboard-writing:has(#rescueActions:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr) clamp(196px, 24%, 252px);
+  }
+  #storyForm.keyboard-writing:has(#rescueActions:not([hidden])) > .writer-quick {
+    grid-area: 2 / 2;
+    flex-direction: row;
+  }
+}
+
+@media (min-width: 640px) {
+  @container writing-surface (max-height: 165px) {
+    #storyForm.keyboard-writing > .writer-quick { flex-direction: row; }
+  }
 }
