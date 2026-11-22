@@ -20,6 +20,17 @@ function storyStudio(form, from, host) {
     return src ? drawingFingerprint(src) : null;
   }
 
+  function anchorFor(sheet) {
+    const text = body.value;
+    const { before = '', after = '' } = sheet.position || {};
+    const context = before + after;
+    const saved = sheet.anchor;
+    if (context && text.slice(saved - before.length, saved + after.length) === context) return saved;
+    const match = context && text.indexOf(context);
+    if (context && match >= 0 && text.indexOf(context, match + 1) < 0) return match + before.length;
+    return body.selectionStart;
+  }
+
   function open(sheet = state.sheets.find(item => item.slot === undefined)) {
     if (sheet?.slot !== undefined && sheet.base !== previewKey(sheet.slot)) {
       // A removed or replaced illustration must never receive an old edit.
@@ -29,6 +40,9 @@ function storyStudio(form, from, host) {
       current = sheet ? { ...sheet } : { id: host.id() };
       form.loadDrawing(current.src, current.outline);
     }
+    current.anchor = anchorFor(current);
+    const pos = current.anchor;
+    current.position = { before: body.value.slice(Math.max(0, pos - 32), pos), after: body.value.slice(pos, pos + 32) };
     host.open(current);
   }
 

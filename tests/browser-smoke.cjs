@@ -135,6 +135,7 @@ const server=http.createServer((req,res)=>{
  const back=async()=>page.locator('#drawingCancel').click();
  const loaded=async()=>page.waitForFunction(()=>!$('drawingStatus').textContent.startsWith('Открываем'));
  await newBook('Две картинки');
+ await page.locator('#storyBody').evaluate(e=>e.setSelectionRange(15,15));
  await page.locator('#drawStory').click();
  assert.equal(await page.locator('#drawingSave').isEnabled(),false,'legacy draft never assigned automatically');
  await paint(30,30);await back();
@@ -155,6 +156,7 @@ const server=http.createServer((req,res)=>{
  await page.reload();
  await page.locator('#homeDrafts').click();
  await page.locator('[data-own-draft]').filter({hasText:'Две картинки'}).click();
+ await page.locator('#storyBody').fill('Вступление.\nОднажды в тихом лесу.');
  await page.locator('#writerGallery').click();
  await page.getByRole('button',{name:'Продолжить рисунок 2',exact:true}).click();
  await loaded();
@@ -164,6 +166,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(inserted.studio.originals[0].src,sheet.src);
  assert.equal(inserted.studio.sheets.length,1);
  assert.equal(inserted.body.match(/\[\[рисунок:1\]\]/g).length,1);
+ assert.ok(inserted.body.includes('тихом\n[[рисунок:1]]\n лесу.'),'insertion follows its text after a prefix edit');
  await page.locator('[data-edit-pic="0"]').click();await loaded();
  await paint(110,90);await back();
  assert.equal((await read('Две картинки')).rich.images[0],inserted.rich.images[0]);
@@ -219,33 +222,41 @@ const server=http.createServer((req,res)=>{
  try{
   const page=await context.newPage();
   const matrix=[[320,568],[390,844],[844,390],[600,800],[768,1024],[1024,768],[834,1194],[1194,834],[1366,1024]];
-  async function targets(...selectors){
-   const broken=await page.evaluate(selectors=>selectors.filter(selector=>{
-    const node=document.querySelector(selector),r=node.getBoundingClientRect();
-    if(r.width<43.9||r.height<43.9||r.left<-.5||r.top<-.5||r.right>innerWidth+.5||r.bottom>innerHeight+.5)return true;
-    return [.25,.5,.75].some(x=>!node.contains(document.elementFromPoint(r.left+r.width*x,r.top+r.height/2)));
-   }),selectors);
+  async function targets(selectors, keyboard=false){
+   const broken=await page.evaluate(({selectors,keyboard})=>{
+    const bottom=keyboard?Math.max(230,innerHeight*.52):innerHeight;
+    if(keyboard){
+     $('storyBody').focus();
+     writerViewportFit({height:bottom,offsetTop:0,scale:1});
+    }
+    return selectors.flatMap(selector=>{
+     const node=document.querySelector(selector),r=node.getBoundingClientRect();
+     const hits=[.25,.5,.75].map(x=>node.contains(document.elementFromPoint(r.left+r.width*x,r.top+r.height/2)));
+     const fits=r.width>=43.9&&r.height>=43.9&&r.left>=-.5&&r.top>=-.5&&r.right<=innerWidth+.5&&r.bottom<=bottom+.5;
+     return fits&&hits.every(Boolean)?[]:[{selector,x:r.x,y:r.y,w:r.width,h:r.height,bottom,hits}];
+    });
+   },{selectors,keyboard});
    assert.deepEqual(broken,[],'studio hit targets at '+JSON.stringify(page.viewportSize()));
   }
   for(const [width,height] of matrix){
    await page.setViewportSize({width,height});
    await page.goto(url);
    await page.locator('#homeBooks').click();
-   await targets('#ownShelfNew','#ownShelfContinue');
+   await targets(['#ownShelfNew','#ownShelfContinue']);
    await page.locator('#ownShelfNew').click();
    await page.locator('#storyTitle').fill('Длинное название творческой работы');
    await page.locator('#storyBody').fill('Ёжик шёл по лесу.');
-   await targets('#drawStory','#writerGallery');
-   await page.evaluate(()=>writerViewportFit({height:Math.max(230,innerHeight*.52),offsetTop:0,scale:1}));
-   await targets('#drawStory','#saveStoryNow');
+   await page.locator('#drawStory').scrollIntoViewIfNeeded();
+   await targets(['#drawStory','#writerGallery']);
+   await targets(['#drawStory','#saveStoryNow'],true);
    await page.evaluate(()=>writerViewportFit({height:innerHeight,offsetTop:0,scale:1}));
    await page.locator('#drawStory').click();
    const canvas=page.locator('#drawingCanvas');
    await page.waitForFunction(()=>$('drawingCanvas').getBoundingClientRect().height>=44);
    await canvas.click();
-   await targets('#drawingCancel','#drawingSave','#drawingRescue');
+   await targets(['#drawingCancel','#drawingSave','#drawingRescue']);
    await page.locator('#drawingExpand').click();
-   await targets('#studioBackFull','#drawingFullSave','#drawingRescue');
+   await targets(['#studioBackFull','#drawingFullSave','#drawingRescue']);
    await page.locator('#studioBackFull').click();
    assert.equal(await page.locator('#drawStory').textContent(),'Продолжить рисунок');
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'studio root overflow at '+width+'×'+height);
