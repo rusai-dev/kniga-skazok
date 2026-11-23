@@ -980,3 +980,170 @@ body[data-home-screen="home"] {
 @media (prefers-reduced-motion:reduce){
   #libraryHome[data-own-shelf=true] .own-book{transition:none}
 }
+
+
+/* 1.5.201 · R03/R04/R15. Original editor; watercolor paper + nearby art tools.
+   Never decorate the active text area or override the compact keyboard mode. */
+#modal:not(.drawing-focus):has(#storyForm:not(.keyboard-writing)) #modalBody {
+  background:linear-gradient(135deg,#edf8f5 0%,#f4ecfc 54%,#f9faf6 100%);
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) {
+  background:#fffcf7;
+  border:1px solid #e1ded9;
+  border-radius:20px;
+  box-shadow:0 10px 28px #21496320,0 2px 4px #2149630d;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-title > span {
+  color:#573b75;
+  font-weight:700;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) #storyTitle {
+  color:#263f40;
+  caret-color:#087c83;
+  border-bottom:2px solid #b3ddd7;
+  font:700 clamp(18px,2.5vw,24px)/1.3 Georgia,serif;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) #storyTitle:focus-visible {
+  outline:2px solid #6b4a9c;
+  outline-offset:3px;
+  border-radius:4px;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) #storyBody {
+  color:#263c3f;
+  background:#fff;
+  caret-color:#087c83;
+  line-height:1.62;
+  border-radius:12px;
+  padding:clamp(10px,1.7vw,18px);
+  box-shadow:inset 0 0 0 1px #ebeee8;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar {
+  background:linear-gradient(135deg,#f2eafb,#eaf9f7 95%);
+  border:1px solid #d7cde9;
+  border-radius:18px;
+  padding:9px;
+}
+#storyForm .writer-artbar-title {
+  display:block;
+  flex:1 0 100%;
+  padding:3px 8px;
+  color:#5a3e81;
+  font:750 17px/1.3 Georgia,serif;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar button {
+  min-height:48px;
+  border-radius:13px;
+  border:1px solid #cabce0;
+  color:#51376b;
+  background:#fffdfd;
+  font-weight:700;
+  box-shadow:0 2px 4px #4c377015;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar #drawStory {
+  color:#fff;
+  background:#0d7d86;
+  border-color:#0d7d86;
+  box-shadow:0 3px 8px #0a6d7935;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar button:focus-visible {
+  outline:3px solid #6c3c98;outline-offset:2px;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-status {
+  padding:5px 8px;
+  border-radius:10px;
+  background:#ecf7f3;
+  border:1px solid #d1e8e2;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) #imageTray:not(:empty) {
+  border:1px solid #e3d9f1;
+  border-radius:12px;
+  padding:8px;
+  background:#fcfaff;
+}
+#storyForm.keyboard-writing .writer-artbar-title,
+#storyForm.writer-focus .writer-artbar-title {display:none;}
+#storyForm.keyboard-writing .writer-artbar::before {display:none!important;}
+@media(min-width:900px) and (min-height:680px) {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) clamp(195px,24%,240px);
+    column-gap:14px;
+    row-gap:9px;
+    align-items:start;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > * {min-width:0;}
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-title {
+    grid-column:1/-1;grid-row:1;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .story-page {
+    grid-column:1;grid-row:2;min-height:0;align-self:stretch;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .story-page #storyBody {
+    height:100%;min-height:clamp(248px,42dvh,540px);
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-artbar {
+    grid-column:2;grid-row:2;
+    min-width:0;align-self:stretch;
+    display:flex;flex-direction:column;flex-wrap:nowrap;gap:8px;
+    justify-content:flex-start;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-artbar::before {
+    content:"";
+    display:block;flex:none;
+    height:clamp(84px,15vh,118px);
+    border:2px solid #fff;
+    border-radius:13px;
+    background:#f7f0fa url('assets/author/studio/art-n02-rabbit-painting-entry184.webp') center / cover no-repeat;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-artbar .writer-artbar-title {
+    order:-1;flex:none;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-artbar button {
+    width:100%;flex:none;white-space:normal;text-align:center;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > :not(.writer-title):not(.story-page):not(.writer-artbar) {
+    grid-column:1/-1;
+  }
+}
+/* Preserve the pre-existing two-page picture preview. When a child opens an
+   illustration, manuscript and image share the spread; the art toolbar moves below.
+   This is independent from the 2-column writer+tools layout when preview is closed. */
+@media(min-width:900px) and (min-height:680px) {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):has(#bookPreview:not([hidden])) {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):has(#bookPreview:not([hidden])) > #bookPreview {
+    grid-column:2;grid-row:2;min-width:0;max-height:55dvh;overflow:auto;margin:0;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):has(#bookPreview:not([hidden])) > .writer-artbar {
+    grid-column:1/-1;grid-row:auto;display:flex;flex-flow:row wrap;
+    align-self:start;gap:8px;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):has(#bookPreview:not([hidden])) > .writer-artbar::before {
+    display:none;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):has(#bookPreview:not([hidden])) > .writer-artbar button {
+    width:auto;min-width:44px;flex:1 1 150px;
+  }
+}
+
+@media(max-width:899px) {
+  /* On portrait iPad the 100%-basis heading previously collapsed four buttons.
+     Wrap the heading onto its own row and keep real, finger-sized actions. */
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar {
+    display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;
+  }
+  #storyForm:not(.keyboard-writing) .writer-artbar-title {
+    flex:1 0 100%;font-size:15px;padding:0 4px 2px;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar button {
+    flex:1 1 calc(50% - 8px);min-width:44px;min-height:48px;
+    white-space:normal;overflow-wrap:anywhere;
+  }
+}
+@media(max-height:600px) {
+ #storyForm:not(.keyboard-writing) .writer-artbar-title {display:none;}
+}
+@media(prefers-reduced-motion:reduce) {
+ #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar button{transition:none;}
+}
