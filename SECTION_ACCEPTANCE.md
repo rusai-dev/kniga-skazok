@@ -335,3 +335,7 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - On an iPad landscape layout without the keyboard, text writing area is to the left and illustrated actions «Нарисовать» / «Мои рисунки» remain visible beside it; no mandatory theme or wizard.
 - With visualViewport keyboard height 230px, do not overlap text/caret or lose typed text; drawing and gallery actions stay reachable. At 768×1024 and 390×844 there is no horizontal overflow; buttons remain ≥44×44.
 - Test reopening, offline save/reload, drawing insertion, keyboard and IME across Chromium/WebKit plus physical Safari/HARDWARE PENDING. Existing persistent storage schema unchanged.
+
+### R15/R17 1.5.202 — hero title must remain unobscured
+- At 1024×768, 768×1024, 834×1194, 390×844 the Friends button does not intersect H1, remains ≥44×44 and opens the real gallery. Hero and featured images decode to known project-manifest dimensions (240/320), without baked text, and all normal author actions keep working.
+- Verify cold-home budget ≤1,200,000 B and startup five files ≤1,000,000 B on exact SHA. Physical iPad: PENDING.
