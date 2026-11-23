@@ -1445,7 +1445,7 @@ body[data-home-screen="home"]{
   margin-right:12px;text-shadow:0 0 7px #fff8;
 }
 #storybookHome #homePaint{background:#f2eafb;color:#623e8d}
-#storybookHome #homeDrafts{background:linear-gradient(120deg,#bca6e9,#e2cdf8);color:#603881}
+#storybookHome #homeDrafts{background:linear-gradient(120deg,#bca6e9,#e2cdf8);color:#67438d}
 #storybookHome .home-paths{gap:11px;margin-bottom:10px}
 #storybookHome .home-paths button{
   min-height:120px;padding:8px 14px;border:2px solid #fffaf8;
@@ -1456,6 +1456,7 @@ body[data-home-screen="home"]{
 }
 #storybookHome #homeCreate{
   background:linear-gradient(110deg,#daf5f3,#e6d8fa);
+  background-color:#eee5fc;
 }
 #storybookHome .home-paths b{
   color:#56397b;font:800 clamp(18px,2.1vw,25px)/1.14 Georgia,serif;
