@@ -595,10 +595,10 @@ const server=http.createServer((req,res)=>{
    const page=await context.newPage(),secret='a'.repeat(64);
    await page.goto(url);
    assert.ok((await page.locator('#startNotice a').getAttribute('href')).includes('view=personal'));
-   await page.evaluate(secret=>localStorage.setItem('skazki-family-reader-v1',secret),secret);
-   await page.goto(url);
-   await page.waitForURL(/view=family/, {timeout:10000});
+   // Enter the viewer through an explicit family link, then return to the personal studio.
+   await page.goto(url+'#family='+secret);
    await page.locator('#familyViewer').waitFor({state:'visible'});
+   assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-family-reader-v1')),secret);
    await page.locator('#familyViewer a[href*="view=personal"]').click();
    await page.locator('#storybookHome').waitFor({state:'visible'});
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-family-reader-v1')),secret);
