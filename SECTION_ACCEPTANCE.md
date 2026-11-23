@@ -295,3 +295,10 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Given: new service-worker-blocked Chromium/WebKit page showing personal home. When: cold-home resources settle. Then: no request to `assets/ui/learning-sprite-1536.webp`, but visible `#otherArt` remains at least 24×24 CSS px; both independent performance budgets pass.
 - Given: the child enters a mathematics/logic lesson. Then: original learning sprite remains available, illustrated buttons and navigation operate as before. Offline shell keeps atlas cached for later sections.
 - Synthetic browser tests do not substitute for real iPad memory, throughput or visual quality assessments. No final acceptance without exact-SHA CI and physical device review.
+
+
+## R16 · 1.5.194 — deferred «Познаём мир» SVG scenes
+- Given: personal cold home after a clean navigation, Service Worker disabled in measurement. Then: no request for `world-scenes-194.js`; creative entry and all primary buttons remain functional.
+- Given: tap on world/its exercises. When: on-demand script has loaded successfully. Then: every existing `discoveryScenes` entry is available, each area shows its distinct existing SVG, and navigation is actionable; subsequent world operations do not re-fetch scenes.
+- Given: installed offline shell. Then: world scene file is cached at the versioned URL and world opens offline after reload. If file is genuinely absent, show visible error and allow retry, never falsely claim success.
+- Acceptance remains incomplete without exact-SHA browser tests on Chromium/WebKit and physical iPad review; separate R13 real family gate unchanged.
