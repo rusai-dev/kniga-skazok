@@ -1147,3 +1147,100 @@ body[data-home-screen="home"] {
 @media(prefers-reduced-motion:reduce) {
  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar button{transition:none;}
 }
+
+
+/* 1.5.202 · R05/R15 — real watercolor painting surface, unchanged strokes & dimensions. */
+#modal.drawing-focus:not(.canvas-full) #modalBody {
+  background:linear-gradient(130deg,#e9f7f4 0%,#f3ebff 54%,#f8f9f4 100%);
+}
+#modal.drawing-focus #drawingPanel .studio-tools {
+  border:1px solid #d6c8e7;
+  border-radius:18px;
+  background:linear-gradient(145deg,#f4eeff 0%,#e9f8f6 100%);
+  box-shadow:0 4px 12px #4b3e7910;
+}
+#modal.drawing-focus #drawingPanel .studio-tools .friend-tool {
+  border:2px solid #ffffff;
+  border-radius:12px;
+  background:#fdf9ff;
+  box-shadow:0 2px 8px #51377b1c;
+}
+#modal.drawing-focus .studio-toolset [data-tool] {
+  color:#493368;
+  background:#fffdfd;
+  border:1px solid #d1c7df;
+  border-radius:12px;
+  min-height:44px;
+  font-weight:700;
+}
+#modal.drawing-focus .studio-toolset [data-tool][aria-pressed=true] {
+  color:#fff;
+  border-color:#0f766e;
+  background:#0f766e;
+  box-shadow:0 2px 7px #0f766e29;
+}
+#modal.drawing-focus .studio-tools :is(.studio-sizes,.studio-history) button {
+  min-height:44px;
+  min-width:44px;
+  border-radius:12px;
+}
+#modal.drawing-focus #studioSheet {
+  border:1px solid #c4d9e1;
+  border-radius:19px;
+  background:linear-gradient(145deg,#e6f7f3 0%,#f5eafa 80%,#eaeaf9 100%);
+  box-shadow:inset 0 1px 4px #334d5a0f,0 4px 16px #4a55761b;
+}
+#modal.drawing-focus #studioViewport {background:#fff;border-radius:13px;}
+#modal.drawing-focus #drawingCanvas {
+  background-color:#fff;
+  border-radius:10px;
+  box-shadow:0 2px 11px #2b4a5d17;
+}
+#modal.drawing-focus .studio-palette {
+  border:1px solid #dbd1ee;
+  border-radius:15px;
+  background:linear-gradient(130deg,#fbf7ff 0%,#eaf8f7 100%);
+  box-shadow:0 2px 7px #5741840f;
+}
+#modal.drawing-focus .drawing-colors button {
+  min-width:44px;
+  min-height:44px;
+  border-radius:12px;
+}
+#modal.drawing-focus .drawing-colors button[aria-pressed=true] {
+  outline:3px solid #5e3b85;
+  outline-offset:1px;
+}
+#modal.drawing-focus #drawingExpand {
+  min-height:44px;
+  background:#0f7883;
+  color:#fff;
+  border:1px solid #0b6776;
+  border-radius:12px;
+  font-weight:700;
+}
+#modal.drawing-focus .studio-footer {
+  border:1px solid #ded4ef;
+  border-radius:15px;
+  background:linear-gradient(105deg,#faf5ff 0%,#effbf8 100%);
+  box-shadow:0 3px 12px #53417d12;
+}
+#modal.drawing-focus #drawingSave {
+  min-width:44px;
+  min-height:48px;
+  color:#fff;
+  border:1px solid #0f766e;
+  background:#0f766e;
+  font-weight:750;
+}
+#modal.drawing-focus .studio-tools button:focus-visible,
+#modal.drawing-focus #drawingExpand:focus-visible,
+#modal.drawing-focus #drawingSave:focus-visible {
+  outline:3px solid #643d92;
+  outline-offset:3px;
+}
+@media (prefers-reduced-motion:reduce) {
+  #modal.drawing-focus .studio-tools button,
+  #modal.drawing-focus #drawingExpand,
+  #modal.drawing-focus #drawingSave {transition:none;}
+}
