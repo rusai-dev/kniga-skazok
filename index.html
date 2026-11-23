@@ -85,8 +85,8 @@ window.addEventListener('storage',event=>{
 if(window.__nativeMode||event.key!==KEY||event.storageArea!==localStorage||event.newValue===storedLibrary)return;
 const first=!libraryConflict;libraryConflict=true;
 if(activeDialog==='editor'&&$('storyForm')){
-const form=$('storyForm');form.dataset.saveFailed='yes';
-$('draftStatus').textContent='Сказки изменились в другой вкладке. Этот текст пока не записан. Скачай копию или попроси взрослого помочь.';
+const form=$('storyForm');
+$('draftStatus').textContent='В другой вкладке сохранены изменения. Новые правки здесь не запишутся. Скачай копию или попроси взрослого помочь.';
 $('rescueActions').hidden=false;$('rescueDraft').hidden=false;
 }
 if(first)toast('Другая вкладка изменила библиотеку. Не закрывай свою сказку без копии.');
