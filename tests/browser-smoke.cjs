@@ -605,9 +605,9 @@ const server=http.createServer((req,res)=>{
    // BFCache-like restoration must not leave the closed modal's overlay active.
    await page.evaluate(()=>{document.body.classList.add('modal-open');window.dispatchEvent(new Event('pageshow'))});
    assert.equal(await page.evaluate(()=>document.body.classList.contains('modal-open')),false);
-   await page.locator('#homeBooks').tap();
+   await page.locator('#homeBooks').click();
    await page.locator('#libraryHome').waitFor({state:'visible'});
-   await page.locator('#home').tap();
+   await page.locator('#home').click();
    console.log('PASS reversible family->personal navigation and restored-tab overlay cleanup');
   }finally{await context.close()}
  }
