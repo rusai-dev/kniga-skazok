@@ -330,3 +330,8 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - On personal shelf, a synthetic saved book must render with cover, readable title and 44×44 CSS px or larger cover/title/read/edit/info buttons at 1024×768, 768×1024 and 390×844, and no horizontal overflow.
 - Reading and returning must not change book id/title/body/theme/rich fields. Book remains after reload. Visual regressions across Chromium/WebKit must pass; existing external author catalogs may not be restyled accidentally.
 - No new art assets or child data migrations. Real iPad, family publishing and final merge gates unchanged.
+
+### R03/R04/R15 · 1.5.201 proposed watercolor writing workspace
+- On an iPad landscape layout without the keyboard, text writing area is to the left and illustrated actions «Нарисовать» / «Мои рисунки» remain visible beside it; no mandatory theme or wizard.
+- With visualViewport keyboard height 230px, do not overlap text/caret or lose typed text; drawing and gallery actions stay reachable. At 768×1024 and 390×844 there is no horizontal overflow; buttons remain ≥44×44.
+- Test reopening, offline save/reload, drawing insertion, keyboard and IME across Chromium/WebKit plus physical Safari/HARDWARE PENDING. Existing persistent storage schema unchanged.

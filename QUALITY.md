@@ -968,3 +968,8 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Restyled the EXISTING personal shelf with ivory paper book cards, subtle spines, softened purple/turquoise action hierarchy, round book covers and readable titles; styles only apply to `#libraryHome[data-own-shelf=true]` and do not change other authors' catalogs.
 - Existing title, chapters, illustration associations, coverArt, localStorage/IndexedDB, family share and writing mechanisms are untouched. Pure CSS in `studio-layout.css`, no new images or network requests. A synthetic story is created, read and reloaded in new browser smoke `tests/shelf-watercolor.cjs` in both Chromium and WebKit.
 - Source startup sum ≤1,000,000 B and cold-home ≤1,200,000 B require exact-SHA CI on draft; iPad hardware and real family A→B remain PENDING/BLOCKED. No release or main merge.
+
+### 1.5.201 — watercolor real writing workspace (R03/R04/R15, draft candidate)
+- Desktop/iPad landscape non-keyboard editor places live text and existing drawing/gallery actions side-by-side. Decorative light WebP watercolor rabbit scene loads ONLY after opening the editor, not on cold home. Page text stays opaque white, readable and nondecorative.
+- Compact keyboard-writing mode retains its original visualViewport grid; new art heading and decorative image hidden in typing mode. Existing 44–48px controls, actual storage, drafts, drawings and family publishing behavior preserved.
+- New browser-smoke `tests/writer-watercolor.cjs` checks three viewport classes, toolbar roles/touch targets, no horizontal overflow, typing with keyboard and real canvas opening in Chromium/WebKit. Exact SHA CI/hardware to be confirmed; release NO-GO.
