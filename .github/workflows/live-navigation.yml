@@ -1,0 +1,26 @@
+name: Live site navigation diagnostic
+on:
+  pull_request:
+    paths:
+      - tests/live-navigation.cjs
+      - .github/workflows/live-navigation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-navigation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install --no-save --package-lock=false playwright@1.65.1
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Test public GitHub Pages without child data
+        env:
+          BROWSER: ${{ matrix.browser }}
+          SITE_URL: https://rusai-dev.github.io/kniga-skazok/
+        run: node tests/live-navigation.cjs
