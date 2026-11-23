@@ -15,6 +15,14 @@ module.exports=async function verifyWatercolorHome(browser,url){
      assert.equal(await page.locator('#homeNewStory').textContent(),'✦ Написать сказку');
      assert.equal(await page.locator('.home-map button').count(),4);
      assert.equal(await page.locator('.home-paths button').count(),2);
+     const accessibleTeal=await page.locator('#homeNewStory').evaluate(el=>{
+       const gradient=getComputedStyle(el).backgroundImage,white=[255,255,255];
+       const parts=[...gradient.matchAll(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/g)].map(m=>m.slice(1).map(Number));
+       const luminance=rgb=>rgb.map(v=>{const x=v/255;return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4)}).reduce((t,v,i)=>t+v*[.2126,.7152,.0722][i],0);
+       return {contrast:parts.map(c=>(luminance(white)+.05)/(luminance(c)+.05)),gradient};
+     });
+     assert.ok(accessibleTeal.contrast.length>=2&&accessibleTeal.contrast.every(x=>x>=4.5),
+       'primary turquoise action must preserve AA text contrast at both gradient endpoints: '+JSON.stringify(accessibleTeal));
      assert.ok(!await page.locator('#storybookHome .home-story-head').textContent().then(x=>x.includes('Сохранено')),
        'visual design must not lie about a successful storage write');
      for(const selector of ['.home-hero-watercolor','.home-feature-art img']){
