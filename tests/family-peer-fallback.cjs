@@ -76,6 +76,25 @@ module.exports=async function familyPeerFallback(browser,url){
     assert.equal(guarded.peer,false,'R13 no P2P downgrade after verified archive');
     assert.equal(guarded.calls,0,'R13 no signaling attempt for archived high-water reader');
     assert.equal(guarded.cached,book.body,'R13 outage must preserve cached books');
+
+    // A previously verified cloud revision also outranks unversioned direct data
+    // if the cloud endpoint is later disabled or temporarily misconfigured.
+    await page.evaluate(async secret=>{
+      const {room}=await fcredentials(secret),prefix='skazki-family-book-cache-'+room;
+      localStorage.removeItem(prefix+'-revision');
+      localStorage.setItem(prefix+'-cloud-revision','9');
+      window.__qaPeerInstances=0;
+      await fstart('view',secret);
+    },secret);
+    await page.waitForFunction(()=>fam?.role==='view'&&!fam.ghBusy&&fam.ghAPICheck>0,null,{timeout:12000});
+    const cloudGuard=await page.evaluate(()=>({
+      peer:!!fam.peer,calls:window.__qaPeerInstances,cached:fam.books[0]?.body,
+      highWater:localStorage.getItem(fam.cache+'-cloud-revision')
+    }));
+    assert.equal(cloudGuard.peer,false,'R13 verified cloud revision prevents direct downgrade');
+    assert.equal(cloudGuard.calls,0,'R13 cloud high-water prevents direct signaling');
+    assert.equal(cloudGuard.cached,book.body,'R13 missing cloud must preserve book');
+    assert.equal(cloudGuard.highWater,'9');
     assert.deepEqual(errors,[]);
   }finally{await context.close()}
   console.log('PASS R13 encrypted direct-reader fallback after archive 404, ack, cache and no verified-revision downgrade');
