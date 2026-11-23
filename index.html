@@ -3645,7 +3645,7 @@ if(fam!==s)return;
 if(s.role==='view'){
 const high=Math.max(s.cloudRevision||0,ghCachedRevision({cache:s.cache+'-cloud'}));
 if(remote.revision<high||s.received&&remote.revision===high&&JSON.stringify(books)!==JSON.stringify(s.books)){fstatus('Архив вернул старую версию или изменился без номера. Книги сохранены.');return}
-if(s.cloudRevision!==remote.revision||!s.cloudCached){s.books=books;s.received=true;s.cloudRevision=remote.revision;fdraw(s);s.cloudCached=fput(s.cache,JSON.stringify(books))&&fput(s.cache+'-cloud-revision',String(remote.revision))}
+if(s.cloudRevision!==remote.revision||!s.cloudCached){s.books=books;s.received=true;s.cloudRevision=remote.revision;fdraw(s);s.cloudCached=fput(s.cache+'-cloud-revision',String(remote.revision))&&fput(s.cache,JSON.stringify(books))}
 fstatus('Семейный архив · '+books.length+' книг'+(s.cloudCached?' · копия сохранена.':' · нет копии на устройстве.'));return;
 }
 const local=publicationWritable();if(local===null)return;const writer=cloudWriter(s.secret);
