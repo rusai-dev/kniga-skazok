@@ -64,6 +64,14 @@ module.exports=async function verifyWatercolorHome(browser,url){
          : {width:320,path:'assets/author/studio/home-egypt-cat-320x120.webp'};
        assert.equal(size[0],asset.width,selector+' decoded artwork width must match the repo manifest');
        if(selector==='.home-feature-art img')assert.equal(size[1],120,'approved cat safe crop must use 320x120 artwork');
+       if(selector==='.home-feature-art img'){
+         const frame=await image.evaluate(element=>{
+           const s=getComputedStyle(element);
+           return {position:s.objectPosition,fit:s.objectFit};
+         });
+         assert.equal(frame.fit,'cover','wide Egyptian cat art fills story CTA');
+         assert.equal(frame.position,'42% 92%','cat muzzle must stay in the approved visible crop');
+       }
        assert.ok((await image.getAttribute('src')).endsWith(asset.path),
          selector+' must use the selected existing approved project artwork');
      }
