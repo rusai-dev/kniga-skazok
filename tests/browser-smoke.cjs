@@ -596,7 +596,7 @@ const server=http.createServer((req,res)=>{
    await page.goto(url);
    assert.ok((await page.locator('#startNotice a').getAttribute('href')).includes('view=personal'));
    // Enter the viewer through an explicit family link, then return to the personal studio.
-   await page.goto(url+'#family='+secret);
+   await page.goto(url+'?view=family#family='+secret);
    await page.locator('#familyViewer').waitFor({state:'visible'});
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-family-reader-v1')),secret);
    await page.locator('#familyViewer a[href*="view=personal"]').click();
