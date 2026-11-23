@@ -3817,7 +3817,7 @@ try{direct.destroy()}catch(e){}
 }
 }
 }
-else if(s.role==='view'&&s.ghReader&&s.ghRevision===0){
+else if(s.role==='view'&&s.ghReader&&s.ghRevision===0&&ghCachedRevision({cache:s.cache+'-cloud'})===0){
 readerRecovery('loading');
 if($('familyRefresh'))$('familyRefresh').disabled=false;
 fstatus('Архив пока не настроен. Пробуем защищённую связь с открытым iPad автора…');
