@@ -299,5 +299,5 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 
 ## R14 · 1.5.194 — cross-tab conflict before typing
 - Given: two browser tabs open the same local library and both have an author editor. When: tab A persists a draft and tab B receives the native `storage` event. Then: tab B immediately displays an understandable warning and a draft export control, **before** its next input.
-- Given: tab B types after the conflict. Then: its text remains in the open DOM for rescue but never overwrites tab A's saved draft. Back/Escape must not close the editor silently, and reload from a deliberate recovery retrieves tab A's persisted version.
+- Given: tab B types after the conflict. Then: its text remains in the open DOM for rescue but never overwrites tab A's saved draft. Back/Escape must not close an edited, unsaved stale editor silently; a passive unchanged stale editor may close without writing. Reload from a deliberate recovery retrieves tab A's persisted version.
 - No automatic merging, no replacement of user text, and no forced reload while the user is typing. The two-tab CI test verifies synthetic scenarios only; real child/iPad acceptance still pending.
