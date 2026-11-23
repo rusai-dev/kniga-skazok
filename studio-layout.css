@@ -847,19 +847,24 @@ body[data-home-screen="home"] {
   outline:3px solid #6230a6;outline-offset:3px;position:relative;z-index:4;
 }
 @media (max-height:820px) and (min-width:700px) {
-  #storybookHome .home-intro {min-height:152px;padding-block:6px;margin-bottom:6px}
-  #storybookHome #homeFox {height:156px;min-width:184px}
+  body[data-home-screen="home"] .wrap {padding-block:0 0}
+  #storybookHome {padding-block:0 2px}
+  #storybookHome .home-intro {
+    min-height:154px;height:160px;padding-block:0;margin-bottom:3px;
+  }
+  #storybookHome #homeFox {height:150px;min-width:184px}
   #storybookHome .home-hero-watercolor {max-height:140px}
-  #storybookHome .home-story-head {min-height:30px;margin-bottom:4px}
-  #storybookHome #homeWrite {min-height:106px;margin-bottom:8px;padding-block:5px}
-  #storybookHome .home-feature-art {height:96px}
-  #storybookHome .home-writer-links button:not([hidden]) {min-height:50px}
-  #storybookHome .home-writer-links {margin-bottom:7px}
-  #storybookHome .home-paths button {min-height:78px;padding-block:4px}
-  #storybookHome .home-paths button > span:first-child {height:62px;width:62px}
-  #storybookHome .home-paths {margin-bottom:6px}
-  #storybookHome .home-map button {min-height:52px}
-  #storybookHome .home-map .home-art {height:38px;width:38px}
+  #storybookHome .home-story-head {min-height:25px;margin-bottom:3px}
+  #storybookHome #homeWrite {min-height:88px;margin-bottom:5px;padding-block:3px}
+  #storybookHome .home-feature-art {height:82px}
+  #storybookHome .home-writer-links button:not([hidden]) {min-height:44px}
+  #storybookHome .home-writer-links {margin-bottom:5px}
+  #storybookHome .home-paths button {min-height:72px;padding-block:3px}
+  #storybookHome .home-paths button > span:first-child {height:54px;width:54px;min-width:54px}
+  #storybookHome .home-paths {margin-bottom:3px}
+  #storybookHome .home-study-head {min-height:27px;margin-bottom:3px}
+  #storybookHome .home-map button {min-height:46px;padding:3px 5px}
+  #storybookHome .home-map .home-art {height:34px;width:34px}
 }
 @media (max-width:700px) {
   #storybookHome .home-intro {
