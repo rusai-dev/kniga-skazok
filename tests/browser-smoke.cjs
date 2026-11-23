@@ -16,6 +16,8 @@ const release=JSON.parse(fs.readFileSync(path.join(root,'release.json'),'utf8'))
 assert.ok(fs.readFileSync(path.join(root,'index.html'),'utf8').includes('<footer>Книга сказок · версия '+release+'</footer>'),'manifest matches HTML');
 assert.ok(fs.readFileSync(path.join(root,'sw.js'),'utf8').includes("const REV='"+release+"'"),'manifest matches worker');
 const entry=fs.readFileSync(path.join(root,'index.html'),'utf8');
+assert.ok(!entry.includes('Теперь сказки доступны без iPad.'),'server write alone is not proof of family delivery');
+assert.ok(entry.includes('Доставка семье ещё не подтверждена.'),'local share must show unverified delivery');
 assert.ok(entry.includes("const APP_RELEASE='"+release+"'"),'runtime release must match manifest');
 for(const asset of initialFiles.slice(1))assert.ok(entry.includes(asset+'?v='+release+'"'),'versioned core URL mismatched: '+asset);
 
@@ -389,7 +391,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('#publishFamily').click();await page.locator('#cancelFamilyPublish').click();assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),before);
  await page.locator('#publishFamily').click();await page.evaluate(()=>{window.qaSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY&&JSON.parse(v).familyPublished.length)throw Error('quota');return window.qaSet.call(this,k,v)}});
  await page.locator('#confirmFamilyPublish').click();assert.ok(await page.locator('#familyPublishNotice').isVisible());assert.equal(await page.locator('#storyBody').inputValue(),body);assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),before);assert.equal(await page.evaluate(()=>qaDeliveries),0);
- await page.evaluate(()=>Storage.prototype.setItem=window.qaSet);await page.locator('#confirmFamilyPublish').click();assert.ok(await page.locator('#publicationDelivery').isVisible());assert.ok((await page.locator('#publicationDelivery').textContent()).includes('не подтвердил'));
+ await page.evaluate(()=>Storage.prototype.setItem=window.qaSet);await page.locator('#confirmFamilyPublish').click();assert.ok(await page.locator('#publicationDelivery').isVisible());assert.ok((await page.locator('#modal').innerText()).includes('Сказка сохранена на iPad'),'local publication must not claim delivery');assert.ok((await page.locator('#publicationDelivery').textContent()).includes('не подтвердил'));
  const saved=await page.evaluate(()=>fpublished()[0]);assert.equal(saved.body,body);assert.equal(saved.rich.images.length,3);assert.equal(saved.title,'Сказка без названия');assert.ok(!('plan' in saved));assert.equal(await page.evaluate(()=>qaDeliveries),1);
  await page.locator('#publicationRetry').click();assert.equal(await page.evaluate(()=>qaDeliveries),2);await page.locator('#publicationShelf').click();assert.ok(await page.locator('#familyOwnBooks').isVisible());assert.deepEqual(errors,[]);
  }finally{await ctx.close()}
