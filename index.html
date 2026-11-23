@@ -258,7 +258,6 @@ for(let i=0;i<6;i++){let x=18+random()*660,y=340+random()*115;ctx.beginPath();ct
 }else{
 for(const [x,y,w] of [[88,188,75],[550,162,82]]){shape('#efdae4',()=>ctx.rect(x,y,w,119));poly([[x-9,y],[x+w/2,y-59],[x+w+9,y]],'#bd9bc5');shape('#fff2ba',()=>{ctx.moveTo(x+w/2-10,y+65);ctx.lineTo(x+w/2-10,y+32);ctx.quadraticCurveTo(x+w/2,y+11,x+w/2+10,y+32);ctx.lineTo(x+w/2+10,y+65);ctx.closePath()})}
 }
-// Friendly character, centred and intentionally large enough to colour.
 const x=344+(random()-.5)*70,y=292;
 const fur={rabbit:'#e8dacc',fox:'#dca16e',bear:'#b89470',owl:'#b59b82'}[hero];
 if(hero==='fox')ellipse(x+71,y+66,78,34,fur,-.42);
@@ -324,7 +323,6 @@ const DRAWING_DRAFT='skazki-unfinished-drawing-v1',DRAWING_OUTLINE='skazki-drawi
 function drawingFingerprint(src){let h=2166136261;for(let i=0;i<src.length;i++)h=Math.imul(h^src.charCodeAt(i),16777619);return src.length+':'+(h>>>0).toString(16)}
 function savedDrawing(src=fget(DRAWING_DRAFT)){return typeof src==='string'&&src.length<=350000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(src)?src:null}
 function drawingLesson(subject,step){
-// Each stage adds intentional shapes to the model only. The final stage colors them.
 const p=(d,tone='none')=>'<path d="'+d+'" data-tone="'+tone+'"/>';
 const e=(x,y,rx,ry,tone='none')=>'<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" data-tone="'+tone+'"/>';
 const dot=(x,y,r=2)=>'<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="#513b31" stroke="none"/>';
@@ -448,8 +446,7 @@ function studioEffectPreview(canvas,kind){const ctx=canvas.getContext('2d');if(!
 function studioFitImage(w,h,iw,ih){const scale=Math.min(w/iw,h/ih),dw=iw*scale,dh=ih*scale;return {x:(w-dw)/2,y:(h-dh)/2,w:dw,h:dh}}
 
 
-/* Original, hand-authored vector story compositions, 720×480. No remote assets.
-Closed white shapes are painted back-to-front to give a single, continuous ink boundary. */
+
 const ORIGINAL_COLORING_IDS=["hedgehog-garden","fox-owl-stream","bear-library","kitten-balloon","undersea-palace","winter-village","forest-picnic","dragon-clouds","rabbit-workshop","squirrel-autumn","owl-observatory","forest-train","duck-pond","puppy-kite","panda-bamboo","turtle-beach","whale-splash","octopus-treasure","spring-nest","rain-boots","sunflower-bee","apple-harvest","mushroom-house","fairy-lantern","unicorn-meadow","pirate-map","moon-rocket","planet-rover","space-cat","sailing-boat","city-bus","garden-bicycle","birthday-cake","holiday-gifts","tea-party","bakery-window","greenhouse","mountain-camp","fox-snowsled","butterfly-garden","moon-bat-garden","nile-cat-voyage"];
 function originalColoring(ctx,key){
 if(!ORIGINAL_COLORING_IDS.includes(key))return false;
@@ -983,7 +980,6 @@ return 'Сравни два варианта и запомни, как пише�
 }
 function literacyScan(text,complete=false,ignored=new Set()){
 const source=String(text);
-// Preserve UTF-16 offsets, ignore illustration markers, URLs, and markup delimiter syntax.
 const clean=source.replace(/\[\[рисунок:\d+\]\]|https?:\/\/[^\s]+|www\.[^\s]+/gi,m=>' '.repeat(m.length));
 const results=[];
 function add(start,end,replacement,title,why,kind,original){
@@ -1001,7 +997,6 @@ if(!complete&&end===source.length)continue;
 const replacement=literacyWords[word.toLowerCase()];
 if(replacement&&replacement!==word.toLowerCase())add(m.index,end,literacyCase(word,replacement),'Проверь слово',literacyExplain(word),'rule');
 }
-// Sentence starts: no guessing proper names or abbreviations after an initial.
 const begins=/(^|[.!?][»”"]?\s+)([«„“"*_\s—–-]*)([а-яё])([а-яё]*)/g;
 for(const m of clean.matchAll(begins)){
 const start=m.index+m[1].length+m[2].length,end=start+1+m[4].length;
@@ -1010,7 +1005,6 @@ if(m[1]&&/[А-ЯЁ]\.$/.test(clean.slice(Math.max(0,m.index-2),m.index+1)))conti
 if(m[1]&&/(?:т\.|д\.|др\.|г\.|ул\.)$/i.test(clean.slice(0,m.index+1)))continue;
 add(start,start+1,m[3].toUpperCase(),'Большая буква','В начале предложения мы пишем большую букву.','rule');
 }
-// Punctuation is advisory, not a comprehensive syntactic parser.
 for(const m of clean.matchAll(/([а-яёА-ЯЁ»”])([ \t]+)(но|а|зато|потому что)(?=[ \t]+[а-яёА-ЯЁ])/g)){
 const start=m.index+m[1].length;
 add(start,start,',','Возможно, здесь запятая','Перед «'+m[3]+'» часто нужна запятая. Прочитай предложение и проверь смысл.','suggestion');
@@ -1129,7 +1123,7 @@ function clockPicture(h,half,minutes=half?30:0){let ticks='';for(let i=1;i<=12;i
 function polygonPicture(n){return '<svg viewBox="0 0 200 160" role="img" aria-label="Геометрическая фигура"><polygon points="'+Array.from({length:n},(_,i)=>{const a=i*2*Math.PI/n-Math.PI/2;return (100+65*Math.cos(a))+','+(80+65*Math.sin(a))}).join(' ')+'" fill="'+['#F2C8CB','#C7E2F7','#F8DF91','#CBE8D2','#E4D1F5'][n%5]+'" stroke="#416365" stroke-width="4"/></svg>'}
 let studyOpen,learningRoom,mathRoom;
 
-/* Learning 1.5.9: isolated extension; existing library and archive storage untouched. */
+
 const academyLevels=['Основа','Закрепление','Следующий шаг','Задачи со звёздочкой'];
 const academyLogic=[['patterns','Закономерности','↗'],['deduction','Логические выводы','?'],['order','Порядок и пространство','↔'],['groups','Классификация','◇'],['planning','Планирование','□'],['evidence','Проверяю выводы','✓']];
 const evidenceBank=[["На тропинке мокро. Можно ли точно сказать, что ночью шёл дождь?","Нет, тропинку могли полить",["Да, другого объяснения нет","Нет, дождя точно не было"],"У мокрой тропинки может быть несколько причин.","Мокрая тропинка — наблюдение. Дождь — только одно из возможных объяснений."],["В коробке только жёлтые и синие карандаши. Достали не синий. Что известно точно?","Он жёлтый",["Он красный","Он длиннее остальных"],"Исключи цвет, которого нет у карандаша.","Если других цветов нет, остаётся жёлтый."],["Вера сказала, что видела снег за окном. Что поможет убедиться в этом?","Посмотреть в окно",["Сосчитать книги на полке","Узнать любимый цвет Веры"],"Нужно проверить само наблюдение.","Взгляд в окно позволит проверить, есть ли там снег."],["На столе три коробки. В каждой лежит по одной книге. Какой вывод верен?","На столе три книги в коробках",["Все книги одинаковые","В одной коробке две книги"],"Известно число коробок и число книг в каждой.","Три коробки по одной книге — три книги. Об их содержании ничего не сказано."],["У Лены есть яблоко, у Маши — груша. Кто держит более тяжёлый фрукт?","По этим сведениям не узнать",["Лена","Маша"],"Известны названия фруктов, но не их масса.","Яблоко может быть тяжелее груши или легче неё. Нужны весы."],["На рисунке есть круг и два квадрата. Что можно утверждать?","На рисунке три фигуры",["Все фигуры одного цвета","Круг больше каждого квадрата"],"Посчитай только названные фигуры.","Один круг и два квадрата — три фигуры; их цвет и размер неизвестны."],["Петя говорит, что под каждым из двух стаканов лежит монетка. Под одним нашли монетку. Что осталось проверить?","Второй стакан",["Цвет стола","Первый стакан ещё пять раз"],"Одного наблюдения недостаточно, чтобы проверить оба стакана.","Чтобы подтвердить слова Пети, нужно проверить и второй стакан."],["Коля увидел птицу, которая не летала. Значит ли это, что птица совсем не умеет летать?","Нет, одного наблюдения недостаточно",["Да, все птицы на земле не умеют летать","Да, она обязательно пингвин"],"Птица могла просто отдыхать.","То, что птица сейчас не летит, не доказывает, что она не умеет летать."],["Два одинаковых растения поливают одинаково. Чтобы узнать, как свет влияет на рост, что изменить?","Освещение одного растения",["Освещение и количество воды","Вид растения и почву"],"Изменяй только то, что проверяешь.","Если изменить только освещение, сравнение поможет понять влияние света."],["Две одинаковые игрушечные машинки запускают с одной горки. Как сравнить, по какому покрытию они едут дальше?","Менять покрытие, но сохранять одинаковый старт",["Одна машинка стартует выше другой","Толкать одну машинку сильнее"],"Условия старта должны быть одинаковыми.","Тогда различие в пройденном расстоянии можно связать с покрытием гораздо увереннее."],["Три одинаковых кубика льда положили в разные места. Как узнать, какой растаял раньше?","Наблюдать за ними с одного момента времени",["Посмотреть только в конце дня","Взвесить один пустой стакан"],"Для сравнения важно знать порядок событий.","Одновременное начало и наблюдение за таянием позволяют сравнить время."],["В одной чашке сахар растворился быстрее. Известно, что воду в ней и нагрели, и перемешали. Что можно заключить?","Пока неизвестно, какое изменение повлияло на скорость",["Всё объясняется только нагреванием","Всё объясняется только перемешиванием"],"Изменили сразу два условия.","Чтобы отделить их влияние, нужно провести новые сравнения, меняя по одному условию."],["В понедельник в саду видели пять птиц, во вторник — семь. Можно ли сказать, что птиц в саду всегда становится больше?","Нет, двух наблюдений недостаточно",["Да, каждый день их будет на две больше","Да, в саду ровно семь птиц"],"Подумай, сколько дней наблюдали.","Два подсчёта описывают только два наблюдения. Для закономерности нужны дополнительные данные."],["У трёх девочек разные цвета рюкзаков: красный, синий, зелёный. У Ани не красный. Можно ли определить её цвет?","Нет, остаются два варианта",["Да, синий","Да, зелёный"],"Исключи только тот цвет, который известен.","У Ани синий или зелёный рюкзак. Для точного ответа нужна ещё одна подсказка."],["Есть две одинаковые чашки с водой. Одна открыта, другая накрыта. Как проверить, где вода испаряется быстрее?","Сравнивать количество воды через одинаковые промежутки времени",["Вначале налить разное количество воды","Поставить чашки в места с разной температурой"],"Измени только наличие крышки.","Одинаковые начальные условия и время позволяют сравнить влияние крышки."],["В тетради нарисовали пять последовательных чисел: 2, 4, 6, 8, 10. Какой вывод точнее?","В записанном ряду разность соседних чисел равна двум",["Любое следующее число обязательно равно двенадцати","Все чётные числа уже записаны"],"Различай наблюдаемое и предположение о продолжении.","Пять чисел показывают прибавку два. Но правило продолжения нужно оговорить отдельно."]];
@@ -1386,7 +1380,7 @@ return '<div class="model-control"'+(m.kind==='clock'&&m.max[i]===0?' hidden':''
 
 function academyPatternPicture(shapes){const colors={'круг':'#D65050','квадрат':'#3979C1','треугольник':'#38865B','ромб':'#DBAC32'};return '<svg viewBox="0 0 '+((shapes.length+1)*40)+' 60" role="img" aria-label="'+esc(shapes.join(', '))+'"><g>'+shapes.map((s,i)=>{const x=20+i*40,c=colors[s];return s==='круг'?'<circle cx="'+x+'" cy="30" r="13" fill="'+c+'"/>':s==='квадрат'?'<rect x="'+(x-12)+'" y="18" width="24" height="24" rx="3" fill="'+c+'"/>':s==='треугольник'?'<path d="M'+x+' 15l14 28h-28Z" fill="'+c+'"/>':'<path d="M'+x+' 14l14 16-14 16-14-16Z" fill="'+c+'"/>'}).join('')+'<text x="'+(20+shapes.length*40)+'" y="38" text-anchor="middle" font-size="24" fill="#587164">?</text></g></svg>'}
 
-/* Constructed answers: accept every order satisfying the explicit constraints. */
+
 function sequenceValid(sequence,order){
 if(!Array.isArray(order)||order.length!==sequence.items.length||new Set(order).size!==order.length||order.some(i=>!Number.isInteger(i)||i<0||i>=sequence.items.length))return false;
 const position=Object.fromEntries(order.map((x,i)=>[x,i]));
@@ -2041,9 +2035,7 @@ const input=$('batLength');if(!input)return;
 const show=()=>{const n=Number(input.value),names=batMatches(n);$('batCompare').style.setProperty('--mark',n/60*100+'%');$('batValue').textContent=n+' мм';$('batResult').textContent=names.length===2?'В оба диапазона!':names.length===1?'В диапазон: '+names[0]+'.':'Ни в один из этих диапазонов.';};
 input.oninput=show;$('batLess').onclick=()=>{input.value=Math.max(30,Number(input.value)-5);show()};$('batMore').onclick=()=>{input.value=Math.min(60,Number(input.value)+5);show()};
 }
-// Optional, unscored chapter model. A single one-way distance controls both paths.
 function nightEchoState(value){const d=Number(value),distance=Number.isInteger(d)&&d>=1&&d<=5?d:3;return {distance,total:2*distance,x:62+distance*43,comparison:distance<3?'раньше':distance>3?'позже':'через такое же время'}}
-// Map pointer motion to the same five distances used by keyboard and buttons.
 function nightEchoDragDistance(start,dx){if(!Number.isFinite(dx))return nightEchoState(start).distance;return Math.max(1,Math.min(5,nightEchoState(start).distance+Math.round(dx/43)))}
 function nightEchoDragBind(input,show){const tree=$('nightEchoTree'),svg=tree.ownerSVGElement;let drag=null;const coord=e=>{const matrix=svg.getScreenCTM();if(!matrix)return null;const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(matrix.inverse()).x};tree.onpointerdown=e=>{if(drag||!e.isPrimary||e.button!==0)return;const x=coord(e);if(x===null)return;drag={id:e.pointerId,x,start:Number(input.value)};tree.setPointerCapture(e.pointerId);e.preventDefault()};tree.onpointermove=e=>{if(!drag||drag.id!==e.pointerId)return;const x=coord(e);if(x===null)return;input.value=nightEchoDragDistance(drag.start,x-drag.x);show()};tree.onpointerup=e=>{if(!drag||drag.id!==e.pointerId)return;drag=null};const cancel=e=>{if(!drag||drag.id!==e.pointerId)return;input.value=drag.start;drag=null;show()};tree.onpointercancel=cancel;tree.onlostpointercapture=cancel;}
 function nightEchoMarkup(){return '<details id="nightEcho" class="night-riddle bat-compare night-echo"><summary>Попробуй: передвинь дерево</summary><p>Мышка посылает звук к дереву. Сначала представь, что дерево в 3 метрах. Перетащи дерево пальцем или передвинь ползунок. Предположи, когда вернётся эхо.</p><svg viewBox="0 0 320 174" role="img" aria-label="Условная схема: летучая мышь слева, дерево справа, расстояние меняется"><rect width="320" height="174" rx="14" fill="#314664"/><circle cx="36" cy="27" r="14" fill="#ffdfa0"/><path d="M0 144Q110 124 320 143V174H0Z" fill="#6d927a"/><g transform="translate(44 88)" fill="#d7b9ed" stroke="#5a3c70" stroke-width="2"><path d="M-4 0Q-20-19-35-12L-24 16Q-10 6 0 22Q10 6 24 16L35-12Q20-19 4 0Z"/><ellipse cy="5" rx="8" ry="14"/><circle cy="-5" r="9"/><path d="M-7-10l-4-12 10 6m7 6 6-12-9 6"/></g><path d="M191 30V145" stroke="#b2bace" stroke-dasharray="4 5" stroke-width="2"/><text x="191" y="161" fill="#fff" font-size="11" text-anchor="middle">3 м</text><g id="nightEchoTree" transform="translate(191 0)"><rect x="-25" y="15" width="50" height="135" fill="transparent"/><path d="M0 48V144" stroke="#b88b65" stroke-width="12" stroke-linecap="round"/><circle cx="-10" cy="42" r="17" fill="#a2bd82"/><circle cx="8" cy="36" r="20" fill="#b5cb91"/></g><g id="nightEchoPaths" visibility="hidden" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path id="nightEchoOut" stroke="#ffd572"/><path id="nightEchoIn" stroke="#a7ebe5"/></g><g fill="#fff" font-size="12"><text x="8" y="15">Мышка</text><text x="274" y="15">Дерево</text></g></svg><label for="nightEchoDistance"><strong>До дерева: <output id="nightEchoMeters">3 м</output></strong></label><div class="bat-controls"><button type="button" id="nightEchoLess" aria-label="Приблизить дерево на метр">−</button><input id="nightEchoDistance" type="range" min="1" max="5" step="1" value="3"><button type="button" id="nightEchoMore" aria-label="Отдалить дерево на метр">+</button></div><p id="nightEchoQuestion">Сравни с расстоянием 3 м. Эхо вернётся раньше, позже или так же?</p><div class="night-echo-actions"><button type="button" id="nightEchoShow" class="primary">Проверить предположение</button><button type="button" id="nightEchoReset">Сначала</button></div><p id="nightEchoFeedback" role="status" hidden></p><p>Жёлтая стрелка — звук к дереву, бирюзовая — эхо обратно. Это условная схема, не запись звука и не измерение времени.</p></details>'}
@@ -2429,8 +2421,7 @@ for(let i=0;i<18;i++){const x=18+(i*83)%684,y=381+(i*17)%43;if(sea)a+='<ellipse 
 return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" role="img" aria-label="Рисунок к сказке"><defs><linearGradient id="'+id+'sky" x2="0" y2="1"><stop stop-color="'+sky+'"/><stop offset="1" stop-color="#fff1d5"/></linearGradient><pattern id="'+id+'paper" width="18" height="16" patternUnits="userSpaceOnUse"><path d="M2 3l2 1m9 9 2-1" stroke="#697652" opacity=".10"/></pattern></defs><rect width="720" height="440" rx="16" fill="url(#'+id+'sky)"/>'+a+'<rect width="720" height="440" rx="16" fill="url(#'+id+'paper)" pointer-events="none"/><rect x="8" y="8" width="704" height="424" rx="13" fill="none" stroke="#fffae9" stroke-width="3"/></svg>'
 }
 
-/* Original scene-specific vector illustrations for the seven short reading editions.
-All shapes are local; no external resources or tracking. */
+
 const shortScenes={
 cat:[['Дождь за окном','Мокрый котёнок под кустом у тёплого дома'],['Приглашение','Кошка Мята оставила полотенце у двери'],['Встреча','Котёнок принёс Мяте букет']],
 bird:[['Зимнее окно','Синица на заснеженной ветке'],['Кормушка','Птицы прилетели к деревянной кормушке'],['Весенний сад','Птицы поют среди весенних цветов']],
@@ -2481,7 +2472,7 @@ function readingCoverFor(b){return b.scenes?.length||shortScenes[b.id]?'<div cla
 
 
 
-/* Original offline scene-specific vector art. */
+
 function storybookArt(scene){
 const uid='bknew'+(++editionArtSeq),pea=scene.startsWith('pea-'),grand=scene.startsWith('grandpa-'),inside=grand||['pea-bed','pea-morning','filipok-home','filipok-teacher','filipok-letters'].includes(scene),rain=scene==='pea-rain';
 const group=(x,y,k,a)=>'<g transform="translate('+x+' '+y+') scale('+k+')" stroke="#76634e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+a+'</g>';
@@ -2577,7 +2568,6 @@ function readingSize(){const v=Number(fget('skazki-reading-size-v1'));return [24
 
 
 function readingAuthor(b){return readingAuthorNames[b.authorId]||(b.credit.includes('народная')?'Русские народные':b.credit.includes('Эзопа')?'Эзоп':'Новые добрые истории')}
-// The child shelf contains complete, locally bundled books only.
 function readyReadingBook(b){return Boolean((b.full&&b.scenes?.length===b.pages.length)||b.verse===true||b.credit==='Оригинальная сказка читальни')&&Array.isArray(b.pages)&&b.pages.length>0&&b.pages.every(p=>typeof p==='string'&&p.trim())}
 let readyReadingCache;function readyReadingBooks(){if(readyReadingCache===undefined)readyReadingCache=getReadingBooks().filter(readyReadingBook);return readyReadingCache.slice()}
 function readyAuthorBooks(a){return readyReadingBooks().filter(b=>b.authorId===a)}
@@ -3264,7 +3254,6 @@ const opts={cache:'no-store',credentials:'same-origin',signal},stamp=String(Date
 let version='';
 try{const url=new URL('release.json',location.href);url.searchParams.set('_check',stamp);const response=await fetcher(url.href,opts);if(response.ok)version=releaseFromManifest(await response.json())}catch(e){}
 if(signal?.aborted)throw Error('cancelled');if(version&&!newerRelease(version,current))return current;
-// A newer manifest is only a hint. Verify that the deployed HTML is actually ready.
 const url=new URL('index.html',location.href);url.searchParams.set('_check',stamp);
 const response=await fetcher(url.href,opts);if(!response.ok)throw Error('network');
 const actual=releaseFromHtml(await response.text());if(!actual)throw Error('version');return actual;
@@ -3296,7 +3285,6 @@ window.addEventListener('online',()=>{checkRelease();familyWake()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)familyWake()});
 window.addEventListener('focus',familyWake);window.addEventListener('pageshow',familyWake);
 window.addEventListener('pageshow',()=>checkRelease());
-// A restored Safari tab can retain stale modal-open styling after the dialog closed.
 window.addEventListener('pageshow',()=>{const m=$('modal');if(m&&!m.hasAttribute('open')){m.classList.remove('fallback');document.body.classList.remove('modal-open')}});
 setTimeout(()=>checkRelease(),2000);
 }
@@ -3794,8 +3782,6 @@ const changed=JSON.stringify(remote.books)!==JSON.stringify(s.books);
 if(s.received&&remote.revision===s.ghRevision&&changed){readerRecovery('error');fstatus('Архив вернул разные сказки с одним номером версии. Сохраняем ранее проверенный список.');return false}
 s.ghRevision=remote.revision;s.received=true;
 if(changed){s.books=remote.books;fdraw(s)}else if(!s.books.length)fdraw(s);
-// Persist the verified high-water mark before replacing the cached books.
-// If writing either fails, keep the latest books in memory and retry next check.
 const marked=ghCachedRevision(s)===remote.revision||fput(s.cache+'-revision',String(remote.revision));
 const cached=marked&&fput(s.cache,JSON.stringify(s.books));
 if(cached){fput(FAMILY_READER,s.secret);fput(FAMILY_CONFIRMED,s.secret)}
@@ -3820,7 +3806,6 @@ const token=ghToken();if(!token){fstatus('Архив не подключён. С
 const local=publicationWritable();if(local===null)return;const serialized=JSON.stringify(local);
 if($('familyPublishedCount'))$('familyPublishedCount').textContent='Опубликовано для семьи: '+local.length;
 if(s.ghSaved===serialized&&Date.now()-(s.ghVerifiedAt||0)<300000)return;
-// A new attempt can change the remote archive even if verification fails.
 s.ghSaved=null;s.ghVerifiedAt=0;
 s.ghBusy=true;s.ghPending=false;let confirmed=false,archived=false;fstatus('Отправляем '+local.length+' книг в семейный архив…');
 const stateKey='skazki-gh-state-'+s.room;
