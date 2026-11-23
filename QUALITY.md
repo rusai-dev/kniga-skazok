@@ -928,3 +928,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Confirmed source of excessive cold-home load: the 27px secondary `#otherArt` element used `fairyArt('spelling')` and fetched the full 78,056-byte educational sprite even before selecting a learning section.
 - Replace only the secondary icon with existing square-cropped `childArt('learn')`. Preserve full educational WebP atlas for exercises, and keep the same precache offline shell. No changes to personal works, draft storage, image masters, navigation or server endpoints.
 - Regression gate: exact SHA `tests/regression.cjs`, Chromium/WebKit `tests/browser-smoke.cjs` cold-home asset and visible SVG assertions, learning-art checks, navigation and Studio screens. Hardware, physical Safari keyboard/Pencil and actual family delivery remain NOT TESTED/BLOCKED. Release: NO-GO.
+
+
+## 2026-11-23 · candidate 1.5.194, R16 lazy world illustrations
+- Parent: PR #158 (`cold-home-lazy-learning-art-193`). New file `world-scenes-194.js` contains existing complete world SVG strings moved from inline HTML, not new/generated art. Runtime keeps a single Promise on the first world entry, caches loaded scenes in memory, and reports an actionable load failure.
+- Source data, child storage, drawing masters, backup keys, app navigation and family privacy paths are unchanged. Offline shell precaches the optional script at 1.5.194.
+- Tests assert zero world-scene request in cold home, full independent file illustration coverage, correct on-demand world open, and all prior editor, gallery and offline scenarios. CI and exact-SHA measurements must be reported; no claim of physical Safari verification. Overall NO-GO remains until hardware/family proofs.
