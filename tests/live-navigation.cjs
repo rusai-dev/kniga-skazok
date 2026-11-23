@@ -30,7 +30,7 @@ const engine=process.env.BROWSER==='webkit'?webkit:chromium;
     ['homeMath','#academyBack','#academyBack'],
     ['homeLogic','#academyBack','#academyBack'],
     ['childWorld','#worldHome','#worldHome'],
-    ['readingEntry','#readingBack','#readingBack']
+    ['readingEntry','#modal','#close']
    ]){
     await page.locator('#'+id).tap({timeout:8000});
     await page.locator(landed).waitFor({state:'visible',timeout:8000});
