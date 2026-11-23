@@ -78,6 +78,7 @@ const server=http.createServer((req,res)=>{
  browser=await engine.launch({headless:true});
  await require("./studio-friends.cjs")(browser,url);
  await require("./home-watercolor.cjs")(browser,url);
+ await require("./shelf-watercolor.cjs")(browser,url);
  await require("./family-cloud-routing.cjs")(browser,url);
  await require("./family-peer-fallback.cjs")(browser,url);
  await require("./family-disconnect.cjs")(browser,url);
