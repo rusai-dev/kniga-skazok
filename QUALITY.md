@@ -946,3 +946,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Family-selected local snapshots are labelled «Выбрана для семьи», not delivered/published; the local count reads «Выбрано для семьи». A confirmed backend/read-account receipt is still required to report delivery.
 - Test coverage: `tests/regression.cjs` and `tests/browser-smoke.cjs` check the family badge and wording. Exact-SHA CI and real A→B delivery are **NOT TESTED** until run evidence exists.
 - This change preserves familyPublished storage data, private drafts, image bytes, transport code and URL secrets; it does not enable `family-cloud-config.json` or publish the site. Hardware R18 = PENDING; release = NO-GO.
+
+### 1.5.197 — R13 direct encrypted reader fallback (draft candidate)
+- Confirmed source defect: when `family-cloud-config.json` has `enabled:false`, `fstart('view')` always took the GitHub reader branch and never reached the existing PeerJS/AES-GCM direct transport. Readers could not see an online writer unless the permanent archive was configured.
+- Repair: after confirmed 404 of the public archive and with **no verified archive revision**, retry the same invitation through already-existing direct PeerJS transport. A saved archive high-water revision disables direct fallback to prevent silent downgrades. Both devices must be online simultaneously for direct delivery.
+- Existing direct encryption, local reader cache and recipient ACK are reused; no new storage keys, secrets, persistent backend or child content is introduced. Later confirmed archive results take precedence and dispose of the direct peer.
+- Synthetic end-to-end regression: `tests/family-peer-fallback.cjs` loaded by Chromium/WebKit browser smoke. Exact-SHA CI pending. Physical iPad / real A→B delivery **NOT TESTED**, release **NO-GO**.
