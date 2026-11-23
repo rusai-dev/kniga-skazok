@@ -19,6 +19,10 @@ const entry=fs.readFileSync(path.join(root,'index.html'),'utf8');
 assert.ok(!entry.includes('Теперь сказки доступны без iPad.'),'server write alone is not proof of family delivery');
 assert.ok(entry.includes('Доставка семье ещё не подтверждена.'),'local share must show unverified delivery');
 assert.ok(entry.includes("const APP_RELEASE='"+release+"'"),'runtime release must match manifest');
+assert.ok(entry.includes('href="watercolor-home-199.css?v='+release+'"'),'approved watercolor styles must be versioned');
+for(const control of ['homeWrite','homeNewStory','homeDrafts','homeBooks','homeCreate','readingEntry','homeMath','homeLogic','childWorld'])assert.ok(entry.includes('id="'+control+'"'),'home control missing: '+control);
+assert.ok(entry.includes('home-story-heading')&&entry.includes('Продолжить сказку')&&entry.includes('home-feature-art'),'R15 approved watercolor hierarchy must be a functional DOM, not a bitmap');
+
 for(const asset of initialFiles.slice(1))assert.ok(entry.includes(asset+'?v='+release+'"'),'versioned core URL mismatched: '+asset);
 
 async function verifySpriteReuse(source){
