@@ -198,7 +198,8 @@ const server=http.createServer((req,res)=>{
  assert.notEqual(edited.studio.originals[0].src,sheet.src);
  assert.notEqual(edited.studio.originals[0].revision,inserted.studio.originals[0].revision);
  assert.deepEqual(edited.studio.sheets,inserted.studio.sheets);
- assert.deepEqual((await read('Отдельная сказка')).studio,other);
+ const withoutStudioScroll=studio=>{const copy=structuredClone(studio);if(copy?.caret)copy.caret[2]=0;return copy};
+ assert.deepEqual(withoutStudioScroll((await read('Отдельная сказка')).studio),withoutStudioScroll(other),'other story, drawings, caret offsets and revisions must remain intact');
  assert.equal(await page.evaluate(()=>localStorage.getItem(DRAWING_DRAFT)),legacy);
  await page.getByRole('button',{name:'Вернуть прежний рисунок'}).click();
  assert.equal((await read('Две картинки')).rich.images[0],inserted.rich.images[0]);
@@ -211,7 +212,7 @@ const server=http.createServer((req,res)=>{
  // Scrolling the textarea to a visible image tray may change only its viewport offset.
  // Preserve every authored field, both caret positions and the exact persisted bytes.
  const afterRejectedRemoval=await read('Две картинки');
- const withoutViewportOffset=book=>{const copy=structuredClone(book);if(copy.studio?.caret)copy.studio.caret[2]=0;return copy};
+ const withoutViewportOffset=book=>{const copy=structuredClone(book);copy.studio=withoutStudioScroll(copy.studio);return copy};
  assert.deepEqual(withoutViewportOffset(afterRejectedRemoval),withoutViewportOffset(beforeRemoval));
  assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),beforeRemovalStored,'rejected removal must not persist anything');
  assert.ok(await page.locator('#imageTray [data-edit-pic="0"]').isVisible());
