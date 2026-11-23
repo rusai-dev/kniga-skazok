@@ -24,6 +24,7 @@ module.exports=async function verifyWatercolorHome(browser,url){
       assert.equal(snapshot.heading,'Мои сказки');
       assert.equal(snapshot.hero,'Книга сказок');
       assert.ok(snapshot.art.includes('egypt-nile-cover-320-v1.webp'),'real art must be used in main story card');
+      assert.ok(await page.locator('#homeNewStory').evaluate(el=>getComputedStyle(el).backgroundImage.includes('rgb(11, 122, 137)')),'R15 accessible dark turquoise gradient must load for the primary action');
       assert.ok(snapshot.width<=snapshot.viewWidth+2,'unexpected horizontal overflow at '+width+'x'+height);
       for(const [id,r] of Object.entries(snapshot.cards)){
         assert.ok(r&&r.visible,id+' invisible at '+width+'x'+height);
