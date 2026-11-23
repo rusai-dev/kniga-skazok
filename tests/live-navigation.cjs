@@ -2,15 +2,13 @@
 const {chromium,webkit}=require('playwright');
 const URL=process.env.SITE_URL||'https://rusai-dev.github.io/kniga-skazok/';
 const engine=process.env.BROWSER==='webkit'?webkit:chromium;
-(async()=>{
- const browser=await engine.launch();
- try{
+async function verifyNavigation(browser,siteUrl=URL){
   for(const viewport of [{width:1024,height:768},{width:768,height:1024},{width:390,height:700}]){
    const ctx=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'allow'});
    const page=await ctx.newPage(),errors=[],failed=[];
    page.on('pageerror',e=>errors.push(e.message));
    page.on('requestfailed',r=>failed.push(r.url()+' '+r.failure()?.errorText));
-   const response=await page.goto(URL,{waitUntil:'domcontentloaded',timeout:25000});
+   const response=await page.goto(siteUrl,{waitUntil:'domcontentloaded',timeout:25000});
    const htmlStatus=response?.status(),location=page.url();
    const status=await page.evaluate(()=>({
     footer:document.querySelector('footer')?.textContent,
@@ -52,5 +50,10 @@ const engine=process.env.BROWSER==='webkit'?webkit:chromium;
    console.log('PASS LIVE all home touch routes + private draft reload',process.env.BROWSER,viewport);
    await ctx.close();
   }
- }finally{await browser.close()}
+}
+module.exports=verifyNavigation;
+if(require.main===module)(async()=>{
+ const browser=await engine.launch();
+ try{await verifyNavigation(browser,URL)}
+ finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
