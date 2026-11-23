@@ -27,7 +27,7 @@ module.exports=async function verifyWatercolorHome(browser,url){
        }
        assert.ok(await image.isVisible(),selector+' must be actually painted');
        const size=await image.evaluate(async element=>{await element.decode();return [element.naturalWidth,element.naturalHeight]});
-       assert.equal(size[0],240,selector+' must use small real authored watercolor asset');
+       assert.equal(size[0],184,selector+' must reuse a cold-home navigational watercolor thumbnail');
      }
      const checks=await page.evaluate(()=>{
        const ids=['homeWrite','homeNewStory','homeDrafts','homeBooks','homeCreate','readingEntry','homeMath','homeLogic','childWorld'];
