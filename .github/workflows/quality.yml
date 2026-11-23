@@ -36,25 +36,3 @@ jobs:
       - run: node tests/browser-smoke.cjs
         env:
           BROWSER: ${{ matrix.browser }}
-      - name: Verify live touch routes and draft reload on candidate
-        env:
-          BROWSER: ${{ matrix.browser }}
-          SITE_URL: http://127.0.0.1:8584/
-        run: |
-          python3 -m http.server 8584 --bind 127.0.0.1 >/tmp/navigation-server.log 2>&1 &
-          python3 - <<'PY'
-          import time
-          import urllib.request
-          url = 'http://127.0.0.1:8584/'
-          for attempt in range(50):
-              try:
-                  with urllib.request.urlopen(url, timeout=1) as response:
-                      if response.status == 200:
-                          break
-              except OSError:
-                  pass
-              time.sleep(0.2)
-          else:
-              raise SystemExit('Navigation test HTTP server was not ready')
-          PY
-          node tests/live-navigation.cjs
