@@ -928,3 +928,10 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Confirmed source of excessive cold-home load: the 27px secondary `#otherArt` element used `fairyArt('spelling')` and fetched the full 78,056-byte educational sprite even before selecting a learning section.
 - Replace only the secondary icon with existing square-cropped `childArt('learn')`. Preserve full educational WebP atlas for exercises, and keep the same precache offline shell. No changes to personal works, draft storage, image masters, navigation or server endpoints.
 - Regression gate: exact SHA `tests/regression.cjs`, Chromium/WebKit `tests/browser-smoke.cjs` cold-home asset and visible SVG assertions, learning-art checks, navigation and Studio screens. Hardware, physical Safari keyboard/Pencil and actual family delivery remain NOT TESTED/BLOCKED. Release: NO-GO.
+
+
+## 2026-11-23 · 1.5.194 R14 — immediate cross-tab conflict notice
+- Parent: draft PR #158 (1.5.193). Source fact: library write already enforced `localStorage.getItem(KEY)===storedLibrary`, but no `storage` event handler warned a second active writer until the next attempted save. A child could continue typing in a stale tab unaware of the conflict.
+- Change: listen only for another tab's main library `KEY` write (same storageArea, changed serialized state). Do **not** merge or adopt external storage automatically. Set visible editor status, expose rescue draft export, and prevent unsafe exit through the existing `data-save-failed` gate. No data/schema/migrations or new assets.
+- New `tests/writer-tab-conflict.cjs`: same-origin Chromium/WebKit two-tab scenario, unsaved second writer, early warning, refusal to overwrite first tab, export visible, Back blocked, reload recovers the first tab's durable draft. Uses synthetic prose.
+- Full test gates: regression, Chromium/WebKit browser-smoke, studio visual and live navigation on the **exact new commit SHA**. Physical iPad keyboard/Pencil, Cloud A-to-B family delivery remain HARDWARE PENDING/BLOCKED. Full release NO-GO.
