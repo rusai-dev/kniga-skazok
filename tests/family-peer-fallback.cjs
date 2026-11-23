@@ -57,6 +57,36 @@ module.exports=async function familyPeerFallback(browser,url){
     assert.equal(received.calls,1,'R13 fallback must launch exactly one direct peer');
     assert.equal(received.error,null);
 
+    // When a permanent archive reappears, it must not silently overwrite an
+    // independently received direct copy if the book contents conflict.
+    const conflicting=await page.evaluate(async()=>{
+      const first=ghReadPublic,before=JSON.stringify(fam.books),cache=localStorage.getItem(fam.cache);
+      ghReadPublic=async()=>({revision:2,books:[{...fam.books[0],body:'Старая архивная редакция'}]});
+      try{
+        await ghViewerTick(fam,true);
+        return {sameBooks:JSON.stringify(fam.books)===before,sameCache:localStorage.getItem(fam.cache)===cache,
+          direct:!!fam.peer&&!fam.ghReader,notice:$('familyViewStatus').textContent};
+      }finally{ghReadPublic=first}
+    });
+    assert.equal(conflicting.sameBooks,true,'R13 archive conflict must preserve direct reader books');
+    assert.equal(conflicting.sameCache,true,'R13 archive conflict must not overwrite saved direct reader copy');
+    assert.equal(conflicting.direct,true,'R13 conflicted archive must not stop direct link');
+    assert.ok(conflicting.notice.includes('не заменяем'),'R13 conflict must be visible');
+
+    // An identical verified archive is safe to prefer over the direct channel.
+    const promoted=await page.evaluate(async()=>{
+      const first=ghReadPublic;
+      ghReadPublic=async()=>({revision:2,books:structuredClone(fam.books)});
+      try{
+        await ghViewerTick(fam,true);
+        return {reader:fam.ghReader,peer:!!fam.peer,revision:fam.ghRevision,
+          saved:localStorage.getItem(fam.cache+'-revision')};
+      }finally{ghReadPublic=first}
+    });
+    assert.equal(promoted.reader,true,'R13 verified matching archive takes priority');
+    assert.equal(promoted.peer,false,'R13 verified archive must close direct peer');
+    assert.equal(promoted.saved,'2','R13 verified archive revision must be durable');
+
     // Once a permanent archive revision has been verified, an archive outage must
     // NOT downgrade that reader to a potentially older direct-transfer snapshot.
     await page.evaluate(async secret=>{
