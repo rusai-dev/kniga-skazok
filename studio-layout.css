@@ -1064,30 +1064,30 @@ body[data-home-screen="home"] {
 #storyForm.writer-focus .writer-artbar-title {display:none;}
 #storyForm.keyboard-writing .writer-artbar::before {display:none!important;}
 @media(min-width:900px) and (min-height:680px) {
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) {
     display:grid;
     grid-template-columns:minmax(0,1fr) clamp(195px,24%,240px);
     column-gap:14px;
     row-gap:9px;
     align-items:start;
   }
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) > * {min-width:0;}
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) > .writer-title {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > * {min-width:0;}
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-title {
     grid-column:1/-1;grid-row:1;
   }
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) > .story-page {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .story-page {
     grid-column:1;grid-row:2;min-height:0;align-self:stretch;
   }
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) > .story-page #storyBody {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .story-page #storyBody {
     height:100%;min-height:clamp(248px,42dvh,540px);
   }
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) > .writer-artbar {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-artbar {
     grid-column:2;grid-row:2;
     min-width:0;align-self:stretch;
     display:flex;flex-direction:column;flex-wrap:nowrap;gap:8px;
     justify-content:flex-start;
   }
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) > .writer-artbar::before {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-artbar::before {
     content:"";
     display:block;flex:none;
     height:clamp(84px,15vh,118px);
@@ -1095,13 +1095,13 @@ body[data-home-screen="home"] {
     border-radius:13px;
     background:#f7f0fa url('assets/author/studio/art-n02-rabbit-painting-entry184.webp') center / cover no-repeat;
   }
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) > .writer-artbar .writer-artbar-title {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-artbar .writer-artbar-title {
     order:-1;flex:none;
   }
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) > .writer-artbar button {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > .writer-artbar button {
     width:100%;flex:none;white-space:normal;text-align:center;
   }
-  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) > :not(.writer-title):not(.story-page):not(.writer-artbar) {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus):not(.book-spread) > :not(.writer-title):not(.story-page):not(.writer-artbar) {
     grid-column:1/-1;
   }
 }
