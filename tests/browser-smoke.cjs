@@ -17,6 +17,7 @@ assert.ok(fs.readFileSync(path.join(root,'index.html'),'utf8').includes('<footer
 assert.ok(fs.readFileSync(path.join(root,'sw.js'),'utf8').includes("const REV='"+release+"'"),'manifest matches worker');
 const entry=fs.readFileSync(path.join(root,'index.html'),'utf8');
 assert.ok(!entry.includes('Теперь сказки доступны без iPad.'),'server write alone is not proof of family delivery');
+assert.ok(entry.includes('Доставка семье ещё не подтверждена.'),'local share must show unverified delivery');
 assert.ok(entry.includes("const APP_RELEASE='"+release+"'"),'runtime release must match manifest');
 for(const asset of initialFiles.slice(1))assert.ok(entry.includes(asset+'?v='+release+'"'),'versioned core URL mismatched: '+asset);
 
