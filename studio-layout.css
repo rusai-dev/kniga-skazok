@@ -1468,6 +1468,8 @@ body[data-home-screen="home"]{
 }
 #storybookHome button:active{transform:translateY(2px) scale(.995)}
 @media(max-height:820px) and (min-width:701px){
+  #storybookHome{padding-bottom:2px}
+  #storybookHome .home-study-head{margin-bottom:4px}
   #storybookHome .home-intro{
     min-height:216px;padding-block:2px;margin-bottom:5px;
   }
@@ -1538,7 +1540,7 @@ body[data-home-screen="home"]{
   align-items:center;
   justify-content:center;
   max-width:100%;
-  min-height:28px;
+  min-height:calc(2.5em + 8px);
   margin:0;
   padding:3px 7px;
   color:#4e3778;

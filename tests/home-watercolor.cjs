@@ -142,14 +142,18 @@ module.exports=async function verifyWatercolorHome(browser,url){
      assert.ok(checks.overflow<=1,'no horizontal scroll for '+width+'x'+height+': '+checks.overflow);
      for(const b of checks.buttons)assert.ok(b.width>=44&&b.height>=44,
        'finger target '+b.id+' '+width+'x'+height+': '+b.width+'x'+b.height);
-     if(width===1024)assert.ok(checks.scroll<=50,
+     if(width===1024)assert.ok(checks.scroll<=2,
        'landscape iPad first screen should not require long forced scrolling: '+checks.scroll);
    }
    assert.ok(seenCompanions.size>=2,'automatic companions should change between separate visits');
    await page.setViewportSize({width:1024,height:768});await page.goto(url);
    await page.locator('#friendsOpen').click();
    assert.ok(await page.locator('#friendsDialog').isVisible(),'moved Friends entry opens gallery');
+   await page.locator('[data-favorite="bat"]').click();
+   await page.locator('#homeFox img[data-hero="bat"]').waitFor();
    await page.locator('#friendsDialog [data-close]').click();
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),
+     'even the longest companion greeting fits the landscape first screen');
    await page.locator('#homeNewStory').click();
    assert.ok(await page.locator('#storyBody').isVisible(),'new story CTA opens real writer');
    const body='Белочка нашла книгу у Нила.';
