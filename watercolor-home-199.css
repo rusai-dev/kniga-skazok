@@ -1,5 +1,5 @@
 /* R15/R17 1.5.199: owner-approved watercolor home. CSS is presentation only. */
-body[data-home-screen=home]{background:linear-gradient(145deg,#f8fffd 0%,#f3effc 65%,#f3fbfa 100%)}
+body[data-home-screen=home]:not(.family-view){background:linear-gradient(145deg,#f8fffd 0%,#f3effc 65%,#f3fbfa 100%)}
 body[data-home-screen=home] .storybook-header{background:#fcfffd;border-color:#d9e7e6}
 #storybookHome{--wc-teal:#0e7b85;--wc-purple:#693e88;max-width:1160px;margin-inline:auto;padding:2px clamp(10px,2vw,24px) 18px;display:flex;flex-direction:column;gap:clamp(6px,1vh,12px)}
 #storybookHome button{touch-action:manipulation;transition:transform .16s ease,box-shadow .16s ease}
