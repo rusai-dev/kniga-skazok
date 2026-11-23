@@ -281,3 +281,48 @@ Reported on a physical iPad: section buttons appear non-responsive. Independent 
 Safety changes: persistent family reader mode has an explicit link to personal studio without deleting family settings; a stale non-open dialog no longer leaves `modal-open` after Safari `pageshow`; failed startup library shape/read blocks writes instead of silently overwriting source bytes; a static navigation recovery link works even if application JavaScript fails. All changes retain the same local-library key/schema and no cache or child data is deleted. Additional browser tests include malformed stored library, restoration of stale modal CSS, and switching back from family to personal view. Public-site touch probe is kept as an isolated, synthetic-data check.
 
 Required release gates: exact final-SHA regression, browser smoke in Chromium and WebKit, startup <=1,000,000 source bytes, cold page <=1,200,000; then live public site version and touch navigation after deployment. Not yet verified: actual user's iPad session and Safari storage, physical/floating keyboard and Apple Pencil, real family account delivery, 30-minute stress, and safe downgrade. Never close those debts based on CI alone.
+
+
+## R03/R14 · 1.5.192 · закрытие редактора без последнего input
+
+- Given: в личной сказке изменился DOM-текст без события `input` (например, финальная композиция IME). When: ребёнок нажимает «Назад» или Esc. Then: последний текст сохраняется подтверждённой локальной записью до закрытия.
+- Given: хранилище отклонило эту запись. When: ребёнок закрывает редактор. Then: редактор остаётся открытым, прежняя сохранённая версия не повреждена, доступны повтор и спасательная копия. Когда запись снова доступна, повторное закрытие сохраняет текст; reload восстанавливает его.
+- Автотест: `tests/writer-background-save.cjs`, запуск через `tests/browser-smoke.cjs` в Chromium и WebKit. Переход от синтетического теста к реальному iPad — только после аппаратного воспроизведения.
+- Кандидат 1.5.192, PR зависим от #156; до exact-SHA CI — NOT TESTED, реальный iPad — HARDWARE PENDING.
+
+
+## R16 · candidate 1.5.193 — defer educational atlas until learning
+- Given: new service-worker-blocked Chromium/WebKit page showing personal home. When: cold-home resources settle. Then: no request to `assets/ui/learning-sprite-1536.webp`, but visible `#otherArt` remains at least 24×24 CSS px; both independent performance budgets pass.
+- Given: the child enters a mathematics/logic lesson. Then: original learning sprite remains available, illustrated buttons and navigation operate as before. Offline shell keeps atlas cached for later sections.
+- Synthetic browser tests do not substitute for real iPad memory, throughput or visual quality assessments. No final acceptance without exact-SHA CI and physical device review.
+
+
+## R14 · 1.5.194 — cross-tab conflict before typing
+- Given: two browser tabs open the same local library and both have an author editor. When: tab A persists a draft and tab B receives the native `storage` event. Then: tab B immediately displays an understandable warning and a draft export control, **before** its next input.
+- Given: tab B types after the conflict. Then: its text remains in the open DOM for rescue but never overwrites tab A's saved draft. Back/Escape must not close an edited, unsaved stale editor silently; a passive unchanged stale editor may close without writing. Reload from a deliberate recovery retrieves tab A's persisted version.
+- No automatic merging, no replacement of user text, and no forced reload while the user is typing. The two-tab CI test verifies synthetic scenarios only; real child/iPad acceptance still pending.
+
+
+## R14 + R16 · 1.5.195 integrated candidate
+- Given two simultaneous same-origin story tabs, When A saves and B has stale edits, Then warning/rescue and refusal of stale overwrite remain exactly as in tested PR #159. Existing synthetic `tests/writer-tab-conflict.cjs` must PASS Chromium and WebKit.
+- Given cold home, Then world scene JS must not be requested before world entry. Given world entry after the script loads, Then every original distinct SVG is available and offline shell retains the script. On missing scripts, show retry message without changing personal work.
+- Exact-SHA tests/visuals pending; physical iPad/Safari and second real family device remain not tested, release NO-GO.
+
+### R13 · 1.5.196 candidate — selected is not delivered
+- Acceptance: the locally selected family snapshot and counter must not state that a second profile received the book; reader acknowledgement remains the only delivery evidence. Regression and WebKit/Chromium browser-smoke must pass on this PR's exact SHA.
+- Cloud `enabled:false` and a missing real family A→B test are still **BLOCKED**. No real release claim and no changes to the stored child's work.
+
+### R13 1.5.197 — direct-reader missing-archive fallback
+- Given cloud `enabled:false` and public archive 404, with no verified cached archive revision, the family reader must start direct PeerJS transport, decrypt test books, display them, save a local receiver cache and return an ACK for received revision.
+- Given an existing verified archive revision, GitHub 404 must **not** trigger P2P fallback or overwrite reader cache. A later verified archive supersedes direct mode and closes the peer.
+- Fallback is online-only; no claim of server persistence or delivery to an offline relative. Actual Safari/iPad and two real family devices remain open requirements.
+
+### R13 1.5.198 · local disconnection semantics
+- Given a prepared synthetic family secret and locally saved books, cancelling the disconnect prompt must preserve the session and key. Confirming must stop only the local connection, preserve personal manuscripts and offline artifacts, and never promise remote revocation.
+- Removing a locally selected story must not claim existing server copies disappeared. New family invitations must state that old archives/links are not automatically revoked.
+- Actual authenticated revocation requires separate backend credentials, deletion/rotation and real second-device verification; BLOCKED, no user data used in CI.
+
+### R01/R02/R15/R16/R17 · 1.5.199 watercolor functional home
+- Assert the 1.5.199 watercolor stylesheet loads after studio-layout and is in the versioned service-worker offline core. No image-embedded control labels: DOM text must remain selectable, localized, accessible, and keyboard focusable.
+- Test #homeNewStory opens real editable #storyBody, #homeWrite continues existing writing flow, #homeBooks and #homeCreate preserve navigation, and the learning map retains four working controls. Large controls need >=44 CSS px and no horizontal overflow at 1024×768, 768×1024, 834×1194, 600×800 and 390×700. 1024×768 first home must show the secondary map without forced scroll.
+- Visual compare Chromium/WebKit at same SHA; tests/watercolor-home.cjs is a strict browser smoke dependency. Safe app updates must preserve drafts, illustrations, chapter order and family data. Hardware iPad/Pencil remains PENDING.

@@ -91,37 +91,47 @@
     }
     for (const [id,name,role,open] of heroes) {
       const card = document.createElement('article');
-      const scene = id + '-scene01';
-      card.innerHTML = '<a href="'+file(scene,false)+'" target="_blank" rel="noopener" aria-label="Рассмотреть: '+name+'"><img loading="lazy" decoding="async" width="120" height="120" src="'+file(scene,true)+'" alt="'+name+'"></a><h3>'+name+'</h3><button type="button" class="friend-route">'+role+' →</button><button type="button" data-favorite="'+id+'" aria-label="Любимый герой: '+name+'"></button>';
+      card.dataset.hero = id;
+      card.innerHTML = '<figure class="friend-artwork"><button type="button" class="friend-picture" aria-label="Показать другой рисунок: '+name+'"><img loading="lazy" decoding="async" width="288" height="288" alt="'+name+'"></button><figcaption class="friend-scene-label" aria-live="polite"></figcaption></figure><div class="friend-copy"><h3>'+name+'</h3><button type="button" class="friend-route">'+role+' →</button><button type="button" class="friend-scene-toggle">Другой рисунок</button><button type="button" data-favorite="'+id+'" aria-label="Любимый герой: '+name+'"></button></div>';
       const portrait = card.querySelector('img');
+      const caption = card.querySelector('.friend-scene-label');
+      const switchButton = card.querySelector('.friend-scene-toggle');
+      const pictureButton = card.querySelector('.friend-picture');
+      let variant = 1;
+      const changeScene = next => {
+        variant = next;
+        portrait.hidden = false;
+        card.querySelector('.friend-initial')?.remove();
+        portrait.alt = name + ' — сцена ' + next;
+        portrait.src = file(id + '-scene0' + next,true);
+        caption.textContent = 'Рисунок ' + next + ' из 2';
+        switchButton.textContent = next === 1 ? 'Другой рисунок' : 'Первый рисунок';
+        switchButton.setAttribute('aria-label',name + ': показать рисунок ' + (3-next));
+      };
       portrait.onerror = () => {
         portrait.hidden = true;
-        const fallback = document.createElement('span');
-        fallback.className = 'friend-initial';
-        fallback.textContent = name[0];
-        portrait.after(fallback);
+        if (!card.querySelector('.friend-initial')) {
+          const fallback = document.createElement('span');
+          fallback.className = 'friend-initial';
+          fallback.textContent = name[0];
+          pictureButton.append(fallback);
+        }
       };
+      const toggleScene = () => changeScene(variant === 1 ? 2 : 1);
+      pictureButton.onclick = toggleScene;
+      switchButton.onclick = toggleScene;
       card.querySelector('.friend-route').onclick = () => { dialog.close(); open(); };
       card.querySelector('[data-favorite]').onclick = () => {
         if (favorite !== id) { favorite = id; save(); choose(); }
         preferences();
       };
+      changeScene(1);
       grid.append(card);
     }
     const bonus = document.createElement('details');
     bonus.innerHTML = '<summary>Ещё одна сказочная встреча</summary><a href="'+file('fox-scene02',false)+'" target="_blank" rel="noopener"><img loading="lazy" width="144" src="'+file('fox-scene02',true)+'" alt="Лисёнок">Лисёнок · Сказочные находки</a>';
-    const art = document.createElement('details');
-    art.innerHTML = '<summary>Альбом акварелей</summary>';
-    for (const [id,name] of heroes) {
-      const link = document.createElement('a');
-      link.href = file(id+'-scene02',false);
-      link.target = '_blank';
-      link.rel = 'noopener';
-      link.textContent = name;
-      art.append(link);
-    }
     bonus.insertAdjacentHTML('beforeend','<a target="_blank" rel="noopener" href="assets/author/studio/art-v02-hedgehog-fox.webp">Лисёнок и ёжик с фонарём</a>');
-    dialog.append(art,bonus);
+    dialog.append(bonus);
     dialog.querySelector('[data-close]').onclick = () => dialog.close();
     dialog.querySelector('[data-auto]').onclick = () => {
       if (favorite) { favorite = ''; save(); choose(); }

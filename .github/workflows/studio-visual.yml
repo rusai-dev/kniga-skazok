@@ -4,6 +4,7 @@ on:
     paths:
       - index.html
       - studio-layout.css
+      - watercolor-home-199.css
       - studio-drawings.js
       - studio-friends.js
       - 'assets/author/**'
@@ -38,6 +39,23 @@ jobs:
         run: |
           python3 -m http.server 8581 --bind 127.0.0.1 --directory baseline >/tmp/base.log 2>&1 &
           python3 -m http.server 8582 --bind 127.0.0.1 >/tmp/candidate.log 2>&1 &
+          # Avoid Chromium/WebKit races: both HTTP servers must answer before capture.
+          python3 - <<'PY'
+          import time
+          import urllib.request
+          for port in (8581, 8582):
+              url = f'http://127.0.0.1:{port}/'
+              for attempt in range(50):
+                  try:
+                      with urllib.request.urlopen(url, timeout=1) as response:
+                          if response.status == 200:
+                              break
+                  except (OSError, ValueError):
+                      pass
+                  time.sleep(0.2)
+              else:
+                  raise SystemExit(f'HTTP server at {url} did not become ready')
+          PY
           node tests/studio-visual.cjs http://127.0.0.1:8581 screens/before
           node tests/studio-visual.cjs http://127.0.0.1:8582 screens/after
       - uses: actions/upload-artifact@v4

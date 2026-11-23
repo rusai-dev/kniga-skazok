@@ -883,3 +883,84 @@ Reported on a physical iPad: section buttons appear non-responsive. Independent 
 Safety changes: persistent family reader mode has an explicit link to personal studio without deleting family settings; a stale non-open dialog no longer leaves `modal-open` after Safari `pageshow`; failed startup library shape/read blocks writes instead of silently overwriting source bytes; a static navigation recovery link works even if application JavaScript fails. All changes retain the same local-library key/schema and no cache or child data is deleted. Additional browser tests include malformed stored library, restoration of stale modal CSS, and switching back from family to personal view. Public-site touch probe is kept as an isolated, synthetic-data check.
 
 Required release gates: exact final-SHA regression, browser smoke in Chromium and WebKit, startup <=1,000,000 source bytes, cold page <=1,200,000; then live public site version and touch navigation after deployment. Not yet verified: actual user's iPad session and Safari storage, physical/floating keyboard and Apple Pencil, real family account delivery, 30-minute stress, and safe downgrade. Never close those debts based on CI alone.
+
+## Candidate 1.5.188 — R14 legacy drawing transaction (2026-11-23)
+
+- Based on the stacked 1.5.187 candidate. Fixes the legacy unfinished-drawing source/outline metadata pair: metadata is checked before replacing the source, failed writes trigger guarded rollback, deletion accepts empty/null as a confirmed state, and a stale tab does not overwrite another tab's source. No child data is touched or migrated.
+- New isolated Chromium/WebKit browser smoke exercises metadata quota, source quota, unchanged image/outline after rejection, clearing a drawing, and a stale-write guard. These are synthetic fixtures, not physical iPad evidence.
+- R14 remains **PARTIAL** pending exact SHA CI and failure/recovery checks on hardware. No family delivery or live deploy is claimed.
+
+## Candidate 1.5.189 — R13 cloud transport routing (2026-11-23)
+
+- Identified a real unreachable path in `fstart`: a family viewer always returned via the GitHub archive before evaluating provisioned `family-cloud-config.json`, while a host without GitHub token could use Supabase. This prevented a matching Supabase transport on the reader.
+- Both roles now evaluate the same family-scoped validated cloud config first; **when enabled and matching**, use the cloud. With disabled/unavailable config, retain the legacy GitHub reader and GitHub/Peer host paths. No storage schema or child asset changes.
+- `tests/family-cloud-routing.cjs` (invoked by Chromium + WebKit browser smoke) uses two isolated browser contexts and an AES-GCM-encrypted synthetic story to verify real client-side decode/display, and tests matching writer selection with a synthetic GitHub token plus the legacy disabled-config fallback.
+- R13 is still **BLOCKED / NOT TESTED on real family devices**. A mocked RPC cannot prove the server ACL, real device reception, revocation or a successful live deployment. Physical iPad remains HARDWARE PENDING; do not merge merely on green CI.
+
+## Candidate 1.5.190 — cloud reader revision rollback protection (2026-11-23)
+
+- **R13/P0**, stacked on #154. Confirmed: `cloudTick(role=view)` previously accepted any changed server revision, including a lower revision, and replaced locally cached family books. A stale/misconfigured server response could make previously received books disappear from the reader.
+- Cloud reader now rejects versions below the last verified cloud-specific revision, and rejects different book content under an unchanged received revision. New revision marker is additive (`<existing family cache key>-cloud-revision`); the legacy cached-book format and personal stories remain unchanged. Persisting books is attempted before the marker; if either write fails, UI states the local copy is not confirmed and retries.
+- `tests/family-cloud-routing.cjs`: synthetic AES-GCM cloud transport plus lower-revision response, cache preservation and reload replay. No real family/child content or backend credentials used.
+- Five startup source files: **999,900 UTF-8 bytes** versus **1,000,000** limit (exact candidate tree before final PR checks); cold-home HTTP budget, physical iPad and live second-family-device delivery remain separate, unverified gates.
+- Overall **R13 BLOCKED/NOT TESTED on real family devices**, `R14 PARTIAL`, `R18 HARDWARE PENDING`. Release **NO-GO** without the requirements in Production MAX.
+
+## Candidate 1.5.191 — R03/R14 IME and background text persistence (2026-11-23)
+
+- **Observed code gap:** normal editor `input` saves synchronously, but `compositionend` and Safari `pagehide` previously only flushed drawing data. A final text value without a trailing `input` event had no independent final-save attempt.
+- **Fix:** record last confirmed title/body values, recheck them on composition completion and on pagehide/hidden-tab, and retry prior failed local writes. The existing `commitLibrary`/stale-tab guard remains authoritative; a quota error does not authorize overwriting another tab or showing a false saved status. No storage schema, child text, artwork or family transport changes.
+- **New synthetic regression:** `tests/writer-background-save.cjs` (Chromium and WebKit via `tests/browser-smoke.cjs`): IME completion without input, pagehide with final unsignalled text, failed quota write preserves prior bytes, retry when storage recovers, reload retains final draft. No personal data in fixtures.
+- R03 and R14 remain **PARTIAL/HARDWARE PENDING** until actual Safari iPad keyboard/IME and resume are verified. Confirm the final exact-SHA regression, browser smoke and studio visual workflows before any merge. No user release is claimed.
+
+
+## 2026-11-23 · кандидат 1.5.192 — R03/R14, безопасное закрытие редактора
+
+- База: зависимая ветка PR #156 (1.5.191); отдельная ветка `writer-close-save-192`. `main` не меняется.
+- Подтверждённый риск в исходнике: `editorSaveBlocked()` проверял только прежний `data-save-failed`, не сверяя последнее DOM-содержимое перед закрытием. Изменение текста без завершающего `input` могло потеряться при «Назад»/Escape без `pagehide`.
+- Исправление: `editorSaveBlocked()` вызывает существующий `flushStoryDraft()` при активном редакторе и запрещает закрытие при неподтверждённой записи. Никаких новых ключей/миграций или изменений исходных детских работ.
+- Тест: `tests/writer-background-save.cjs` моделирует изменение текста без `input`, отказ `localStorage.setItem` на закрытии, запрет выхода, повторный выход после восстановления и reload с точным текстом.
+- Измерение source budget: пять файлов `index.html`, `classic-art-153.js`, `classic-art-155.js`, `andersen-art-156.js`, `learning-art-1536.css` — 999951 / 1000000 байт (до CI, подтверждение — по exact SHA).
+- Gates: regression, Chromium/WebKit, visual, cold-home и deployed SHA требуют независимого подтверждения. Физический Safari/iPad, Pencil и реальная семейная A→B доставка — HARDWARE PENDING / BLOCKED. Полный релиз — NO-GO.
+
+
+## 2026-11-23 · 1.5.193 R16 — selective eager art on story-first home
+- Candidate based on PR #157 (1.5.192), separate branch `cold-home-lazy-learning-art-193`.
+- Confirmed source of excessive cold-home load: the 27px secondary `#otherArt` element used `fairyArt('spelling')` and fetched the full 78,056-byte educational sprite even before selecting a learning section.
+- Replace only the secondary icon with existing square-cropped `childArt('learn')`. Preserve full educational WebP atlas for exercises, and keep the same precache offline shell. No changes to personal works, draft storage, image masters, navigation or server endpoints.
+- Regression gate: exact SHA `tests/regression.cjs`, Chromium/WebKit `tests/browser-smoke.cjs` cold-home asset and visible SVG assertions, learning-art checks, navigation and Studio screens. Hardware, physical Safari keyboard/Pencil and actual family delivery remain NOT TESTED/BLOCKED. Release: NO-GO.
+
+
+## 2026-11-23 · 1.5.194 R14 — immediate cross-tab conflict notice
+- Parent: draft PR #158 (1.5.193). Source fact: library write already enforced `localStorage.getItem(KEY)===storedLibrary`, but no `storage` event handler warned a second active writer until the next attempted save. A child could continue typing in a stale tab unaware of the conflict.
+- Change: listen only for another tab's main library `KEY` write (same storageArea, changed serialized state). Do **not** merge or adopt external storage automatically. Set visible editor status and rescue draft export immediately; an unchanged stale editor may close normally, while an attempted edit fails its existing persist-first save check and activates the `data-save-failed` exit gate. No data/schema/migrations or new assets.
+- New `tests/writer-tab-conflict.cjs`: same-origin Chromium/WebKit two-tab scenario, unsaved second writer, early warning, refusal to overwrite first tab, export visible, Back blocked, reload recovers the first tab's durable draft. Uses synthetic prose.
+- Full test gates: regression, Chromium/WebKit browser-smoke, studio visual and live navigation on the **exact new commit SHA**. Physical iPad keyboard/Pencil, Cloud A-to-B family delivery remain HARDWARE PENDING/BLOCKED. Full release NO-GO.
+
+
+## 2026-11-23 · 1.5.195 candidate · P0 cross-tab R14 + P1 deferred SVG R16
+- Base is the exact tested R14 fix PR #159, SHA `d02b8a0154b13def4b2a16d44511a6b43d860fe1`. No source code from that fix was reset. Test `tests/writer-tab-conflict.cjs` remains enabled.
+- Move existing world SVG scene strings to `world-scenes-194.js` and load them at first world entry. The single versioned module is included in the Service Worker shell. User drawings, saved stories, backup keys, private/family data and server endpoints untouched.
+- New checks: full Node regression including the original SVG scenes, two-tab conflict, Chromium/WebKit cold-home resource budget, visible world navigation and offline fallback, studio screens. All gates must PASS on 1.5.195 exact SHA before considering merge. Physical iPad and real family receive remain HARDWARE PENDING / BLOCKED; release NO-GO.
+
+### 1.5.196 — R13 truthful family preparation labels (draft candidate)
+- Family-selected local snapshots are labelled «Выбрана для семьи», not delivered/published; the local count reads «Выбрано для семьи». A confirmed backend/read-account receipt is still required to report delivery.
+- Test coverage: `tests/regression.cjs` and `tests/browser-smoke.cjs` check the family badge and wording. Exact-SHA CI and real A→B delivery are **NOT TESTED** until run evidence exists.
+- This change preserves familyPublished storage data, private drafts, image bytes, transport code and URL secrets; it does not enable `family-cloud-config.json` or publish the site. Hardware R18 = PENDING; release = NO-GO.
+
+### 1.5.197 — R13 direct encrypted reader fallback (draft candidate)
+- Confirmed source defect: when `family-cloud-config.json` has `enabled:false`, `fstart('view')` always took the GitHub reader branch and never reached the existing PeerJS/AES-GCM direct transport. Readers could not see an online writer unless the permanent archive was configured.
+- Repair: after confirmed 404 of the public archive and with **no verified archive revision**, retry the same invitation through already-existing direct PeerJS transport. A saved archive high-water revision disables direct fallback to prevent silent downgrades. Both devices must be online simultaneously for direct delivery.
+- Existing direct encryption, local reader cache and recipient ACK are reused; no new storage keys, secrets, persistent backend or child content is introduced. Later confirmed archive results take precedence and dispose of the direct peer.
+- Synthetic end-to-end regression: `tests/family-peer-fallback.cjs` loaded by Chromium/WebKit browser smoke. Exact-SHA CI pending. Physical iPad / real A→B delivery **NOT TESTED**, release **NO-GO**.
+
+### 1.5.198 — R13 local disconnect is not archive revocation (candidate)
+- Confirmed defect: familyStop deleted only FAMILY_SECRET locally but showed «Семейная ссылка отключена», which could be mistaken for revocation; fremoveBook confirmed local removal using an unconditional family-shelf completion message.
+- The button now says «Отключить здесь», confirmation warns that old invitations, remote encrypted archive and already saved copies remain accessible, and success says only the current iPad was disconnected. New-link creation and family invitation warn about older access. Removing a family-selected copy explicitly leaves archive deletion unconfirmed.
+- No old family secret is sent to diagnostics, no remote deletions, no child data mutations or automatic key rotation. The existing GitHub archive token stays in browser until separately disconnected by the adult in Archive setup.
+- Tests: browser smoke synthetic host cancel/confirm, personal archive invariants and regression labels. CI and actual A→B revocation NOT TESTED on this candidate until verified. Release NO-GO.
+
+### 1.5.199 · owner-approved watercolor home · candidate
+- Redesigned only the real #storybookHome into a large illustrated hero with squirrel and owl/bat art, a visible «Мои сказки» heading, a story continuation card featuring the existing Egypt WebP, accessible new-story and draft controls, books/creative cards and compact secondary navigation. Responsive CSS is isolated in watercolor-home-199.css. No screenshot overlays or synthetic button hitboxes.
+- Preserved established #homeWrite, #homeNewStory, #homeDrafts, #homeBooks, #homeCreate and the four learning IDs; child manuscript, canvas, family state and browser storage schema unchanged. The «Личная библиотека» status avoids claiming a write succeeded unless confirmed.
+- New test tests/watercolor-home.cjs verifies 5 viewports, touch targets, art loading, no horizontal overflow, visible iPad landscape navigation and opening a real editor. CI exact-SHA PASS/FAIL not yet established. Do not ship the 2.8 MB owner-approved concept screenshot; reuse optimized project WebP, maintain double load budget and offline stylesheet.
+- Family cloud still disabled; R13 and R18 remain BLOCKED/HARDWARE PENDING, release NO-GO.
