@@ -10,7 +10,7 @@ module.exports=async function verifyWriterTabConflict(browser,url){
   await Promise.all([a.locator('#homeWrite').click(),b.locator('#homeWrite').click()]);
   const original='Белочка написала сказку в первой вкладке.';
   await a.locator('#storyBody').fill(original);
-  await b.waitForFunction(()=>document.querySelector('#storyForm')?.dataset.saveFailed==='yes');
+  await b.waitForFunction(()=>document.querySelector('#draftStatus')?.textContent.includes('В другой вкладке сохранены изменения.'));
   assert.match(await b.locator('#draftStatus').textContent(),/другой вкладке/i);
   assert.equal(await b.locator('#rescueDraft').isVisible(),true,'export rescue is visible before the child types');
   const before=await a.evaluate(()=>localStorage.getItem(KEY));
