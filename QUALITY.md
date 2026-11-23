@@ -921,3 +921,10 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Тест: `tests/writer-background-save.cjs` моделирует изменение текста без `input`, отказ `localStorage.setItem` на закрытии, запрет выхода, повторный выход после восстановления и reload с точным текстом.
 - Измерение source budget: пять файлов `index.html`, `classic-art-153.js`, `classic-art-155.js`, `andersen-art-156.js`, `learning-art-1536.css` — 999951 / 1000000 байт (до CI, подтверждение — по exact SHA).
 - Gates: regression, Chromium/WebKit, visual, cold-home и deployed SHA требуют независимого подтверждения. Физический Safari/iPad, Pencil и реальная семейная A→B доставка — HARDWARE PENDING / BLOCKED. Полный релиз — NO-GO.
+
+
+## 2026-11-23 · 1.5.193 R16 — selective eager art on story-first home
+- Candidate based on PR #157 (1.5.192), separate branch `cold-home-lazy-learning-art-193`.
+- Confirmed source of excessive cold-home load: the 27px secondary `#otherArt` element used `fairyArt('spelling')` and fetched the full 78,056-byte educational sprite even before selecting a learning section.
+- Replace only the secondary icon with existing square-cropped `childArt('learn')`. Preserve full educational WebP atlas for exercises, and keep the same precache offline shell. No changes to personal works, draft storage, image masters, navigation or server endpoints.
+- Regression gate: exact SHA `tests/regression.cjs`, Chromium/WebKit `tests/browser-smoke.cjs` cold-home asset and visible SVG assertions, learning-art checks, navigation and Studio screens. Hardware, physical Safari keyboard/Pencil and actual family delivery remain NOT TESTED/BLOCKED. Release: NO-GO.
