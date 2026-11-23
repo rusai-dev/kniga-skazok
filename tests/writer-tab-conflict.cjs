@@ -27,6 +27,17 @@ module.exports=async function verifyWriterTabConflict(browser,url){
   await b.reload();
   assert.equal(await b.evaluate(expected=>Object.values(data.drafts||{}).some(d=>d.body===expected),original),true,
     'latest saved draft survives reload after the rejected stale write');
-  console.log('PASS R14 two-tab conflict warning, safe refusal, rescue and reload',process.env.BROWSER);
+  // A passive, unchanged tab may leave safely; only an edited stale tab is blocked.
+  await b.locator('#homeWrite').click();
+  const continued=original+' А потом встретила сову.';
+  await a.locator('#storyBody').fill(continued);
+  await b.waitForFunction(()=>document.querySelector('#draftStatus')?.textContent.includes('В другой вкладке сохранены изменения.'));
+  await b.locator('#close').click();
+  assert.equal(await b.locator('#modal').evaluate(m=>m.hasAttribute('open')),false,
+    'unchanged stale editor must be allowed to close');
+  await b.reload();
+  assert.equal(await b.evaluate(expected=>Object.values(data.drafts||{}).some(d=>d.body===expected),continued),true,
+    'passive stale tab closing must not revert a newer draft');
+  console.log('PASS R14 two-tab conflict warning, safe refusal, rescue and safe passive exit',process.env.BROWSER);
  }finally{await ctx.close()}
 };
