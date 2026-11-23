@@ -61,3 +61,6 @@
 
 ### 1.5.201 proposed — writing page complements approved watercolor home and shelf
 - Separate real CSS presentation + one accessible art heading. Changes are scoped to the existing writer surface; not a stand-alone mock. Illustration uses an existing optimized project asset after editor open. CI exact-SHA pending, no Pages deployment.
+
+### Candidate 1.5.202 R05 watercolor canvas
+- Scoped visual treatment (turquoise, white, violet) in the existing canvas and palette; original drawing mechanics and stored art untouched. Additional Chromium/WebKit test is synthetic. Main/Pages unchanged; CI on exact SHA pending.

@@ -335,3 +335,7 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - On an iPad landscape layout without the keyboard, text writing area is to the left and illustrated actions «Нарисовать» / «Мои рисунки» remain visible beside it; no mandatory theme or wizard.
 - With visualViewport keyboard height 230px, do not overlap text/caret or lose typed text; drawing and gallery actions stay reachable. At 768×1024 and 390×844 there is no horizontal overflow; buttons remain ≥44×44.
 - Test reopening, offline save/reload, drawing insertion, keyboard and IME across Chromium/WebKit plus physical Safari/HARDWARE PENDING. Existing persistent storage schema unchanged.
+
+### R05/R15/R17 watercolor canvas · candidate 1.5.202
+- Child opens an existing live drawing canvas from a manuscript. The artboard remains white and finger-sized tool actions remain accessible at 1024×768, 768×1024, 390×844. Full-screen expands and restores with aria-pressed state; leaving the studio preserves the previously typed story.
+- The change adds no artwork bytes or new JS event wiring. Verify screenshots and long Pencil stroke separately on physical iPad; remain HARDWARE PENDING and NO-GO until release gates.

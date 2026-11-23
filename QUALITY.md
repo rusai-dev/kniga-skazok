@@ -973,3 +973,8 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Desktop/iPad landscape non-keyboard editor places live text and existing drawing/gallery actions side-by-side. Decorative light WebP watercolor rabbit scene loads ONLY after opening the editor, not on cold home. Page text stays opaque white, readable and nondecorative.
 - Compact keyboard-writing mode retains its original visualViewport grid; new art heading and decorative image hidden in typing mode. Existing 44–48px controls, actual storage, drafts, drawings and family publishing behavior preserved.
 - New browser-smoke `tests/writer-watercolor.cjs` checks three viewport classes, toolbar roles/touch targets, no horizontal overflow, typing with keyboard and real canvas opening in Chromium/WebKit. Exact SHA CI/hardware to be confirmed; release NO-GO.
+
+### 1.5.202 — R05/R15 watercolor drawing surface (candidate)
+- Visual-only painted treatment of the existing drawing tool panel, large white artboard, real selected brush buttons and the color palette. Teal primary Insert, lilac controls; responsive geometry and native canvas/Pencil/zoom/undo/redo/storage behavior are unchanged.
+- CSS appended to existing studio-layout.css; no new binary, network dependency, storage key, child content, import/export, cloud or manuscript logic. Only SHA-bound version bump. Additional synthetic R05 canvas test in Chromium/WebKit requires full-screen toggle, ≥44px controls, no horizontal overflow and returning to the same typed manuscript.
+- Requires full exact-SHA CI, visual diff and budgets; physical iPad/Pencil and actual A→B family delivery are NOT TESTED, release remains NO-GO.
