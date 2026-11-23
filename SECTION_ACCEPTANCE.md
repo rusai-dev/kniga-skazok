@@ -345,3 +345,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Verify actual squirrel/Egypt watercolor on first screen, no Friends/H1 overlap, 44px actions and simple start/resume/shelf routes at 1024×768, 768×1024, 834×1194 and narrow viewports.
 - Verify real manuscript text and drawing tools side by side where space permits, and real canvas/brush/undo/redo/fullscreen/return with text unchanged. Confirm keyboard/caret during IME, zoom and orientation on physical iPad before granting hardware PASS.
 - Full regression, Chromium and WebKit, visual checks, five-startup-file and cold-home budgets on final candidate SHA. Family publication to a real second account and authenticated revocation are BLOCKED with `enabled:false`; release NO-GO until verified.
+
+
+### R15 / 1.5.204 — faithful interactive watercolor home, not a screenshot
+- At 1024×768 and 768×1024 check a strong watercolor illustrated header with real "Книга сказок" text, a dominant "Мои сказки" section, Egypt-themed "Продолжить"/writer card, large real writing/drawing/shelf actions and compact reading/mathematics/logic/world cards. No home H1/Friends overlap, 44px clickable controls, horizontal overflow or forced long scroll in 1024×768.
+- At 390×844, allow stacked cards but keep actual new/resume writing entry accessible and preserve readers/drafts. A confirmation-of-save badge must be tied to successful persistence, never decorative by default.
+- All illustrations remain actual optimized assets; all action labels remain DOM text. Verify reduced-motion and visible focus. Exact-SHA Chromium/WebKit plus physical iPad Safari and Pencil proof required. Family A→B still BLOCKED while cloud disabled. Production release NO-GO.
