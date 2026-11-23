@@ -8,6 +8,12 @@ const worldArtFiles=JSON.parse(fs.readFileSync(path.join(root,'assets/world/mani
 for(const a of worldArtFiles){const bytes=fs.readFileSync(path.join(root,a.path));assert.equal(bytes.length,a.bytes);assert.equal(require('node:crypto').createHash('sha256').update(bytes).digest('hex'),a.sha256);}
 const writerArt=JSON.parse(fs.readFileSync(path.join(root,'assets/ui/writer-squirrel-manifest.json'),'utf8'));const writerArtBytes=fs.readFileSync(path.join(root,writerArt.path));assert.equal(writerArtBytes.length,writerArt.bytes);assert.equal(require('node:crypto').createHash('sha256').update(writerArtBytes).digest('hex'),writerArt.sha256);
 const authorArt=JSON.parse(fs.readFileSync(path.join(root,'assets/author/manifest.json'),'utf8'));for(const a of authorArt.assets){const raw=fs.readFileSync(path.join(root,a.path));assert.equal(raw.length,a.bytes);assert.equal(require('node:crypto').createHash('sha256').update(raw).digest('hex'),a.sha256);assert.ok(raw.toString().includes('viewBox="0 0 504 504"'));}
+const catManifest=JSON.parse(fs.readFileSync(path.join(root,'assets/author/studio/home-egypt-cat-manifest.json'),'utf8'));
+const catAsset=fs.readFileSync(path.join(root,catManifest.path));
+assert.equal(catAsset.length,catManifest.bytes,'Egyptian cat artwork size must match reviewed asset');
+assert.equal(require('node:crypto').createHash('sha256').update(catAsset).digest('hex'),catManifest.sha256,
+  'Egyptian cat artwork bytes must match reviewed manifest');
+assert.equal(catManifest.width,320);assert.equal(catManifest.height,120);
 const initialFiles=['index.html','classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css'];
 const initialBytes=initialFiles.reduce((n,name)=>n+fs.statSync(path.join(root,name)).size,0);
 assert.ok(initialBytes<=1000000,'initial source budget exceeded: '+initialBytes);
