@@ -1437,7 +1437,7 @@ body[data-home-screen="home"]{
   box-shadow:0 0 0 1px #d0bfe4,0 5px 14px #59467f22;
 }
 #storybookHome #homeNewStory{
-  background:linear-gradient(128deg,#37b7bf,#0b879d 53%,#126d87);
+  background:linear-gradient(128deg,#0c7781,#0b7380 53%,#126d87);
   color:#fffefb;letter-spacing:-.01em;
 }
 #storybookHome #homeNewStory::before{
