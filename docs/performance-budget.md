@@ -27,3 +27,5 @@ The existing 1 MB initial source cap stays unchanged. The test now samples cold 
 
 ## 1.5.194 guardrail
 - This patch targets P0 cross-tab data safety, not source-size optimization. Catalog data cannot be trivially deferred because `readyAuthorBooks` is referenced while constructing the primary author shelf; a simple separate script would add an asynchronous dependency to the child's main story pathway. Do not claim catalog deferral or 800–850 KB achieved. Keep both existing performance budgets and instrument future refactors before moving content.
+
+- 1.5.194 requires an additional storage-event listener despite the existing 1 MB HTML budget. Removed only explanatory inline source comments (copied rationale into QUALITY/SECTION_ACCEPTANCE) to maintain the unchanged 1,000,000-byte gate. No CSS declarations, runtime APIs, educational text, data, or artwork were removed. Confirm exact UTF-8 bytes in CI; comments are not a substitute for architectural chunking.
