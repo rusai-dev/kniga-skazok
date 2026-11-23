@@ -39,11 +39,17 @@ const engine=process.env.BROWSER==='webkit'?webkit:chromium;
    }
    await page.locator('#homeWrite').tap();
    await page.locator('#storyBody').waitFor({state:'visible'});
-   await page.locator('#storyBody').fill('Тестовый текст без данных ребёнка.');
+   const sample='Проверочная сказка QA: ёжик, сова и белочка. Без личных данных.';
+   await page.locator('#storyBody').fill(sample);
    await page.locator('#saveStoryNow').tap();
    await page.locator('#modal').waitFor({state:'hidden'});
+   await page.reload({waitUntil:'domcontentloaded'});
+   await page.locator('#storybookHome').waitFor({state:'visible'});
+   const persisted=await page.evaluate(text=>
+     Object.values(data.drafts||{}).some(d=>d.body===text),sample);
+   if(!persisted)throw Error('Synthetic private story did not survive reload at '+viewport.width+'×'+viewport.height);
    if(errors.length)throw Error('Runtime errors: '+errors.join(' | '));
-   console.log('PASS LIVE all home touch routes',process.env.BROWSER,viewport);
+   console.log('PASS LIVE all home touch routes + private draft reload',process.env.BROWSER,viewport);
    await ctx.close();
   }
  }finally{await browser.close()}
