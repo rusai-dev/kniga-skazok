@@ -77,6 +77,42 @@ const server=http.createServer((req,res)=>{
  try{
  browser=await engine.launch({headless:true});
  await require("./studio-friends.cjs")(browser,url);
+ // R14: isolated legacy drawing storage must roll back both source and metadata.
+ {
+ const ctx=await browser.newContext({serviceWorkers:'block'}),page=await ctx.newPage();
+ try {
+  await page.goto(url);
+  const outcome=await page.evaluate(()=>{
+   const key='qa-legacy-drawing-source',meta='qa-legacy-drawing-outline';
+   localStorage.removeItem(key);localStorage.removeItem(meta);
+   const canvas=document.createElement('canvas');canvas.width=canvas.height=8;
+   const paint=color=>{const c=canvas.getContext('2d');c.fillStyle=color;c.fillRect(0,0,8,8);return canvas.toDataURL('image/jpeg')};
+   const first=paint('#cc3366'),second=paint('#3399aa'),storage=drawingStorage(key,meta,null,drawingFingerprint);
+   const initial=storage.store(first,'outline-1'),before={src:localStorage.getItem(key),outline:localStorage.getItem(meta)};
+   const originalSet=Storage.prototype.setItem;
+   const fail=bad=>{
+    Storage.prototype.setItem=function(k,v){if(k===bad)throw Error('simulated quota');return originalSet.call(this,k,v)};
+    try{return storage.store(second,'outline-2')}catch(e){return 'threw'}finally{Storage.prototype.setItem=originalSet}
+   };
+   const outlineFailure=fail(meta);
+   const afterOutline={src:localStorage.getItem(key),outline:localStorage.getItem(meta)};
+   const sourceFailure=fail(key);
+   const afterSource={src:localStorage.getItem(key),outline:localStorage.getItem(meta)};
+   const cleared=storage.store(undefined,null);
+   const empty=localStorage.getItem(key)===null&&localStorage.getItem(meta)===null;
+   localStorage.setItem(key,first);
+   const stale=storage.store(second,'outline-3'),preserved=localStorage.getItem(key)===first;
+   localStorage.removeItem(key);localStorage.removeItem(meta);
+   return {initial,firstDifferent:first!==second,outlineFailure,sourceFailure,
+    sourcePreserved:before.src===afterOutline.src&&before.src===afterSource.src,
+    outlinePreserved:before.outline===afterOutline.outline&&before.outline===afterSource.outline,
+    cleared,empty,stale,preserved};
+  });
+  assert.deepEqual(outcome,{initial:true,firstDifferent:true,outlineFailure:false,sourceFailure:false,
+   sourcePreserved:true,outlinePreserved:true,cleared:true,empty:true,stale:false,preserved:true});
+ }finally{await ctx.close()}
+ console.log('PASS R14 legacy drawing source + outline rollback, delete and stale-write guard');
+ }
  // Optional studio art is selected once per visit, with a readable fallback.
  {
  const ctx=await browser.newContext({serviceWorkers:'block'}),page=await ctx.newPage();
