@@ -1299,3 +1299,19 @@ body[data-home-screen="home"] {
 @media (max-width:470px) {
   #storybookHome .home-intro {min-height:165px;}
 }
+
+/* R15: close the empty half-row from the first approved home screenshot.
+   On iPad all three real author actions share one line. On narrow screens the
+   primary writing action owns the full line and drawing/drafts follow below. */
+@media(min-width:701px){
+  #storybookHome .home-writer-links{
+    grid-template-columns:minmax(0,1.7fr) minmax(0,1fr) minmax(0,1fr);
+  }
+}
+@media(max-width:700px){
+  #storybookHome .home-writer-links{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #storybookHome .home-writer-links #homeNewStory {grid-column:1/-1;}
+  #storybookHome .home-writer-links #homePaint[hidden] + #homeDrafts {grid-column:1/-1;}
+}
