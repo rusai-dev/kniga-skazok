@@ -414,3 +414,5 @@
 #storybookHome #homeFox img[data-hero]{max-height:100%;aspect-ratio:auto}
 #friendsDialog :focus-visible,#friendsOpen:focus-visible{outline:3px solid #6d3aa8;outline-offset:2px}
 @media(max-width:440px){#storybookHome #homeFox{width:60px;height:60px}}
+.friends-grid img[hidden]{display:none}
+.friend-initial{display:grid;place-items:center;width:72px;height:72px;border-radius:12px;background:#e6f6f4;color:#165951;font:32px Georgia,serif}

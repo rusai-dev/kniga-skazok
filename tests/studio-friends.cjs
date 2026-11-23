@@ -98,4 +98,27 @@ module.exports = async function verifyFriends(browser,url) {
     await page.locator('[data-close]').click();
     console.log('PASS nine decoded heroes, twelve entries, pixel history, resize, routes, favorite, fallback and responsive personal spread');
   } finally { await context.close(); }
+
+  const restricted = await browser.newContext({serviceWorkers:'block'});
+  try {
+    await restricted.addInitScript(() => {
+      for (const method of ['getItem','setItem']) {
+        const original = Storage.prototype[method];
+        Storage.prototype[method] = function(key,...args) {
+          if (key === 'skazki-friends-v1') throw new Error('storage unavailable');
+          return original.call(this,key,...args);
+        };
+      }
+    });
+    const tab = await restricted.newPage();
+    await tab.goto(url);
+    await tab.locator('#homeFox img[data-scene]').waitFor();
+    await tab.route('**/friends/*.webp',r => r.abort());
+    await tab.reload();
+    await tab.locator('#homeFox img:visible').waitFor();
+    await tab.locator('#friendsOpen').click();
+    await tab.locator('.friend-initial').first().waitFor();
+    await tab.locator('.friend-route').first().click();
+    assert.ok(await tab.locator('#storyBody').isVisible());
+  } finally { await restricted.close(); }
 };

@@ -93,6 +93,14 @@
       const card = document.createElement('article');
       const scene = id + '-scene01';
       card.innerHTML = '<a href="'+file(scene,false)+'" target="_blank" rel="noopener" aria-label="Рассмотреть: '+name+'"><img loading="lazy" decoding="async" width="120" height="120" src="'+file(scene,true)+'" alt="'+name+'"></a><h3>'+name+'</h3><button type="button" class="friend-route">'+role+' →</button><button type="button" data-favorite="'+id+'" aria-label="Любимый герой: '+name+'"></button>';
+      const portrait = card.querySelector('img');
+      portrait.onerror = () => {
+        portrait.hidden = true;
+        const fallback = document.createElement('span');
+        fallback.className = 'friend-initial';
+        fallback.textContent = name[0];
+        portrait.after(fallback);
+      };
       card.querySelector('.friend-route').onclick = () => { dialog.close(); open(); };
       card.querySelector('[data-favorite]').onclick = () => {
         if (favorite !== id) { favorite = id; save(); choose(); }
