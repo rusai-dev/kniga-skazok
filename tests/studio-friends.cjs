@@ -43,12 +43,33 @@ module.exports = async function verifyFriends(browser,url) {
     await page.locator('#friendsOpen').click();
     const cards = page.locator('.friends-grid article');
     assert.equal(await cards.count(),9);
+    const familySettingBefore=await page.evaluate(()=>localStorage.getItem('skazki-friends-v1'));
     for (const card of await cards.all()) {
       const image = card.locator('img');
       await image.scrollIntoViewIfNeeded();
-      await image.evaluate(img=>img.decode());
+      const first=await image.evaluate(async img=>{
+        await img.decode();const canvas=document.createElement('canvas');canvas.width=canvas.height=16;
+        canvas.getContext('2d').drawImage(img,0,0,16,16);
+        return {src:img.currentSrc,pixels:canvas.toDataURL()};
+      });
       assert.ok(await card.locator('.friend-route').isVisible());
+      const change=card.locator('.friend-scene-toggle'),picture=card.locator('.friend-picture');
+      assert.ok((await change.boundingBox()).height>=44,'scene action must be finger-sized');
+      await change.click();
+      const second=await image.evaluate(async img=>{
+        await img.decode();const canvas=document.createElement('canvas');canvas.width=canvas.height=16;
+        canvas.getContext('2d').drawImage(img,0,0,16,16);
+        return {src:img.currentSrc,pixels:canvas.toDataURL()};
+      });
+      assert.notEqual(first.src,second.src,'alternate source is a different WebP asset');
+      assert.notEqual(first.pixels,second.pixels,'alternate scene changes actual decoded picture');
+      assert.equal(await card.locator('.friend-scene-label').textContent(),'Рисунок 2 из 2');
+      await picture.click();
+      await image.evaluate(img=>img.decode());
+      assert.equal((await image.getAttribute('src')).split('/').pop(),first.src.split('/').pop(),'picture button returns to first scene');
+      assert.equal(await card.locator('.friend-scene-label').textContent(),'Рисунок 1 из 2');
     }
+    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-friends-v1')),familySettingBefore,'looking at artwork must not change favorite/rotation');
     const routes = {
       squirrel:'#storyBody', rabbit:'#drawingCanvas', owl:'#readingSearch', bat:'[data-world="bat-echo"]',
       dragon:'#storyBody', hedgehog:'#ownShelfNew', kitten:'[data-world="egypt-nile"]',
