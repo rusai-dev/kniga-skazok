@@ -978,3 +978,7 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Audited actual 1024×768, 768×1024 and 390×700 browser screenshots of 1.5.201. The absolute Friends action covered the home H1. Moved it into compact secondary navigation; same id/handler, ≥44px touch area, visible focus and responsive wrapping.
 - Reused two existing owner-approved optimized WebP assets: squirrel author art 240px in hero and Egypt/Nile 320px in featured writer card. No new binary files, no screenshot with rasterized buttons, no schema or saved-story changes.
 - Strict browser test now verifies image decode/path, H1 nonoverlap, Friends modal, core navigation and resource budgets. Exact-SHA Chromium/WebKit/visual CI pending. Real device/R13 NO-GO.
+
+## 1.5.202 — unified home + drawing candidate (23.11.2026)
+
+QA branch `watercolor-unified-202-qa` builds on PR #171 (approved watercolor home + repaired `Мои друзья` position) and integrates the real drawing workspace CSS and browser test from PR #170. The obsolete alternative home-button CSS from #170 was deliberately excluded. The existing `index.html`, story content, local data keys, service-worker revision and family configuration are unchanged. Regression and Chromium/WebKit tests must be rerun on the exact combined SHA; until then acceptance is NOT TESTED. Physical iPad/Pencil remains HARDWARE PENDING and authenticated A→B family publication remains BLOCKED. This is a non-deployed QA candidate, not a production release.
