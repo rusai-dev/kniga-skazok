@@ -4,9 +4,9 @@
   "width": 320,
   "height": 120,
   "bytes": 5526,
-  "sha256": "cccff156a3264114939ee015fa7a7ab0e38370cfd3b2cc67e39be705308d0b24",
+  "sha256": "af8e75714e128470c3381676c62ece1e22c32d228c41022e6a018e34ee63db49",
   "source": "user-approved original watercolor home-screen concept, cropped for dedicated Egyptian cat CTA; no text baked into artwork",
   "role": "decorative home continuation card; both ears and whole face must remain inside the visible safe area",
-  "status": "visual candidate 1.5.205; validated hash of committed blob; browser decode and physical iPad pending",
+  "status": "candidate 1.5.205; restored and SHA256/Git-blob verified against approved local original; Chromium/WebKit CI pending on corrected commit; physical iPad pending",
   "license": "generated for this project based on the user's provided reference"
 }
