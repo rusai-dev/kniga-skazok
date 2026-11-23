@@ -53,6 +53,30 @@ module.exports=async function verifyWatercolorHome(browser,url){
        *Math.max(0,Math.min(headBox.y+headBox.height,friendBox.y+friendBox.height)-Math.max(headBox.y,friendBox.y));
      assert.equal(overlap,0,'Friends must never cover H1 at '+width+'x'+height);
      assert.ok(friendBox.width>=44&&friendBox.height>=44,'Friends remains finger-sized');
+
+     // R15 reference-home visual contract: a real illustrated hero, dominant
+     // story continuation and a circular live button, not screenshot hotspots.
+     const artLayout=await page.evaluate(()=>{
+       const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {w:r.width,h:r.height,x:r.x,y:r.y}};
+       const play=getComputedStyle(document.querySelector('#storybookHome .home-feature-play'));
+       const hero=getComputedStyle(document.querySelector('#storybookHome .home-intro'));
+       return {
+         hero:rect('#storybookHome .home-intro'),
+         feature:rect('#homeWrite'),
+         art:rect('#storybookHome .home-feature-art'),
+         play:rect('#storybookHome .home-feature-play'),
+         heroGradient:hero.backgroundImage,
+         playRadius:play.borderTopLeftRadius
+       };
+     });
+     assert.ok(artLayout.heroGradient.includes('gradient'),'watercolor reference must use layered real CSS');
+     assert.ok(artLayout.art.w>=74&&artLayout.art.h>=65,'illustrated continuation image must remain usable');
+     if(width>=701){
+       assert.ok(artLayout.hero.h>=180,'storybook hero needs adequate illustration space on iPad');
+       assert.ok(artLayout.feature.h>=90,'continuation action must be visually prominent');
+       assert.ok(parseFloat(artLayout.playRadius)>=22,'featured live CTA requires rounded play control');
+     }
+
      // A single row on tablet; avoid an isolated half-width drafts button.
      const actions=await Promise.all(['homeNewStory','homePaint','homeDrafts'].map(async id=>{
        const el=page.locator('#'+id);return {id,visible:await el.isVisible(),
