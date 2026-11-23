@@ -1249,3 +1249,31 @@ body[data-home-screen="home"] {
 @media(prefers-reduced-motion:reduce){
   #modal.drawing-focus button{transition:none;animation:none;}
 }
+
+
+/* R15 screenshot QA: old absolutely-positioned friends chip covered the title
+   in landscape, portrait and mobile. Return it to normal flow, with room for it. */
+#storybookHome .home-hero-copy #friendsOpen {
+  position:static;
+  inset:auto;
+  margin:8px 0 0;
+  min-height:44px;
+  max-width:100%;
+  white-space:nowrap;
+  font-weight:700;
+  border-radius:13px;
+  box-shadow:0 2px 6px #4e34721c;
+}
+#storybookHome .home-hero-copy #friendsOpen[hidden] {display:none!important;}
+#storybookHome .home-intro {
+  height:auto;
+  min-height:clamp(190px,23vh,240px);
+  padding-block:clamp(10px,1.5vh,18px);
+}
+@media (max-width:700px) {
+  #storybookHome .home-intro {height:auto;min-height:185px;padding-block:12px;}
+  #storybookHome .home-hero-copy #friendsOpen {margin-top:6px;}
+}
+@media (max-width:470px) {
+  #storybookHome .home-intro {min-height:165px;}
+}
