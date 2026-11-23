@@ -53,6 +53,21 @@ module.exports=async function verifyWatercolorHome(browser,url){
        *Math.max(0,Math.min(headBox.y+headBox.height,friendBox.y+friendBox.height)-Math.max(headBox.y,friendBox.y));
      assert.equal(overlap,0,'Friends must never cover H1 at '+width+'x'+height);
      assert.ok(friendBox.width>=44&&friendBox.height>=44,'Friends remains finger-sized');
+     // A single row on tablet; avoid an isolated half-width drafts button.
+     const actions=await Promise.all(['homeNewStory','homePaint','homeDrafts'].map(async id=>{
+       const el=page.locator('#'+id);return {id,visible:await el.isVisible(),
+         box:await el.isVisible()?await el.boundingBox():null};
+     }));
+     if(actions.every(a=>a.visible)&&width>=701){
+       assert.ok(actions.every(a=>Math.abs(a.box.y-actions[0].box.y)<2),
+         'all three creative actions must share one row on iPad '+width+'x'+height);
+     }
+     if(actions.every(a=>a.visible)&&width<=700){
+       assert.ok(actions[0].box.width>actions[1].box.width*1.65,
+         'new story must be the largest and most prominent touch target on mobile');
+       assert.ok(Math.abs(actions[1].box.y-actions[2].box.y)<2,
+         'drawing and drafts follow in a balanced mobile row');
+     }
      const checks=await page.evaluate(()=>{
        const ids=['homeWrite','homeNewStory','homeDrafts','homeBooks','homeCreate','readingEntry','homeMath','homeLogic','childWorld'];
        return {overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
