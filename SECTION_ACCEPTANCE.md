@@ -316,3 +316,8 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Given cloud `enabled:false` and public archive 404, with no verified cached archive revision, the family reader must start direct PeerJS transport, decrypt test books, display them, save a local receiver cache and return an ACK for received revision.
 - Given an existing verified archive revision, GitHub 404 must **not** trigger P2P fallback or overwrite reader cache. A later verified archive supersedes direct mode and closes the peer.
 - Fallback is online-only; no claim of server persistence or delivery to an offline relative. Actual Safari/iPad and two real family devices remain open requirements.
+
+### R13 1.5.198 · local disconnection semantics
+- Given a prepared synthetic family secret and locally saved books, cancelling the disconnect prompt must preserve the session and key. Confirming must stop only the local connection, preserve personal manuscripts and offline artifacts, and never promise remote revocation.
+- Removing a locally selected story must not claim existing server copies disappeared. New family invitations must state that old archives/links are not automatically revoked.
+- Actual authenticated revocation requires separate backend credentials, deletion/rotation and real second-device verification; BLOCKED, no user data used in CI.
