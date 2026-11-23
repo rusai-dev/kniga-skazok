@@ -61,3 +61,6 @@
 
 ### 1.5.201 proposed — writing page complements approved watercolor home and shelf
 - Separate real CSS presentation + one accessible art heading. Changes are scoped to the existing writer surface; not a stand-alone mock. Illustration uses an existing optimized project asset after editor open. CI exact-SHA pending, no Pages deployment.
+
+### 1.5.202 · candidate watercolor paint studio
+- Only CSS treatment of existing editable canvas and its real tools. Browser visual-functional test added before implementation. Never embed image UI mockups as inert controls or change child's saved work; pending exact SHA CI.
