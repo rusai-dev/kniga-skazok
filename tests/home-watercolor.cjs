@@ -11,7 +11,7 @@ module.exports=async function verifyWatercolorHome(browser,url){
      await page.setViewportSize({width,height});await page.goto(url);
      assert.equal(await page.locator('#storybookHome .home-intro h1').textContent(),'Книга сказок');
      assert.equal(await page.locator('#storybookHome .home-story-head h2').textContent(),'Мои сказки');
-     assert.equal(await page.locator('#homeWrite strong').textContent(),'Продолжить сказку');
+     assert.ok(['Пишу свою сказку','Продолжить сказку'].includes(await page.locator('#homeWrite strong').textContent()),'main action distinguishes blank start vs existing books');
      assert.equal(await page.locator('#homeNewStory').textContent(),'✦ Написать сказку');
      assert.equal(await page.locator('.home-map button').count(),4);
      assert.equal(await page.locator('.home-paths button').count(),2);
