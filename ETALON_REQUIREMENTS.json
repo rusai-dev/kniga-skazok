@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "project": "Книга сказок",
+  "source": "Kniga_skazok_MASTER_REPEATABLE_CHATGPT_ETALON_ILLUSTRATIONS_2026.pdf",
+  "source_date": "2026-11-23",
+  "main_reference": "07042e9de6aa614030d352b709d8aa797d3e0a31",
+  "main_version_at_record": "1.5.184",
+  "active_pull_request": 150,
+  "status_notice": "Current status is provisional, not audited completion. Evidence must be rechecked on exact release SHA. NOT TESTED means no sufficient hardware/account acceptance.",
+  "requirements": [
+    {
+      "id": "R01",
+      "title": "Навигация, кнопки и возврат",
+      "priority": "P0",
+      "status": "PARTIAL",
+      "acceptance": "tap/touch routes at iPad sizes; restored Safari sessions; offline and family-reader",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": "User's physical iPad non-responsive buttons not reproduced in clean browser; PR #150 CI and device verification pending"
+    },
+    {
+      "id": "R02",
+      "title": "Личные сказки, черновики и поиск",
+      "priority": "P0",
+      "status": "PARTIAL",
+      "acceptance": "new/continue/multiple drafts/search/back/persist",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R03",
+      "title": "Клавиатура iPad и фокус текста",
+      "priority": "P0",
+      "status": "NOT TESTED",
+      "acceptance": "visualViewport simulation plus physical keyboard IME/caret",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": true,
+      "blocker": null
+    },
+    {
+      "id": "R04",
+      "title": "Рисунок из редактора сказки",
+      "priority": "P0",
+      "status": "PARTIAL",
+      "acceptance": "draw/gallery/photo/3 insertions/caret restore/rollback",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R05",
+      "title": "Большой холст и живые инструменты",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "acceptance": "touch/Pointer Events, zoom, Undo/Redo, raw PNG; Pencil hardware",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": true,
+      "blocker": null
+    },
+    {
+      "id": "R06",
+      "title": "Мои рисунки и уроки",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "acceptance": "gallery, lessons, coloring, reopen, save failure",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R07",
+      "title": "Книга, главы и книжная полка",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "acceptance": "cover/chapters/illustration placement/book UI",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R08",
+      "title": "Девять канонических героев",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "acceptance": "SHA256 WebP, decode, visible placement in every route",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R09",
+      "title": "Ротация видимых сцен при входе",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "acceptance": "12-20 reloads and favorite same-hero scenes",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R10",
+      "title": "Чтение и библиотека авторов",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "acceptance": "chapter access, bookmarks, text scale, VoiceOver",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": true,
+      "blocker": null
+    },
+    {
+      "id": "R11",
+      "title": "Математика и логика",
+      "priority": "P2",
+      "status": "PARTIAL",
+      "acceptance": "every question interactive/feedback/progress",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R12",
+      "title": "Познаю мир: совы, мыши, Египет, природа",
+      "priority": "P2",
+      "status": "PARTIAL",
+      "acceptance": "accurate content, touch interactions, return",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R13",
+      "title": "Семейная публикация и приватность",
+      "priority": "P0",
+      "status": "NOT TESTED",
+      "acceptance": "isolated two-profile software + real family account validation",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": true,
+      "blocker": null
+    },
+    {
+      "id": "R14",
+      "title": "Хранение, backup и восстановление",
+      "priority": "P0",
+      "status": "PARTIAL",
+      "acceptance": "quota/malformed records/conflicts/rollback/offline",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R15",
+      "title": "Художественная система и доступность",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "acceptance": "watercolor UI, contrast, focus, 200% scaling, screen review",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": true,
+      "blocker": null
+    },
+    {
+      "id": "R16",
+      "title": "Скорость, вес и офлайн",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "acceptance": "5-core<=1000000, cold<=1200000, SW updates",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R17",
+      "title": "Доказательные скриншоты и сравнение",
+      "priority": "P1",
+      "status": "PARTIAL",
+      "acceptance": "before/after WebKit and Chromium sizes",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": false,
+      "blocker": null
+    },
+    {
+      "id": "R18",
+      "title": "Релиз и аппаратная приемка",
+      "priority": "P0",
+      "status": "NOT TESTED",
+      "acceptance": "public site and physical iPad, Apple Pencil, stress, family",
+      "evidence": [
+        "tests/browser-smoke.cjs",
+        "tests/regression.cjs",
+        "QUALITY.md",
+        "SECTION_ACCEPTANCE.md"
+      ],
+      "commit_sha": null,
+      "last_checked": "2026-11-23",
+      "manual_gate": true,
+      "blocker": "No physical iPad or real family account access"
+    }
+  ]
+}
