@@ -311,3 +311,8 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 ### R13 · 1.5.196 candidate — selected is not delivered
 - Acceptance: the locally selected family snapshot and counter must not state that a second profile received the book; reader acknowledgement remains the only delivery evidence. Regression and WebKit/Chromium browser-smoke must pass on this PR's exact SHA.
 - Cloud `enabled:false` and a missing real family A→B test are still **BLOCKED**. No real release claim and no changes to the stored child's work.
+
+### R13 1.5.197 — direct-reader missing-archive fallback
+- Given cloud `enabled:false` and public archive 404, with no verified cached archive revision, the family reader must start direct PeerJS transport, decrypt test books, display them, save a local receiver cache and return an ACK for received revision.
+- Given an existing verified archive revision, GitHub 404 must **not** trigger P2P fallback or overwrite reader cache. A later verified archive supersedes direct mode and closes the peer.
+- Fallback is online-only; no claim of server persistence or delivery to an offline relative. Actual Safari/iPad and two real family devices remain open requirements.

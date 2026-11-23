@@ -48,3 +48,7 @@
 Статусы DONE ставить только при фактическом end-to-end результате: реальные изменения + сохранённые данные + подтверждённые скриншоты + CI success exact SHA + проверка публичного сайта. Для физического iPad, Apple Pencil, реальных семейных устройств и 30-минутного рисования веди отдельные HARDWARE PENDING / NOT TESTED без ложных заявлений.
 
 Запрещено тестировать на реальных детских данных и удалять их из Safari. Не публиковать личную сказку без действия пользователя.
+
+### 1.5.197 R13 draft (after #162)
+- Existing fallback bug: the reader always entered the GitHub polling branch when cloud was disabled; no direct PeerJS route was reached.
+- Added conditional direct encrypted fallback on confirmed missing archive, preserving the archived high-water guard. CI and hardware release gates to be checked on final SHA. Main/Pages untouched.
