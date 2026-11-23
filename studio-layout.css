@@ -1513,17 +1513,18 @@ body[data-home-screen="home"]{
   #storybookHome .home-hero-copy{grid-column:1;min-height:150px}
   #storybookHome .home-hero-watercolor{
     grid-column:2;width:clamp(120px,31vw,190px);height:clamp(120px,31vw,190px);
-    display:block;
+    display:none;
   }
   #storybookHome #homeFox{
-    display:block;position:absolute;right:7px;bottom:7px;z-index:3;
-    width:clamp(58px,11vw,86px);height:clamp(58px,11vw,86px);
-    min-width:0;overflow:hidden;border:2px solid #fffe;
-    border-radius:50%;box-shadow:0 3px 12px #382d6533;
+    display:block;position:relative;grid-column:2;grid-row:1;
+    right:auto;bottom:auto;z-index:2;justify-self:center;align-self:center;
+    width:100%;height:clamp(125px,30vw,184px);
+    min-width:0;overflow:hidden;border:3px solid #fffc;
+    border-radius:23px;box-shadow:0 3px 12px #382d6533;
     background:#f6eeff;
   }
   #storybookHome #homeFox img[data-scene],
-  #storybookHome #homeFox img[data-hero]{border:0;border-radius:50%;object-fit:cover}
+  #storybookHome #homeFox img[data-hero]{border:0;border-radius:20px;object-fit:cover}
   #storybookHome .home-intro h1{font-size:clamp(26px,5.9vw,40px)}
   #storybookHome #homeWrite{
     grid-template-columns:minmax(75px,38%) minmax(0,1fr) 44px;
