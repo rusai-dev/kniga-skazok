@@ -53,6 +53,30 @@ module.exports = async function verifyFamilyCloudRoute(browser, baseUrl) {
       assert.equal(result.localPrivate,0,'cloud reader must not import into private author library');
       assert.ok(calls.cloud>=1,'viewer must call cloud RPC');
       assert.equal(calls.github,0,'viewer must not query GitHub when configured cloud is valid');
+      await page.waitForFunction(()=>!fam.cloudBusy);
+      const before=await page.evaluate(()=>({
+        cache:localStorage.getItem(fam.cache),
+        revision:localStorage.getItem(fam.cache+'-cloud-revision')
+      }));
+      assert.equal(before.revision,'1','the last verified cloud revision must persist');
+      // A stale cloud response, including after reload, must not erase received books.
+      remote.revision=0;remote.envelope=null;
+      try{
+        await page.evaluate(()=>cloudTick(fam));
+        const after=await page.evaluate(()=>({
+          books:fam.books.map(b=>b.id),cache:localStorage.getItem(fam.cache),
+          revision:localStorage.getItem(fam.cache+'-cloud-revision'),
+          notice:document.querySelector('#familyViewStatus')?.textContent||''
+        }));
+        assert.deepEqual(after.books,[book.id],'older cloud revision must not replace a received book');
+        assert.equal(after.cache,before.cache,'older cloud revision must not overwrite cached book data');
+        assert.equal(after.revision,'1','verified revision cannot roll back');
+        assert.ok(after.notice.includes('старую версию'),'stale remote data must produce a visible warning');
+        await page.reload();
+        await page.waitForFunction(()=>fam?.role==='view'&&fam?.cloud&&!fam.cloudBusy);
+        assert.deepEqual(await page.evaluate(()=>fam.books.map(b=>b.id)),[book.id],
+          'stale cloud data must not clear the family book after reload');
+      }finally{remote.revision=1;remote.envelope={iv:iv.toString('hex'),cipher}}
     }finally{await ctx.close()}
   }
 
