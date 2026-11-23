@@ -339,3 +339,10 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 ### R15/R17 1.5.202 — hero title must remain unobscured
 - At 1024×768, 768×1024, 834×1194, 390×844 the Friends button does not intersect H1, remains ≥44×44 and opens the real gallery. Hero and featured images decode to known project-manifest dimensions (240/320), without baked text, and all normal author actions keep working.
 - Verify cold-home budget ≤1,200,000 B and startup five files ≤1,000,000 B on exact SHA. Physical iPad: PENDING.
+
+### Integration candidate 1.5.202 · R05/R15/R17 (23.11.2026)
+
+- Candidate branch: `watercolor-unified-202-qa` built on PR #171; drawing CSS and `tests/drawing-watercolor.cjs` backported from #170 while retaining title/friends non-overlap fix.
+- PENDING exact-SHA tests: full regression, browser smoke in Chromium and WebKit, live navigation, screenshot review and both resource budgets. No PASS before evidence.
+- No new story/drawing storage keys, migrations, network images or replacement of the real drawing controls.
+- HARDWARE PENDING: actual Safari iPad/Pencil interaction. R13 BLOCKED: real second-account family delivery and revocation.
