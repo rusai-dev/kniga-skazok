@@ -5,6 +5,7 @@ const assert=require('node:assert/strict');
 module.exports=async function verifyWatercolorHome(browser,url){
  const ctx=await browser.newContext({serviceWorkers:'block'});
  const page=await ctx.newPage(),errors=[];
+ const seenCompanions=new Set();
  page.on('pageerror',err=>errors.push(String(err)));
  try{
    for(const [width,height] of [[1024,768],[768,1024],[834,1194],[390,844]]){
@@ -15,6 +16,29 @@ module.exports=async function verifyWatercolorHome(browser,url){
      assert.equal(await page.locator('#homeNewStory').textContent(),'✦ Написать сказку');
      assert.equal(await page.locator('.home-map button').count(),4);
      assert.equal(await page.locator('.home-paths button').count(),2);
+
+     // Rotating nine-scene-hero feature stays real and clearly named in the
+     // reference redesign. The image must not crop a face at any breakpoint.
+     const companion=page.locator('#homeFox img[data-scene]');
+     await companion.waitFor({state:'visible'});
+     const hero=await companion.evaluate(async img=>{
+       await img.decode();
+       const style=getComputedStyle(img),caption=document.getElementById('friendGreeting');
+       const r=caption.getBoundingClientRect(),greeting=getComputedStyle(caption);
+       return {id:img.dataset.hero,name:img.alt,
+         scene:img.dataset.scene,
+         naturalWidth:img.naturalWidth,fit:style.objectFit,
+         caption:caption.textContent,
+         ariaLive:caption.getAttribute('aria-live'),
+         pillHeight:r.height,display:greeting.display};
+     });
+     assert.equal(hero.naturalWidth,288,'companion must use a real lightweight 288px scene');
+     assert.equal(hero.fit,'contain','rotating hero face must not be cropped');
+     assert.equal(hero.caption,'Сегодня с тобой '+hero.name,'illustration and greeting must identify the same companion');
+     assert.equal(hero.ariaLive,'polite','companion changes should be announced accessibly');
+     assert.ok(hero.pillHeight>=27,'live companion greeting must remain readable');
+     seenCompanions.add(hero.id);
+
      const accessibleTeal=await page.locator('#homeNewStory').evaluate(el=>{
        const gradient=getComputedStyle(el).backgroundImage,white=[255,255,255];
        const parts=[...gradient.matchAll(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/g)].map(m=>m.slice(1).map(Number));
@@ -104,6 +128,7 @@ module.exports=async function verifyWatercolorHome(browser,url){
      if(width===1024)assert.ok(checks.scroll<=50,
        'landscape iPad first screen should not require long forced scrolling: '+checks.scroll);
    }
+   assert.ok(seenCompanions.size>=2,'automatic companions should change between separate visits');
    await page.setViewportSize({width:1024,height:768});await page.goto(url);
    await page.locator('#friendsOpen').click();
    assert.ok(await page.locator('#friendsDialog').isVisible(),'moved Friends entry opens gallery');
