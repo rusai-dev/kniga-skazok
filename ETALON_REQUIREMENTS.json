@@ -3,9 +3,9 @@
   "project": "Книга сказок",
   "source": "Kniga_skazok_MASTER_REPEATABLE_CHATGPT_ETALON_ILLUSTRATIONS_2026.pdf",
   "source_date": "2026-11-23",
-  "main_reference": "07042e9de6aa614030d352b709d8aa797d3e0a31",
-  "main_version_at_record": "1.5.184",
-  "active_pull_request": 150,
+  "main_reference": "b5fdfe0ac7fc97ecabd1474968493348e4a633e9",
+  "main_version_at_record": "1.5.185",
+  "active_pull_request": 151,
   "status_notice": "Current status is provisional, not audited completion. Evidence must be rechecked on exact release SHA. NOT TESTED means no sufficient hardware/account acceptance.",
   "requirements": [
     {
@@ -18,12 +18,13 @@
         "tests/browser-smoke.cjs",
         "tests/regression.cjs",
         "QUALITY.md",
-        "SECTION_ACCEPTANCE.md"
+        "SECTION_ACCEPTANCE.md",
+        "PR #150 merged, browser smoke and live route success exact SHA"
       ],
       "commit_sha": null,
       "last_checked": "2026-11-23",
       "manual_gate": false,
-      "blocker": "User's physical iPad non-responsive buttons not reproduced in clean browser; PR #150 CI and device verification pending"
+      "blocker": "Physical user iPad unresponsive-buttons report not reproduced; deployed 1.5.185 confirmation pending"
     },
     {
       "id": "R02",
@@ -137,12 +138,13 @@
         "tests/browser-smoke.cjs",
         "tests/regression.cjs",
         "QUALITY.md",
-        "SECTION_ACCEPTANCE.md"
+        "SECTION_ACCEPTANCE.md",
+        "PR #151: two decoded scenes per hero, tests/studio-friends.cjs, awaiting exact-SHA CI"
       ],
       "commit_sha": null,
       "last_checked": "2026-11-23",
       "manual_gate": false,
-      "blocker": null
+      "blocker": "PR #151 awaiting checks and public delivery; physical iPad not checked"
     },
     {
       "id": "R09",
@@ -154,7 +156,8 @@
         "tests/browser-smoke.cjs",
         "tests/regression.cjs",
         "QUALITY.md",
-        "SECTION_ACCEPTANCE.md"
+        "SECTION_ACCEPTANCE.md",
+        "Existing persisted non-repeating rotation, PR #151 gallery switching adds scene visibility"
       ],
       "commit_sha": null,
       "last_checked": "2026-11-23",
