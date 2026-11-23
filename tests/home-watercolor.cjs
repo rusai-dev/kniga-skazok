@@ -10,6 +10,24 @@ module.exports=async function verifyWatercolorHome(browser,url){
    for(const [width,height] of [[1024,768],[768,1024],[834,1194],[390,844]]){
      await page.setViewportSize({width,height});await page.goto(url);
      assert.equal(await page.locator('#storybookHome .home-intro h1').textContent(),'Книга сказок');
+
+     const heroLayout=await page.evaluate(()=>{
+       const rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();
+         return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height}};
+       return {heading:rect('#storybookHome .home-intro h1'),
+         friend:rect('#friendsOpen'),banner:rect('#storybookHome .home-intro'),
+         visible:getComputedStyle(document.querySelector('#friendsOpen')).display!=='none'};
+     });
+     if(heroLayout.visible){
+       const a=heroLayout.heading,b=heroLayout.friend,c=heroLayout.banner;
+       const overlap=Math.max(0,Math.min(a.right,b.right)-Math.max(a.x,b.x))*
+          Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.y,b.y));
+       assert.equal(overlap,0,'R15 my-friends must never overlap story title at '+width+'x'+height+
+         ': '+JSON.stringify(heroLayout));
+       assert.ok(b.bottom<=c.bottom+2&&b.x>=c.x-2&&b.right<=c.right+2,
+         'R15 my-friends must be fully inside banner at '+width+'x'+height+
+         ': '+JSON.stringify(heroLayout));
+     }
      assert.equal(await page.locator('#storybookHome .home-story-head h2').textContent(),'Мои сказки');
      assert.ok(['Пишу свою сказку','Продолжить сказку'].includes(await page.locator('#homeWrite strong').textContent()),'main action distinguishes blank start vs existing books');
      assert.equal(await page.locator('#homeNewStory').textContent(),'✦ Написать сказку');
