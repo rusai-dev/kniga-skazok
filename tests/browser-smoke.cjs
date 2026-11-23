@@ -205,9 +205,15 @@ const server=http.createServer((req,res)=>{
  await page.getByRole('button',{name:'Вернуть прежний рисунок'}).click();
  assert.equal((await read('Две картинки')).rich.images[0],edited.rich.images[0]);
  const beforeRemoval=await read('Две картинки');
+ const beforeRemovalStored=await page.evaluate(()=>localStorage.getItem(KEY));
  await page.evaluate(()=>{window.__savedSet=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===KEY)throw Error('quota');return window.__savedSet.call(this,k,v)}});
  page.once('dialog',dialog=>dialog.accept());await page.locator('#imageTray [data-picture="0"]').click();
- assert.deepEqual(await read('Две картинки'),beforeRemoval);
+ // Scrolling the textarea to a visible image tray may change only its viewport offset.
+ // Preserve every authored field, both caret positions and the exact persisted bytes.
+ const afterRejectedRemoval=await read('Две картинки');
+ const withoutViewportOffset=book=>{const copy=structuredClone(book);if(copy.studio?.caret)copy.studio.caret[2]=0;return copy};
+ assert.deepEqual(withoutViewportOffset(afterRejectedRemoval),withoutViewportOffset(beforeRemoval));
+ assert.equal(await page.evaluate(()=>localStorage.getItem(KEY)),beforeRemovalStored,'rejected removal must not persist anything');
  assert.ok(await page.locator('#imageTray [data-edit-pic="0"]').isVisible());
  await page.evaluate(()=>{Storage.prototype.setItem=window.__savedSet});
  page.once('dialog',dialog=>dialog.accept());await page.locator('#imageTray [data-picture="0"]').click();
