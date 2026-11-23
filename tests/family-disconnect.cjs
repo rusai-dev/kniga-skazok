@@ -17,6 +17,8 @@ module.exports=async function verifyFamilyDisconnect(browser,url){
       fput(GH_TOKEN,window.__qaStopKey);
       fput('qa-family-remote-archive-reference','archive-is-not-revoked');
       window.__qaStopLibrary=localStorage.getItem(KEY);
+      $('storybookHome').hidden=true;
+      $('adultHome').hidden=false;
       $('familyBanner').hidden=false;
       fam={role:'host',clients:new Map(),tick:null,peer:{
         destroy(){window.__qaStopDestroyed=true}
