@@ -3521,7 +3521,7 @@ if(commitLibrary({...data,familyPublished:books.filter(b=>b.id!==bid)})){toast('
 }
 function publicationResult(bid){
 const book=bookOf(bid);if(!book)return;
-openModal('Сказка сохранена на iPad','<section class="own-family-panel"><h3>'+esc(book.title)+'</h3><p>Книга и рисунки сохранены на iPad. Отправку родителям проверяем отдельно.</p><p id="publicationDelivery" role="status" aria-live="polite">Проверяем подключение…</p><div class="actions"><button type="button" class="primary" id="publicationRetry">Проверить и отправить снова</button><button type="button" id="publicationShelf">Мои семейные сказки</button><button type="button" id="publicationPersonal">На личную полку</button><button type="button" id="publicationSettings">Настройка для взрослого</button></div></section>','publication-result');
+openModal('Сказка сохранена на iPad','<section class="own-family-panel"><h3>'+esc(book.title)+'</h3><p>Книга и рисунки на этом iPad. Доставка семье ещё не подтверждена.</p><p id="publicationDelivery" role="status" aria-live="polite">Проверяем подключение…</p><div class="actions"><button type="button" class="primary" id="publicationRetry">Проверить и отправить снова</button><button type="button" id="publicationShelf">Мои семейные сказки</button><button type="button" id="publicationPersonal">На личную полку</button><button type="button" id="publicationSettings">Настройка для взрослого</button></div></section>','publication-result');
 $('publicationRetry').onclick=()=>startWriter(true);$('publicationShelf').onclick=familyPublishedShelf;$('publicationPersonal').onclick=closeModal;$('publicationSettings').onclick=familyMenu;
 }
 function fshareBook(b){
