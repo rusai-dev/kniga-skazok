@@ -941,3 +941,8 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Base is the exact tested R14 fix PR #159, SHA `d02b8a0154b13def4b2a16d44511a6b43d860fe1`. No source code from that fix was reset. Test `tests/writer-tab-conflict.cjs` remains enabled.
 - Move existing world SVG scene strings to `world-scenes-194.js` and load them at first world entry. The single versioned module is included in the Service Worker shell. User drawings, saved stories, backup keys, private/family data and server endpoints untouched.
 - New checks: full Node regression including the original SVG scenes, two-tab conflict, Chromium/WebKit cold-home resource budget, visible world navigation and offline fallback, studio screens. All gates must PASS on 1.5.195 exact SHA before considering merge. Physical iPad and real family receive remain HARDWARE PENDING / BLOCKED; release NO-GO.
+
+### 1.5.196 — R13 truthful family preparation labels (draft candidate)
+- Family-selected local snapshots are labelled «Выбрана для семьи», not delivered/published; the local count reads «Выбрано для семьи». A confirmed backend/read-account receipt is still required to report delivery.
+- Test coverage: `tests/regression.cjs` and `tests/browser-smoke.cjs` check the family badge and wording. Exact-SHA CI and real A→B delivery are **NOT TESTED** until run evidence exists.
+- This change preserves familyPublished storage data, private drafts, image bytes, transport code and URL secrets; it does not enable `family-cloud-config.json` or publish the site. Hardware R18 = PENDING; release = NO-GO.

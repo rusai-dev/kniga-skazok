@@ -307,3 +307,7 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Given two simultaneous same-origin story tabs, When A saves and B has stale edits, Then warning/rescue and refusal of stale overwrite remain exactly as in tested PR #159. Existing synthetic `tests/writer-tab-conflict.cjs` must PASS Chromium and WebKit.
 - Given cold home, Then world scene JS must not be requested before world entry. Given world entry after the script loads, Then every original distinct SVG is available and offline shell retains the script. On missing scripts, show retry message without changing personal work.
 - Exact-SHA tests/visuals pending; physical iPad/Safari and second real family device remain not tested, release NO-GO.
+
+### R13 · 1.5.196 candidate — selected is not delivered
+- Acceptance: the locally selected family snapshot and counter must not state that a second profile received the book; reader acknowledgement remains the only delivery evidence. Regression and WebKit/Chromium browser-smoke must pass on this PR's exact SHA.
+- Cloud `enabled:false` and a missing real family A→B test are still **BLOCKED**. No real release claim and no changes to the stored child's work.
