@@ -911,3 +911,13 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - **Fix:** record last confirmed title/body values, recheck them on composition completion and on pagehide/hidden-tab, and retry prior failed local writes. The existing `commitLibrary`/stale-tab guard remains authoritative; a quota error does not authorize overwriting another tab or showing a false saved status. No storage schema, child text, artwork or family transport changes.
 - **New synthetic regression:** `tests/writer-background-save.cjs` (Chromium and WebKit via `tests/browser-smoke.cjs`): IME completion without input, pagehide with final unsignalled text, failed quota write preserves prior bytes, retry when storage recovers, reload retains final draft. No personal data in fixtures.
 - R03 and R14 remain **PARTIAL/HARDWARE PENDING** until actual Safari iPad keyboard/IME and resume are verified. Confirm the final exact-SHA regression, browser smoke and studio visual workflows before any merge. No user release is claimed.
+
+
+## 2026-11-23 · кандидат 1.5.192 — R03/R14, безопасное закрытие редактора
+
+- База: зависимая ветка PR #156 (1.5.191); отдельная ветка `writer-close-save-192`. `main` не меняется.
+- Подтверждённый риск в исходнике: `editorSaveBlocked()` проверял только прежний `data-save-failed`, не сверяя последнее DOM-содержимое перед закрытием. Изменение текста без завершающего `input` могло потеряться при «Назад»/Escape без `pagehide`.
+- Исправление: `editorSaveBlocked()` вызывает существующий `flushStoryDraft()` при активном редакторе и запрещает закрытие при неподтверждённой записи. Никаких новых ключей/миграций или изменений исходных детских работ.
+- Тест: `tests/writer-background-save.cjs` моделирует изменение текста без `input`, отказ `localStorage.setItem` на закрытии, запрет выхода, повторный выход после восстановления и reload с точным текстом.
+- Измерение source budget: пять файлов `index.html`, `classic-art-153.js`, `classic-art-155.js`, `andersen-art-156.js`, `learning-art-1536.css` — 999951 / 1000000 байт (до CI, подтверждение — по exact SHA).
+- Gates: regression, Chromium/WebKit, visual, cold-home и deployed SHA требуют независимого подтверждения. Физический Safari/iPad, Pencil и реальная семейная A→B доставка — HARDWARE PENDING / BLOCKED. Полный релиз — NO-GO.

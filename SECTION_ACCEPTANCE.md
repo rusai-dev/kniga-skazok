@@ -281,3 +281,11 @@ Reported on a physical iPad: section buttons appear non-responsive. Independent 
 Safety changes: persistent family reader mode has an explicit link to personal studio without deleting family settings; a stale non-open dialog no longer leaves `modal-open` after Safari `pageshow`; failed startup library shape/read blocks writes instead of silently overwriting source bytes; a static navigation recovery link works even if application JavaScript fails. All changes retain the same local-library key/schema and no cache or child data is deleted. Additional browser tests include malformed stored library, restoration of stale modal CSS, and switching back from family to personal view. Public-site touch probe is kept as an isolated, synthetic-data check.
 
 Required release gates: exact final-SHA regression, browser smoke in Chromium and WebKit, startup <=1,000,000 source bytes, cold page <=1,200,000; then live public site version and touch navigation after deployment. Not yet verified: actual user's iPad session and Safari storage, physical/floating keyboard and Apple Pencil, real family account delivery, 30-minute stress, and safe downgrade. Never close those debts based on CI alone.
+
+
+## R03/R14 · 1.5.192 · закрытие редактора без последнего input
+
+- Given: в личной сказке изменился DOM-текст без события `input` (например, финальная композиция IME). When: ребёнок нажимает «Назад» или Esc. Then: последний текст сохраняется подтверждённой локальной записью до закрытия.
+- Given: хранилище отклонило эту запись. When: ребёнок закрывает редактор. Then: редактор остаётся открытым, прежняя сохранённая версия не повреждена, доступны повтор и спасательная копия. Когда запись снова доступна, повторное закрытие сохраняет текст; reload восстанавливает его.
+- Автотест: `tests/writer-background-save.cjs`, запуск через `tests/browser-smoke.cjs` в Chromium и WebKit. Переход от синтетического теста к реальному iPad — только после аппаратного воспроизведения.
+- Кандидат 1.5.192, PR зависим от #156; до exact-SHA CI — NOT TESTED, реальный iPad — HARDWARE PENDING.
