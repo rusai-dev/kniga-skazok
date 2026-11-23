@@ -1,0 +1,15 @@
+{
+  "path": "assets/author/studio/home-storybook-banner-560.webp",
+  "width": 560,
+  "height": 285,
+  "bytes": 34892,
+  "sha256": "84a08d3507e802e7d5286b222bf40d4786e011e883ae573a57c7cb828f38c3e6",
+  "source": "Книга сказок — Production MAX, page 1 approved watercolor cover, 1600×550 JPEG",
+  "crop": [
+    520,
+    0,
+    1600,
+    550
+  ],
+  "role": "Decorative home banner with the squirrel, owl and bat. The title is rendered in HTML."
+}

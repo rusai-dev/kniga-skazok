@@ -357,3 +357,10 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - At 1024×768, 768×1024, 834×1194 and 390×844 visually verify that both ears and the whole black Egyptian cat face remain inside the left rounded image and are not occluded by the CTA text/play button. Use actual Chromium and WebKit screenshot artifacts and inspect them manually; source dimensions/hash tests are a necessary but not sufficient visual check.
 - The writing/resume action remains one working button and is not a baked screenshot. Real nine-hero scene rotation, honest "Сегодня с тобой ..." caption, shelf, drafting, drawing and all four secondary learning entries remain functional and accessible. Cold-home must use ≤1,200,000 encoded bytes; the five original source files ≤1,000,000.
 - Physical iPad Safari, keyboard, portrait/landscape and Pencil acceptance remain pending, family-cloud A→B delivery blocked; do not deploy without those checks.
+
+### 1.5.206 · R01/R02/R08/R09/R15/R16/R17
+
+- Given a clean profile, the real writing action starts a blank draft. After saving text and closing with Escape, «Продолжить сказку» opens that text again. The same action works after reload.
+- The approved banner and decoded companion are both visible at iPad, split-view and phone widths. The frame retains the faces in the banner, the complete rotating portrait and the Egyptian cat's ears and muzzle. The greeting announces the decoded companion by name.
+- On a return visit with a stale legacy cat cached, the current shell uses the verified versioned cat and banner online and offline. The existing story and drawing storage checks still apply.
+- Evidence includes the full browser smoke and regression, matching before/after scenes and screenshots of the favorite and the cat crop in Chromium and WebKit. Hardware Safari, Pencil and real family delivery remain pending or blocked.
