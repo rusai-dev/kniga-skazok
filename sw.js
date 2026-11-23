@@ -1,10 +1,10 @@
 /* Versioned offline shell; lazy artwork cache. Never modify user storage. */
 'use strict';
-const REV='1.5.182',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
+const REV='1.5.183',CACHE='skazki-shell-'+REV,ART_CACHE='skazki-book-art-v1';
 const ROOT=new URL('./',self.registration.scope).href,INDEX=new URL('index.html',ROOT).href;
 const LEGACY_CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css'].map(name=>new URL(name,ROOT).href);
 const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1536.webp','assets/ui/writer-squirrel-144-v1.webp'].map(name=>new URL(name,ROOT).href);
-for(const asset of ['studio-drawings.js','studio-layout.css'])LEGACY_CORE.push(new URL(asset,ROOT).href);
+for(const asset of ['studio-drawings.js','studio-layout.css','studio-friends.js'])LEGACY_CORE.push(new URL(asset,ROOT).href);
 const CORE=[...LEGACY_CORE.map(url=>url+'?v='+REV),...UI_SPRITES];
 const ART=new Set(['andersen-pea-bed.webp','andersen-pea-journey.webp','andersen-pea-morning.webp','andersen-pea-rain.webp','classic-cinder-1.jpg','classic-cinder-11.jpg','classic-cinder-3.jpg','classic-cinder-7.jpg','historic-pea-morning.jpg','historic-sunny.jpg','historic-wind1.jpg','historic-wind2.jpg','premium-coloring.png','premium-storybook.webp'].map(name=>new URL('assets/books/'+name,ROOT).href));
 for(const name of ['egypt-nile-thumb-128-v1.webp','night-owl-thumb-128-v1.webp','night-bats-scene-320-v1.webp','night-bats-scene-504-v1.webp','night-roost-scene-320-v1.webp','night-roost-scene-504-v1.webp','night-owl-cover-320-v1.webp','night-owl-cover-504-v1.webp','egypt-nile-cover-320-v1.webp','egypt-nile-cover-504-v1.webp'])ART.add(new URL('assets/world/'+name,ROOT).href);
@@ -60,7 +60,7 @@ self.addEventListener('fetch',event=>{
   // Old cached HTML uses bare URLs; retain its offline fallback during migration.
   event.respondWith((async()=>{try{return await fresh(url.href)}catch(e){return await find('skazki-shell-v2',url.href)||await find('skazki-shell-v1',url.href)||Response.error()}})());return;
  }
- if(ART.has(url.href)){
+ if(ART.has(url.href)||url.href.startsWith(ROOT+'assets/author/friends/hero-')&&url.pathname.endsWith('.webp')){
   event.respondWith((async()=>{const cached=await find(ART_CACHE,url.href);if(cached)return cached;const r=await fresh(url.href);if(isImage(r))await save(ART_CACHE,url.href,r);return r})());return;
  }
  if(req.mode!=='navigate'||(url.pathname!==base.pathname&&url.pathname!==new URL(INDEX).pathname))return;
