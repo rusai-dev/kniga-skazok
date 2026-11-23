@@ -563,3 +563,87 @@
   #modal.drawing-focus:not(.canvas-full) .drawing-colors button {flex:0 0 44px}
   #modal.drawing-focus:not(.canvas-full) .studio-footer {grid-column:1/-1}
 }
+
+/* Story friends: both real watercolor scenes are discoverable without leaving the app. */
+#friendsDialog .friends-grid article {
+  display: grid;
+  grid-template-columns: minmax(102px, 40%) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+}
+#friendsDialog .friend-artwork {
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+#friendsDialog .friend-picture {
+  width: 100%;
+  min-height: 110px;
+  min-width: 44px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  padding: 0;
+  background: #fffaf2;
+  border: 1px solid #c4dad6;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+}
+#friendsDialog .friend-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+#friendsDialog .friend-scene-label {
+  color: #426562;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+}
+#friendsDialog .friend-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  gap: 6px;
+}
+#friendsDialog .friend-copy h3 {
+  align-self: auto;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+#friendsDialog .friend-copy button {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 6px 8px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+#friendsDialog .friend-scene-toggle {
+  background: #f0e9fa;
+  color: #523781;
+  border: 1px solid #d9c9ec;
+}
+#friendsDialog .friend-copy [data-favorite] {
+  grid-column: auto;
+  margin-top: auto;
+}
+#friendsDialog .friend-picture:focus-visible,
+#friendsDialog .friend-scene-toggle:focus-visible {
+  outline: 3px solid #6d3aa8;
+  outline-offset: 2px;
+}
+@media (max-width: 700px) {
+  #friendsDialog .friends-grid article {display: flex;flex-direction: column;padding: 8px;gap: 6px;}
+  #friendsDialog .friend-artwork {width: 100%;align-self: center;}
+  #friendsDialog .friend-picture {max-height: 156px;min-height: 110px;aspect-ratio: 1;}
+  #friendsDialog .friend-copy {width: 100%;gap: 4px;}
+  #friendsDialog .friend-copy h3 {text-align: center;}
+}
