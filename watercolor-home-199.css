@@ -1,0 +1,89 @@
+/* R15/R17 1.5.199: owner-approved watercolor home. CSS is presentation only. */
+body[data-home-screen=home]{background:linear-gradient(145deg,#f8fffd 0%,#f3effc 65%,#f3fbfa 100%)}
+body[data-home-screen=home] .storybook-header{background:#fcfffd;border-color:#d9e7e6}
+#storybookHome{--wc-teal:#0e7b85;--wc-purple:#693e88;max-width:1160px;margin-inline:auto;padding:2px clamp(10px,2vw,24px) 18px;display:flex;flex-direction:column;gap:clamp(6px,1vh,12px)}
+#storybookHome button{touch-action:manipulation;transition:transform .16s ease,box-shadow .16s ease}
+#storybookHome button:active{transform:scale(.985)}
+#storybookHome button:focus-visible{outline:3px solid #67378b;outline-offset:3px}
+#storybookHome .home-intro{isolation:isolate;position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(130px,35%);align-items:center;gap:10px;min-height:clamp(142px,23vh,224px);margin:0;padding:clamp(14px,2.3vw,28px) clamp(15px,4vw,50px);overflow:hidden;background:radial-gradient(circle at 68% 16%,#fff9 0 4px,transparent 6px),radial-gradient(circle at 42% 32%,#fff 0 2px,transparent 4px),linear-gradient(118deg,#dcf9f2 0%,#f2eafe 51%,#d9cff5 79%,#c4e9ec 100%);border:2px solid white;border-radius:28px;box-shadow:0 7px 20px #31537326}
+#storybookHome .home-intro:before{content:"";position:absolute;inset:auto -8% -50% 8%;height:125%;background:radial-gradient(ellipse at 34% 68%,#8de2d474,transparent 52%),radial-gradient(ellipse at 82% 52%,#c5b5fa76,transparent 55%);z-index:-1;pointer-events:none}
+#storybookHome .home-intro:after{content:"✦    ✧    ✦";position:absolute;right:22%;top:9%;font:24px Georgia,serif;color:#9276b9a3;pointer-events:none}
+#storybookHome .home-hero-copy{min-width:0;z-index:2;justify-self:start;text-align:left}
+#storybookHome .home-eyebrow{font:750 clamp(10px,1.2vw,13px)/1.2 system-ui,sans-serif;letter-spacing:.12em;color:#176a73}
+#storybookHome .home-intro h1{margin:5px 0 0;text-align:left;font:750 clamp(28px,5vw,60px)/1.06 Georgia,serif;letter-spacing:-.04em;color:#553378;text-shadow:0 1px #fff}
+#storybookHome .home-intro p{margin:5px 0;color:#315e65;font-size:clamp(13px,1.7vw,18px)}
+#storybookHome #friendGreeting{margin:3px 0 0;font-size:12px;color:#526b69}
+#storybookHome #homeFox{width:100%;max-width:310px;height:clamp(120px,20vh,214px);background:transparent;justify-self:end;padding:0;position:relative;z-index:1}
+#storybookHome #homeFox img[data-hero],#storybookHome #homeFox img[data-scene]{width:100%;height:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 5px 8px #46367735)}
+#storybookHome .home-owl-bat-art{position:absolute;right:2.5%;top:3%;width:clamp(48px,7vw,82px);height:clamp(48px,7vw,82px);object-fit:cover;border:3px solid #fffd;border-radius:50%;box-shadow:0 3px 12px #5340804d;pointer-events:none;z-index:2}
+#storybookHome #friendsOpen{position:absolute;top:auto;bottom:7px;right:10px;min-height:44px;padding:5px 13px;border:1px solid #c6b4e0;border-radius:99px;background:#fffdfcea;color:#593778;font-weight:750;z-index:4}
+#storybookHome .home-story-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 clamp(5px,1.1vw,12px);margin:0}
+#storybookHome .home-story-heading h2{margin:0;color:#0d697a;font:750 clamp(23px,3.3vw,35px)/1.1 Georgia,serif}
+#storybookHome .home-local-hint{flex:none;padding:6px 12px;background:#d8f2ec;border:1px solid #bce4de;border-radius:30px;color:#28595b;font-size:clamp(11px,1.2vw,13px);font-weight:700}
+#storybookHome #homeWrite{display:grid;grid-template-columns:minmax(110px,30%) minmax(0,1fr) 54px;align-items:stretch;width:100%;max-width:none;min-height:clamp(96px,16vh,146px);gap:clamp(7px,2vw,20px);padding:0 12px 0 0;margin:0;overflow:hidden;text-align:left;color:#603879;background:linear-gradient(105deg,#e8fcf8 0%,#f7edff 60%,#e4d7fa 100%);border:2px solid #fff;outline:1px solid #ddcdf1;border-radius:24px;box-shadow:0 5px 18px #48347924}
+#storybookHome #homeWrite .home-feature-art{display:block;width:100%;height:100%;min-width:0;background:url("assets/world/egypt-nile-cover-320-v1.webp") center/cover no-repeat}
+#storybookHome #homeWrite .home-feature-copy{align-self:center;min-width:0;padding:9px 0}
+#storybookHome #homeWrite strong{display:block;color:#61347c;font:750 clamp(22px,3.25vw,38px)/1.1 Georgia,serif}
+#storybookHome #homeWrite small{display:block;margin-top:5px;color:#58496d;font:500 clamp(12px,1.5vw,17px)/1.3 system-ui,sans-serif}
+#storybookHome #homeWrite .write-arrow{align-self:center;display:grid;place-items:center;width:52px;height:52px;margin:0;border:2px solid #b7e9ed;border-radius:18px;background:#118f9a;color:white;font-size:25px;box-shadow:0 3px 9px #18778744}
+#storybookHome .home-writer-links{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:10px;margin:0}
+#storybookHome .home-writer-links button{min-height:clamp(56px,10vh,76px);font:750 clamp(16px,2.2vw,24px)/1.15 Georgia,serif;border:2px solid white;border-radius:21px;box-shadow:0 4px 14px #25445c2a}
+#storybookHome #homeNewStory{display:flex;align-items:center;justify-content:center;gap:11px;color:white;background:linear-gradient(120deg,#108c97,#0b647b)}
+#storybookHome #homeNewStory:before{content:"✎";font:700 clamp(26px,3.2vw,36px) Georgia,serif;color:#f8e8ff}
+#storybookHome #homeDrafts{color:#633f8d;background:linear-gradient(125deg,#fcfaff,#e4d7f8)}
+#storybookHome .home-paths{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:none;margin:0}
+#storybookHome .home-paths button{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;min-width:0;min-height:clamp(73px,11vh,106px);gap:10px;padding:6px 10px;border:2px solid white;border-radius:21px;box-shadow:0 4px 14px #4c537124}
+#storybookHome #homeBooks{background:linear-gradient(120deg,#f4e9ff,#d6c2f3);color:#58377c;border-color:white}
+#storybookHome #homeCreate{background:linear-gradient(120deg,#e5fbf5,#c4eee7);color:#0a6371;border-color:white}
+#storybookHome .home-paths button>span:first-child{flex:none;width:clamp(56px,10vw,100px);height:clamp(56px,9vh,90px);align-self:center}
+#storybookHome .home-paths .studio-entry-watercolor{width:100%;height:100%;max-height:none;border-radius:13px;object-fit:cover}
+#storybookHome .home-paths .home-path-text{min-width:0;width:auto;display:flex;flex-direction:column;gap:3px}
+#storybookHome .home-paths b{font:750 clamp(16px,2.35vw,27px)/1.15 Georgia,serif;text-align:left;overflow-wrap:anywhere}
+#storybookHome .home-paths small{font-size:clamp(11px,1.3vw,14px);text-align:left;color:#4c566f}
+#storybookHome .home-study-head{min-height:24px;margin:0;padding:0 3px;color:#594176}
+#storybookHome #childLearn{min-height:44px;padding:5px 10px;color:#573d80;background:#fffafd;border-color:#d8cee6;border-radius:15px}
+#storybookHome .home-map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0}
+#storybookHome .home-map button{display:flex;flex-direction:row;align-items:center;justify-content:center;min-width:0;min-height:clamp(54px,8vh,72px);gap:6px;padding:6px;border:2px solid #fff;border-radius:17px;background:#f3f0ff;box-shadow:0 3px 11px #4737791c;color:#583678}
+#storybookHome .home-map .home-art{display:flex;align-items:center;justify-content:center;flex:none;width:clamp(34px,4.5vw,52px);max-height:47px}
+#storybookHome .home-map b{font:750 clamp(13px,1.5vw,18px)/1.15 Georgia,serif}
+@media(prefers-reduced-motion:reduce){#storybookHome button{transition:none;transform:none!important}}
+@media(min-width:701px) and (max-height:780px){
+ #storybookHome{gap:5px;padding-block:0 8px}
+ #storybookHome .home-intro{min-height:clamp(125px,19vh,160px);padding-block:8px}
+ #storybookHome #homeFox{height:clamp(110px,17vh,147px)}
+ #storybookHome #homeWrite{min-height:clamp(85px,12vh,100px)}
+ #storybookHome .home-writer-links button{min-height:54px}
+ #storybookHome .home-paths button{min-height:70px}
+ #storybookHome .home-paths button>span:first-child{width:66px;height:62px}
+ #storybookHome .home-map button{min-height:52px}
+}
+@media(max-width:700px){
+ #storybookHome .home-intro{grid-template-columns:minmax(0,1fr) minmax(82px,30%);min-height:135px;padding:34px 12px 10px;gap:6px}
+ #storybookHome .home-intro h1{font-size:clamp(27px,5vw,40px)}
+ #storybookHome .home-intro p{font-size:13px}
+ #storybookHome .home-eyebrow{font-size:10px}
+ #storybookHome #homeFox{height:clamp(90px,18vw,140px)}
+ #storybookHome .home-owl-bat-art{width:45px;height:45px;right:5px;top:4px}
+ #storybookHome #homeWrite{grid-template-columns:26% minmax(0,1fr) 43px;min-height:92px;gap:7px;border-radius:18px}
+ #storybookHome #homeWrite strong{font-size:clamp(18px,3.5vw,25px)}
+ #storybookHome #homeWrite small{font-size:12px}
+ #storybookHome #homeWrite .write-arrow{width:41px;height:41px;font-size:18px;border-radius:13px}
+ #storybookHome .home-writer-links button{min-height:55px;font-size:17px}
+ #storybookHome .home-paths button{min-height:79px;flex-direction:row;gap:6px;padding:5px 8px}
+ #storybookHome .home-paths button>span:first-child{width:50px;height:60px}
+ #storybookHome .home-paths b{font-size:clamp(14px,2.7vw,20px);text-align:left}
+ #storybookHome .home-paths small{font-size:11px;text-align:left}
+}
+@media(max-width:480px){
+ #storybookHome .home-intro p,#storybookHome #friendGreeting{display:none}
+ #storybookHome .home-intro{min-height:110px}
+ #storybookHome .home-intro h1{font-size:28px}
+ #storybookHome .home-local-hint{font-size:10px;padding:6px 8px}
+ #storybookHome .home-writer-links{grid-template-columns:1fr}
+ #storybookHome .home-writer-links button{min-height:52px}
+ #storybookHome .home-paths b{font-size:15px}
+ #storybookHome .home-paths small{display:none}
+ #storybookHome .home-paths button>span:first-child{width:43px;height:52px}
+ #storybookHome .home-map{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-height:490px) and (min-width:701px){#storybookHome .home-owl-bat-art,#storybookHome .home-intro p{display:none}#storybookHome .home-intro{min-height:102px}#storybookHome #homeFox{height:90px}}
