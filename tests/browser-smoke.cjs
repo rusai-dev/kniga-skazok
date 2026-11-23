@@ -588,6 +588,48 @@ const server=http.createServer((req,res)=>{
   await page.locator('#storybookHome').waitFor({state:'visible'});assert.deepEqual(errors,[],'no runtime errors with older API set');
   console.log('PASS all six home destinations with older JavaScript API set');
  }finally{await legacy.close()}
+ // A family reader preference must never trap the author away from their studio.
+ {
+  const context=await browser.newContext({viewport:{width:768,height:1024},hasTouch:true,serviceWorkers:'block'});
+  try{
+   const page=await context.newPage(),secret='a'.repeat(64);
+   await page.goto(url);
+   assert.ok((await page.locator('#startNotice a').getAttribute('href')).includes('view=personal'));
+   // Enter the viewer through an explicit family link, then return to the personal studio.
+   await page.goto(url+'?view=family#family='+secret);
+   await page.locator('#familyViewer').waitFor({state:'visible'});
+   assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-family-reader-v1')),secret);
+   await page.locator('#familyViewer a[href*="view=personal"]').click();
+   await page.locator('#storybookHome').waitFor({state:'visible'});
+   assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-family-reader-v1')),secret);
+   // BFCache-like restoration must not leave the closed modal's overlay active.
+   await page.evaluate(()=>{document.body.classList.add('modal-open');window.dispatchEvent(new Event('pageshow'))});
+   assert.equal(await page.evaluate(()=>document.body.classList.contains('modal-open')),false);
+   await page.locator('#homeBooks').click();
+   await page.locator('#libraryHome').waitFor({state:'visible'});
+   await page.locator('#home').click();
+   console.log('PASS reversible family->personal navigation and restored-tab overlay cleanup');
+  }finally{await context.close()}
+ }
+ // A damaged legacy record must not make sections inert or overwrite the child's raw data.
+ {
+  const ctx=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'});
+  try{
+   const page=await ctx.newPage(),broken='{"version":1,"stories":null,"drafts":{"legacy":{"title":"Сохранить"}}}';
+   await page.addInitScript(value=>localStorage.setItem('skazki-library-v1',value),broken);
+   await page.goto(url);
+   assert.ok(await page.locator('#startNotice').isVisible(),'unreadable-library warning remains visible');
+   await page.locator('#homeBooks').click();
+   await page.locator('#libraryHome').waitFor({state:'visible'});
+   await page.locator('#home').click();
+   await page.locator('#homeNewStory').click();
+   await page.locator('#storyBody').fill('Текст не должен затереть повреждённую библиотеку.');
+   await page.locator('#saveStoryNow').click();
+   assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-library-v1')),broken,'original persisted bytes are preserved');
+   assert.ok(await page.locator('#storyBody').isVisible(),'unsaved editor stays available');
+   console.log('PASS damaged library keeps navigation working and prevents destructive overwrite');
+  }finally{await ctx.close()}
+ }
  // Navigation must work before optional book artwork scripts finish loading.
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
   const ctx=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'block'});let unblock;const gate=new Promise(r=>unblock=r);const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));

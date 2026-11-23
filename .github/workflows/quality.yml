@@ -21,6 +21,8 @@ jobs:
       - run: node tests/regression.cjs
   browser:
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -31,8 +33,6 @@ jobs:
         with:
           persist-credentials: false
       - run: npm install --no-save --package-lock=false playwright@1.65.1
-      - run: sudo apt-get update
-      - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: node tests/browser-smoke.cjs
         env:
           BROWSER: ${{ matrix.browser }}
