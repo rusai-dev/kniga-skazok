@@ -904,3 +904,10 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - `tests/family-cloud-routing.cjs`: synthetic AES-GCM cloud transport plus lower-revision response, cache preservation and reload replay. No real family/child content or backend credentials used.
 - Five startup source files: **999,900 UTF-8 bytes** versus **1,000,000** limit (exact candidate tree before final PR checks); cold-home HTTP budget, physical iPad and live second-family-device delivery remain separate, unverified gates.
 - Overall **R13 BLOCKED/NOT TESTED on real family devices**, `R14 PARTIAL`, `R18 HARDWARE PENDING`. Release **NO-GO** without the requirements in Production MAX.
+
+## Candidate 1.5.191 — R03/R14 IME and background text persistence (2026-11-23)
+
+- **Observed code gap:** normal editor `input` saves synchronously, but `compositionend` and Safari `pagehide` previously only flushed drawing data. A final text value without a trailing `input` event had no independent final-save attempt.
+- **Fix:** record last confirmed title/body values, recheck them on composition completion and on pagehide/hidden-tab, and retry prior failed local writes. The existing `commitLibrary`/stale-tab guard remains authoritative; a quota error does not authorize overwriting another tab or showing a false saved status. No storage schema, child text, artwork or family transport changes.
+- **New synthetic regression:** `tests/writer-background-save.cjs` (Chromium and WebKit via `tests/browser-smoke.cjs`): IME completion without input, pagehide with final unsignalled text, failed quota write preserves prior bytes, retry when storage recovers, reload retains final draft. No personal data in fixtures.
+- R03 and R14 remain **PARTIAL/HARDWARE PENDING** until actual Safari iPad keyboard/IME and resume are verified. Confirm the final exact-SHA regression, browser smoke and studio visual workflows before any merge. No user release is claimed.
