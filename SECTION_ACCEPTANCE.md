@@ -273,3 +273,11 @@ Data safety: rejection of image removal is compared using all authored book fiel
 Release gates: run regression and browser-smoke in Chromium and WebKit and studio-visual at exact final SHA. Five-file cold source limit <=1,000,000 bytes; cold home transferred bytes <=1,200,000. No storage schema migration, existing art overwrite, or forced reload of an open editor. An older green CI run is not a release gate for a new SHA.
 
 NOT VERIFIED (hardware/account required): physical iPad Safari keyboard, floating keyboard and safe area; real Apple Pencil pressure/palm rejection; actual family account delivery; 30-minute drawing stress and memory/rollback. Do not mark full acceptance PASS based on simulated browser tests alone.
+
+## 1.5.185 · Non-destructive navigation recovery (23 Nov 2026)
+
+Reported on a physical iPad: section buttons appear non-responsive. Independent **public GitHub Pages** test on deployed 1.5.184: version and handler attachment confirmed; all home section destinations were touch-openable in clean Chromium/WebKit at 1024×768, 768×1024 and 390×700. User-device failure is **not reproduced**, and physical Safari state/cache is unavailable to the agent. Do not claim that user's incident was fixed on their device.
+
+Safety changes: persistent family reader mode has an explicit link to personal studio without deleting family settings; a stale non-open dialog no longer leaves `modal-open` after Safari `pageshow`; failed startup library shape/read blocks writes instead of silently overwriting source bytes; a static navigation recovery link works even if application JavaScript fails. All changes retain the same local-library key/schema and no cache or child data is deleted. Additional browser tests include malformed stored library, restoration of stale modal CSS, and switching back from family to personal view. Public-site touch probe is kept as an isolated, synthetic-data check.
+
+Required release gates: exact final-SHA regression, browser smoke in Chromium and WebKit, startup <=1,000,000 source bytes, cold page <=1,200,000; then live public site version and touch navigation after deployment. Not yet verified: actual user's iPad session and Safari storage, physical/floating keyboard and Apple Pencil, real family account delivery, 30-minute stress, and safe downgrade. Never close those debts based on CI alone.
