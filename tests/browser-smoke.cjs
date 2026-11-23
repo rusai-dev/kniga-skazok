@@ -588,6 +588,29 @@ const server=http.createServer((req,res)=>{
   await page.locator('#storybookHome').waitFor({state:'visible'});assert.deepEqual(errors,[],'no runtime errors with older API set');
   console.log('PASS all six home destinations with older JavaScript API set');
  }finally{await legacy.close()}
+ // A family reader preference must never trap the author away from their studio.
+ {
+  const context=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'});
+  try{
+   const page=await context.newPage(),secret='a'.repeat(64);
+   await page.goto(url);
+   assert.ok((await page.locator('#startNotice a').getAttribute('href')).includes('view=personal'));
+   await page.evaluate(secret=>localStorage.setItem('skazki-family-reader-v1',secret),secret);
+   await page.goto(url);
+   await page.waitForURL(/view=family/, {timeout:10000});
+   await page.locator('#familyViewer').waitFor({state:'visible'});
+   await page.locator('#familyViewer a[href*="view=personal"]').click();
+   await page.locator('#storybookHome').waitFor({state:'visible'});
+   assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-family-reader-v1')),secret);
+   // BFCache-like restoration must not leave the closed modal's overlay active.
+   await page.evaluate(()=>{document.body.classList.add('modal-open');window.dispatchEvent(new Event('pageshow'))});
+   assert.equal(await page.evaluate(()=>document.body.classList.contains('modal-open')),false);
+   await page.locator('#homeBooks').tap();
+   await page.locator('#libraryHome').waitFor({state:'visible'});
+   await page.locator('#home').tap();
+   console.log('PASS reversible family->personal navigation and restored-tab overlay cleanup');
+  }finally{await context.close()}
+ }
  // Navigation must work before optional book artwork scripts finish loading.
  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
   const ctx=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'block'});let unblock;const gate=new Promise(r=>unblock=r);const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
