@@ -999,7 +999,7 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 
 ### 1.5.206 — watercolor banner and offline home artwork
 
-- The home banner uses a 560×285 WebP cropped from page 1 of the approved Production MAX PDF. The artwork contains the squirrel, owl and bat. The title and «Сегодня с тобой …» remain live text, and the active companion keeps its own image and caption.
+- The home banner uses a 560×285 WebP cropped from page 1 of the approved Production MAX PDF. The artwork contains the squirrel, owl and bat. The title and «Сегодня с тобой …» remain live text, and the active companion keeps its own image and caption. The home frame trims the neighboring artwork from three source tiles below the actual portraits, keeping the original scene files.
 - The existing 320×120 Egyptian cat has Git blob `84835df17755f8525b7658e2206bd276b24fc1ca` and SHA‑256 `af8e75714e128470c3381676c62ece1e22c32d228c41022e6a018e34ee63db49`. The versioned home URL bypasses a stale legacy art entry, and the release shell includes both home illustrations for offline use.
 - The continuation label refreshes when the writer closes with Escape and when returning home. Browser smoke verifies the saved Russian draft, the same draft after reload, and the first visit in a fresh profile.
 - The responsive checks cover face placement, 44px targets, contrast, genuine navigation and the original source and cold-home limits, including the largest companion scene. Studio snapshots use matching scenes before and after, a favorite, an Egyptian cat crop and the real continuation action.

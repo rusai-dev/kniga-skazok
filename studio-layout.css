@@ -1588,6 +1588,11 @@ body[data-home-screen="home"]{
   border:0;
   border-radius:21px;
 }
+/* These source tiles retain a strip of the neighboring illustration below the portrait. */
+#storybookHome #homeFox img:is([data-scene="bat-scene01"],[data-scene="dragon-scene01"],[data-scene="hedgehog-scene01"]){
+  clip-path:inset(0 0 9% round 18px);
+  transform:translateY(4.5%);
+}
 @media(max-width:700px){
   #storybookHome #homeFox{width:min(100%,clamp(112px,30vw,154px))}
 }

@@ -150,8 +150,14 @@ module.exports=async function verifyWatercolorHome(browser,url){
    await page.locator('#friendsOpen').click();
    assert.ok(await page.locator('#friendsDialog').isVisible(),'moved Friends entry opens gallery');
    await page.locator('[data-favorite="bat"]').click();
-   await page.locator('#homeFox img[data-hero="bat"]').waitFor();
+   const bat=page.locator('#homeFox img[data-hero="bat"]');
+   await bat.waitFor();
    await page.locator('#friendsDialog [data-close]').click();
+   if(await bat.getAttribute('data-scene')==='bat-scene02')await page.reload();
+   const portrait=page.locator('#homeFox img[data-scene="bat-scene01"]');
+   await portrait.waitFor();
+   assert.match(await portrait.evaluate(img=>getComputedStyle(img).clipPath),/^inset\(.*9%/,
+     'the original tile fringe below the bat portrait is clipped');
    assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),
      'even the longest companion greeting fits the landscape first screen');
    await page.locator('#homeNewStory').click();
