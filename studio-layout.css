@@ -647,3 +647,255 @@
   #friendsDialog .friend-copy {width: 100%;gap: 4px;}
   #friendsDialog .friend-copy h3 {text-align: center;}
 }
+
+
+/* 1.5.199 watercolor home — approved visual direction, real accessible controls.
+   Only the existing child-home surface is restyled; writer/shelf data is untouched. */
+body[data-home-screen="home"] {
+  --fairy-teal:#0b797b; --fairy-ink:#294b56; --fairy-lilac:#70469b;
+}
+#storybookHome {
+  box-sizing:border-box;
+  width:100%;
+  max-width:1120px;
+  padding:clamp(4px,1.2vh,12px) clamp(12px,2vw,22px) 14px;
+  color:var(--fairy-ink);
+}
+#storybookHome .home-intro {
+  box-sizing:border-box;
+  position:relative;
+  display:grid;
+  grid-template-columns:clamp(184px,24%,246px) minmax(0,1fr) clamp(100px,17%,184px);
+  align-items:center;
+  gap:clamp(8px,1.8vw,20px);
+  width:100%;
+  min-height:162px;
+  margin:0 0 8px;
+  padding:12px clamp(12px,2.2vw,28px);
+  border:2px solid #e6d9f3;
+  border-radius:clamp(20px,3vw,30px);
+  background:
+    radial-gradient(circle at 20% 23%,#ffefae88 0 2%,transparent 13%),
+    radial-gradient(circle at 83% 24%,#c7a3f788 0 2%,transparent 17%),
+    linear-gradient(111deg,#d4f2ee 2%,#f9f4ff 57%,#eadcf8 100%);
+  box-shadow:0 5px 0 #d3c3e540,0 13px 24px #51396c19;
+  isolation:isolate; overflow:hidden;
+}
+#storybookHome .home-intro::before {
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(circle at 46% 12%,#ffffffc0 0 2px,transparent 3px),
+    radial-gradient(circle at 65% 78%,#d09f6388 0 2px,transparent 3px),
+    radial-gradient(circle at 92% 48%,#ffffffbb 0 3px,transparent 4px);
+}
+#storybookHome #homeFox {
+  box-sizing:border-box;display:block;position:relative;z-index:1;
+  width:100%;min-width:184px;height:clamp(156px,21vh,202px);
+  margin:0;padding:0;background:none;border-radius:20px;
+  filter:drop-shadow(0 7px 9px #4b3c5029);
+}
+#storybookHome #homeFox img[data-scene],
+#storybookHome #homeFox img[data-hero] {
+  display:block;width:100%;height:100%;max-height:none;
+  object-fit:contain;border-radius:18px;
+}
+#storybookHome .home-hero-copy {
+  position:relative;z-index:2;min-width:0;text-align:left;
+}
+#storybookHome .home-hero-kicker {
+  display:inline-block;margin-bottom:6px;color:#607985;font-weight:750;
+  font-size:clamp(10px,1.2vw,12px);letter-spacing:.13em;
+}
+#storybookHome .home-intro h1 {
+  margin:0;color:#683c83;text-wrap:balance;
+  font:750 clamp(29px,4.2vw,54px)/1.08 Georgia,serif;
+  letter-spacing:-.025em;text-shadow:0 2px 0 #fff9;
+}
+#storybookHome #friendGreeting {
+  color:#456673;font-weight:600;line-height:1.35;
+  font-size:clamp(12px,1.5vw,16px);display:block;margin:7px 0 0;
+}
+#storybookHome #friendsOpen {
+  margin-top:4px;min-height:44px;
+  background:#ffffffd9;border:1px solid #cab6e6;color:#513877;
+}
+#storybookHome .home-hero-watercolor {
+  display:block;min-width:0;width:100%;max-height:174px;aspect-ratio:1;
+  border-radius:18px;object-fit:cover;align-self:center;
+  box-shadow:0 4px 13px #5e407226;
+}
+#storybookHome .home-story-head {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 4px 7px;min-height:36px;
+}
+#storybookHome .home-story-head h2 {
+  color:#176b78;font:700 clamp(22px,2.8vw,33px)/1.2 Georgia,serif;
+  margin:0;
+}
+#storybookHome .home-story-note {
+  font-size:clamp(12px,1.4vw,15px);color:#58757e;font-weight:650;
+  padding:5px 11px;border-radius:99px;background:#e9f8f5;
+  border:1px solid #cae5df;text-align:center;
+}
+#storybookHome #homeWrite {
+  box-sizing:border-box;
+  display:grid;grid-template-columns:minmax(124px,30%) minmax(0,1fr) 60px;
+  align-items:center;gap:clamp(10px,2.6vw,26px);text-align:left;
+  width:100%;min-height:124px;margin:0 0 11px;
+  padding:8px clamp(12px,2.4vw,24px) 8px 10px;
+  border:2px solid #d9c8f1;border-radius:26px;
+  background:linear-gradient(108deg,#f3f8ff 1%,#e6d6f6 54%,#f6f2ff 100%);
+  box-shadow:0 5px 0 #d9c6eb60,0 9px 19px #56417b1b;
+  color:#69428d;
+}
+#storybookHome .home-feature-art {
+  display:block;height:112px;width:100%;border-radius:21px;overflow:hidden;
+  background:#d8eeec;box-shadow:inset 0 0 0 1px #ffffffca;
+}
+#storybookHome .home-feature-art img {
+  display:block;width:100%;height:100%;object-fit:cover;
+}
+#storybookHome .home-feature-copy {display:flex;flex-direction:column;gap:5px;min-width:0}
+#storybookHome #homeWrite strong {
+  color:#684188;font:750 clamp(23px,3.1vw,38px)/1.13 Georgia,serif;
+  letter-spacing:-.018em;text-wrap:balance;
+}
+#storybookHome #homeWrite small {
+  color:#544867;line-height:1.3;font-size:clamp(13px,1.75vw,18px);
+}
+#storybookHome .home-feature-play {
+  box-sizing:border-box;display:grid;place-items:center;
+  width:58px;height:58px;border-radius:20px;
+  color:#fff;background:linear-gradient(145deg,#1fbabb,#04768d);
+  border:3px solid #ffffffd9;font-size:22px;
+  box-shadow:0 3px 9px #12576d35;
+}
+#storybookHome .home-writer-links {
+  display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
+  gap:10px;margin:0 0 10px;
+}
+#storybookHome .home-writer-links button:not([hidden]) {
+  box-sizing:border-box;display:flex;align-items:center;justify-content:center;
+  min-height:56px;min-width:0;white-space:normal;overflow-wrap:anywhere;
+  padding:9px 12px;border-radius:18px;
+  font:750 clamp(16px,2.2vw,23px)/1.2 Georgia,serif;
+  box-shadow:0 3px 0 #8073a43b,0 7px 13px #6b629b12;
+}
+#storybookHome #homeNewStory {
+  color:#fff;background:linear-gradient(125deg,#09aeb6,#087d8d);
+  border:2px solid #58c5c5;
+}
+#storybookHome #homeDrafts {
+  color:#67438d;background:linear-gradient(125deg,#ead9fc,#f2e9ff);
+  border:2px solid #ceb9eb;
+}
+#storybookHome .home-paths {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+  max-width:none;margin:0 0 9px;
+}
+#storybookHome .home-paths button {
+  display:flex;flex-direction:row;align-items:center;justify-content:center;
+  gap:12px;box-sizing:border-box;min-height:90px;padding:8px 12px;
+  border-radius:22px;border:2px solid #b5e7e4;
+  box-shadow:0 3px 0 #bdd5df7a,0 7px 16px #465d7413;
+}
+#storybookHome #homeBooks {background:#e3f7f6;border-color:#a9e0de}
+#storybookHome #homeCreate {background:#eee5fc;border-color:#d6c2f0}
+#storybookHome .home-paths button > span:first-child {
+  flex:none;min-width:60px;width:clamp(60px,8vw,84px);
+  height:clamp(60px,8vw,84px);overflow:hidden;border-radius:12px;
+}
+#storybookHome .home-paths .studio-entry-watercolor {
+  object-fit:contain;max-height:100%;
+}
+#storybookHome .home-paths .home-path-text {
+  text-align:left;min-width:0;display:flex;flex-direction:column;gap:3px;
+}
+#storybookHome .home-paths b {
+  font:700 clamp(16px,2.05vw,24px)/1.15 Georgia,serif;
+  color:#215d66;overflow-wrap:break-word;
+}
+#storybookHome #homeCreate b {color:#68418d}
+#storybookHome .home-paths small {color:#536b72;font-size:clamp(12px,1.3vw,14px);line-height:1.2}
+#storybookHome .home-study-head {
+  margin:0 0 5px;min-height:32px;color:#58717c;
+}
+#storybookHome .home-study-head strong {font-size:clamp(13px,1.5vw,17px)}
+#storybookHome #childLearn {min-height:44px;border-radius:13px;background:#fffdfb}
+#storybookHome .home-map {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;
+}
+#storybookHome .home-map button {
+  box-sizing:border-box;display:flex;flex-direction:row;
+  justify-content:center;align-items:center;gap:6px;min-height:60px;
+  border-radius:18px;padding:7px 8px;
+  background:linear-gradient(135deg,#fcfbff,#f1ebfc);
+  border:1px solid #dfd3f1;
+  box-shadow:0 3px 0 #d7c9e665,0 5px 10px #4f366418;
+}
+#storybookHome .home-map .home-art {
+  flex:none;width:clamp(36px,4.5vw,54px);height:clamp(36px,4.5vw,54px);
+  max-width:none;overflow:hidden;display:block;
+}
+#storybookHome .home-map b {
+  color:#634081;font:750 clamp(13px,1.65vw,18px)/1.2 Georgia,serif;
+  overflow-wrap:break-word;text-align:left;padding:0;
+}
+#storybookHome button {transition:transform 140ms ease,box-shadow 140ms ease,filter 140ms ease}
+#storybookHome button:active {transform:translateY(2px)}
+#storybookHome button:focus-visible {
+  outline:3px solid #6230a6;outline-offset:3px;position:relative;z-index:4;
+}
+@media (max-height:820px) and (min-width:700px) {
+  #storybookHome .home-intro {min-height:152px;padding-block:6px;margin-bottom:6px}
+  #storybookHome #homeFox {height:156px;min-width:184px}
+  #storybookHome .home-hero-watercolor {max-height:140px}
+  #storybookHome .home-story-head {min-height:30px;margin-bottom:4px}
+  #storybookHome #homeWrite {min-height:106px;margin-bottom:8px;padding-block:5px}
+  #storybookHome .home-feature-art {height:96px}
+  #storybookHome .home-writer-links button:not([hidden]) {min-height:50px}
+  #storybookHome .home-writer-links {margin-bottom:7px}
+  #storybookHome .home-paths button {min-height:78px;padding-block:4px}
+  #storybookHome .home-paths button > span:first-child {height:62px;width:62px}
+  #storybookHome .home-paths {margin-bottom:6px}
+  #storybookHome .home-map button {min-height:52px}
+  #storybookHome .home-map .home-art {height:38px;width:38px}
+}
+@media (max-width:700px) {
+  #storybookHome .home-intro {
+    grid-template-columns:minmax(0,35%) minmax(0,1fr);gap:10px;
+  }
+  #storybookHome #homeFox {min-width:0;height:clamp(150px,26vw,190px)}
+  #storybookHome .home-hero-watercolor {display:none}
+  #storybookHome .home-intro h1 {font-size:clamp(26px,6vw,42px)}
+  #storybookHome #homeWrite {
+    grid-template-columns:minmax(94px,30%) minmax(0,1fr) 46px;
+    padding:6px 9px;gap:9px;min-height:112px;
+  }
+  #storybookHome .home-feature-art {height:96px}
+  #storybookHome .home-feature-play {width:44px;height:44px;border-radius:14px}
+  #storybookHome .home-paths button {gap:6px}
+  #storybookHome .home-paths .home-path-text {gap:1px}
+  #storybookHome .home-paths button > span:first-child {width:58px;height:58px;min-width:58px}
+  #storybookHome .home-map button {flex-direction:column;min-height:74px}
+  #storybookHome .home-map b {text-align:center}
+}
+@media (max-width:470px) {
+  #storybookHome .home-intro {grid-template-columns:36% minmax(0,1fr);padding:8px}
+  #storybookHome .home-hero-kicker {font-size:9px;letter-spacing:.06em}
+  #storybookHome #friendGreeting {font-size:12px}
+  #storybookHome .home-story-head {align-items:flex-start;flex-direction:column;gap:4px}
+  #storybookHome .home-story-note {font-size:11px}
+  #storybookHome #homeWrite {grid-template-columns:minmax(0,30%) minmax(0,1fr);gap:7px}
+  #storybookHome .home-feature-play {display:none}
+  #storybookHome #homeWrite strong {font-size:clamp(20px,5.5vw,26px)}
+  #storybookHome .home-writer-links button:not([hidden]) {font-size:clamp(14px,4vw,18px)}
+  #storybookHome .home-paths {grid-template-columns:1fr}
+  #storybookHome .home-paths button {min-height:78px}
+  #storybookHome .home-map {grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  #storybookHome .home-map button {flex-direction:row;min-height:52px}
+  #storybookHome .home-map b {text-align:left}
+}
+@media (prefers-reduced-motion:reduce) {
+  #storybookHome button {transition:none!important}
+}
