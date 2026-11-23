@@ -973,3 +973,8 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Desktop/iPad landscape non-keyboard editor places live text and existing drawing/gallery actions side-by-side. Decorative light WebP watercolor rabbit scene loads ONLY after opening the editor, not on cold home. Page text stays opaque white, readable and nondecorative.
 - Compact keyboard-writing mode retains its original visualViewport grid; new art heading and decorative image hidden in typing mode. Existing 44–48px controls, actual storage, drafts, drawings and family publishing behavior preserved.
 - New browser-smoke `tests/writer-watercolor.cjs` checks three viewport classes, toolbar roles/touch targets, no horizontal overflow, typing with keyboard and real canvas opening in Chromium/WebKit. Exact SHA CI/hardware to be confirmed; release NO-GO.
+
+### 1.5.202 — approved watercolor assets and title collision (candidate)
+- Audited actual 1024×768, 768×1024 and 390×700 browser screenshots of 1.5.201. The absolute Friends action covered the home H1. Moved it into compact secondary navigation; same id/handler, ≥44px touch area, visible focus and responsive wrapping.
+- Reused two existing owner-approved optimized WebP assets: squirrel author art 240px in hero and Egypt/Nile 320px in featured writer card. No new binary files, no screenshot with rasterized buttons, no schema or saved-story changes.
+- Strict browser test now verifies image decode/path, H1 nonoverlap, Friends modal, core navigation and resource budgets. Exact-SHA Chromium/WebKit/visual CI pending. Real device/R13 NO-GO.
