@@ -55,3 +55,7 @@
 
 ### 1.5.198 R13 candidate — truthful local disconnect
 - Source audit: old «Отключить» removed only browser key, did not revoke public encrypted archive/invitation. UI now distinguishes local stop from archive revocation. Synthetic browser test checks cancel/accept and unchanged story storage. Exact SHA CI pending; no production merge or hardware claim.
+
+### 1.5.199 candidate — owner-approved colorful home
+- Actual index.html home hierarchy and versioned watercolor-home-199.css created in dependent branch on PR #164; existing project WebP artwork reused for squirrel/owls and Egyptian story card. Main app actions retain their IDs; no new framework, no child content writes.
+- User-approved large conceptual artwork is a *reference*, not an embedded full-screen UI bitmap. New visual test covers viewport matrix and live writer action. Screenshots, regression, double loading budget and exact-SHA status pending verification; release NO-GO.
