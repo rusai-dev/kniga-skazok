@@ -321,3 +321,8 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Given a prepared synthetic family secret and locally saved books, cancelling the disconnect prompt must preserve the session and key. Confirming must stop only the local connection, preserve personal manuscripts and offline artifacts, and never promise remote revocation.
 - Removing a locally selected story must not claim existing server copies disappeared. New family invitations must state that old archives/links are not automatically revoked.
 - Actual authenticated revocation requires separate backend credentials, deletion/rotation and real second-device verification; BLOCKED, no user data used in CI.
+
+### R01/R02/R15/R16/R17 · 1.5.199 watercolor functional home
+- Assert the 1.5.199 watercolor stylesheet loads after studio-layout and is in the versioned service-worker offline core. No image-embedded control labels: DOM text must remain selectable, localized, accessible, and keyboard focusable.
+- Test #homeNewStory opens real editable #storyBody, #homeWrite continues existing writing flow, #homeBooks and #homeCreate preserve navigation, and the learning map retains four working controls. Large controls need >=44 CSS px and no horizontal overflow at 1024×768, 768×1024, 834×1194, 600×800 and 390×700. 1024×768 first home must show the secondary map without forced scroll.
+- Visual compare Chromium/WebKit at same SHA; tests/watercolor-home.cjs is a strict browser smoke dependency. Safe app updates must preserve drafts, illustrations, chapter order and family data. Hardware iPad/Pencil remains PENDING.
