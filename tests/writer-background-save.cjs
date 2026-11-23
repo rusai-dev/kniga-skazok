@@ -61,7 +61,7 @@ module.exports=async function verifyWriterBackground(browser,url){
   assert.equal(exit.saved,true,'closing without an input event must persist last DOM text');
   await page.reload();
   const durable=await page.evaluate(text=>Object.values(data.drafts||{})
-   .some(d=>d.body===text),result.text);
+   .some(d=>d.body===text),exit.text);
   assert.equal(durable,true,'reloaded private draft must include the last recovered sentence');
   console.log('PASS R03/R14 IME, pagehide, guarded close, quota rollback and reload',process.env.BROWSER);
  }finally{await ctx.close()}
