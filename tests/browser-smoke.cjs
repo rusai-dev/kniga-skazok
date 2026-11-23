@@ -252,8 +252,10 @@ const server=http.createServer((req,res)=>{
   await recipient.locator('#importFile').setInputFiles({name:'studio.json',mimeType:'application/json',buffer:backupFile});
   await recipient.locator('#confirmRestore').click();
   await recipient.waitForFunction(()=>data.stories.some(book=>book.title==='Две картинки'));
-  assert.deepEqual(await recipient.evaluate(()=>data.stories.find(b=>b.title==='Две картинки').studio),publishedAtBackup,'restored book equals the exact exported published record');
-  assert.deepEqual(await recipient.evaluate(()=>Object.values(data.drafts).find(d=>d.title==='Отдельная сказка').studio),independentAtBackup,'unrelated draft equals exact exported record');
+  // The portable JSON format deliberately omits optional fields set to undefined.
+  const portableRecord=value=>JSON.parse(JSON.stringify(value));
+  assert.deepEqual(await recipient.evaluate(()=>data.stories.find(b=>b.title==='Две картинки').studio),portableRecord(publishedAtBackup),'restored book equals its portable JSON export, including exact PNG bytes');
+  assert.deepEqual(await recipient.evaluate(()=>Object.values(data.drafts).find(d=>d.title==='Отдельная сказка').studio),portableRecord(independentAtBackup),'independent draft equals its portable JSON export');
   assert.equal(await recipient.evaluate(()=>localStorage.getItem(DRAWING_DRAFT)),legacy);
  }finally{await restored.close()}
  console.log('PASS studio independent drafts, PNG roundtrip, insertion, revision and reading');
