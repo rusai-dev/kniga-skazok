@@ -416,3 +416,150 @@
 @media(max-width:440px){#storybookHome #homeFox{width:60px;height:60px}}
 .friends-grid img[hidden]{display:none}
 .friend-initial{display:grid;place-items:center;width:72px;height:72px;border-radius:12px;background:#e6f6f4;color:#165951;font:32px Georgia,serif}
+
+/* The greeting, manuscript action and unchanging illustration slot form one spread. */
+#storybookHome .home-intro {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(180px,36%) minmax(0,1fr);
+  align-items: center;
+  gap: clamp(16px,3vw,40px);
+  margin: 4px 0 12px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: linear-gradient(100deg,#cce9df,#e6f6f4 55%,#f7fbf5);
+  box-shadow: inset 0 0 0 1px #c3ded4;
+}
+#storybookHome #homeFox {
+  width: 100%;
+  height: clamp(164px,28vh,264px);
+  padding: 8px;
+  background: radial-gradient(ellipse at 50% 80%,#aed2b9,transparent 75%);
+}
+#storybookHome #homeFox img[data-hero] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+}
+#storybookHome .home-intro h1 {margin:0;font:700 clamp(30px,4.6vw,58px)/1.06 Georgia,serif;letter-spacing:-.04em}
+#friendGreeting {margin:8px 0 14px;font-size:clamp(15px,1.9vw,21px)}
+#storybookHome #homeWrite {
+  display:inline-flex;width:auto;max-width:100%;min-height:48px;align-items:center;gap:16px;
+  margin:0;padding:8px 20px;background:#0f766e;color:white;border:0;border-radius:12px;
+}
+#storybookHome #homeWrite strong {color:inherit;font:700 clamp(17px,2vw,23px)/1.3 Georgia,serif}
+#friendsOpen {position:absolute;right:12px;top:8px;min-height:44px;border-color:#b2d5cd;background:#fff}
+#storybookHome .home-paths button {
+  display:flex;flex-direction:row;padding:0 16px 0 0;gap:16px;overflow:hidden;
+  min-height:clamp(100px,16vh,144px);justify-content:flex-start;text-align:left;border:1px solid #c4dad6;
+}
+#storybookHome .home-paths button > span:first-child {width:36%;height:clamp(100px,16vh,144px);align-self:stretch}
+#storybookHome .home-paths .studio-entry-watercolor {width:100%;height:100%;max-height:none;object-fit:cover;border-radius:0}
+#storybookHome .home-paths b,#storybookHome .home-paths small {text-align:left}
+#storybookHome .home-paths b {font-size:clamp(22px,3.1vw,36px)}
+#storybookHome .home-map button {min-height:52px}
+#storybookHome .home-writer-links button {border-radius:12px}
+#storybookHome button:focus-visible,#modal:has(#storyForm) button:focus-visible {outline:3px solid #6d3aa8;outline-offset:2px}
+#friendsDialog {width:min(1000px,96vw)}
+.friends-grid article {
+  grid-template-columns:minmax(70px,42%) minmax(0,1fr);gap:4px 12px;padding:10px;
+  background:linear-gradient(120deg,#e6f6f4,#fff 75%);border-radius:16px;
+}
+.friends-grid article:nth-child(3n+2) {background:linear-gradient(120deg,#f0e9fa,#fff 75%)}
+.friends-grid article a {grid-row:span 3}
+.friends-grid article [data-favorite] {grid-column:2}
+.friends-grid article button {min-height:44px}
+.friends-grid h3 {align-self:end}
+#friendsDialog .friend-route {background:transparent;border:0;text-align:left}
+@media(max-width:700px){
+  #storybookHome .home-intro {grid-template-columns:32% minmax(0,1fr);gap:8px;padding:42px 8px 8px}
+  #storybookHome #homeFox {height:clamp(108px,22vw,156px);padding:0}
+  #storybookHome .home-intro h1 {font-size:clamp(25px,5vw,35px)}
+  #friendsOpen {top:3px;right:8px}
+  #storybookHome #homeWrite {padding:6px 12px;min-height:44px;gap:8px}
+  #friendGreeting {margin:4px 0 8px}
+  #storybookHome .home-paths button {flex-direction:column;padding:0 4px 8px;gap:4px}
+  #storybookHome .home-paths button > span:first-child {width:100%;height:80px}
+  #storybookHome .home-paths b,#storybookHome .home-paths small {text-align:center}
+  .friends-grid article a img {width:min(100%,120px)}
+}
+@media(min-width:701px) and (max-height:620px){
+  #storybookHome #homeFox {height:140px}
+  #storybookHome .home-intro h1 {font-size:30px}
+}
+
+/* A title and a single sheet share one paper surface. Keep typing geometry independent. */
+#modal:not(.drawing-focus):has(#storyForm:not(.keyboard-writing)) #modalBody {background:#edf5f1}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) {
+  max-width:1000px;margin:auto;padding:12px clamp(12px,4vw,52px) 20px;
+  background:white;border-radius:12px;box-shadow:0 3px 18px #21443c12;
+}
+#storyForm:not(.keyboard-writing):not(.writer-focus) .writer-title {
+  padding-left:56px;margin:0 0 4px;min-height:52px;
+  background:url('assets/author/friends/hero-squirrel-scene01-288.webp') no-repeat left center/46px;
+}
+#storyForm:not(.keyboard-writing) .writer-title span {font-size:14px;color:#426562}
+#storyForm:not(.keyboard-writing) #storyTitle {
+  border:0;border-bottom:1px solid #c4dad6;border-radius:0;background:white;padding:4px 0;min-height:44px;
+}
+#storyForm:not(.keyboard-writing):not(.writer-focus) #writerFocus {min-height:44px}
+#storyForm:not(.keyboard-writing) > .story-page {font-size:0;margin:0}
+#storyForm:not(.keyboard-writing):not(.writer-focus) #storyBody {
+  border:0;border-radius:0;box-shadow:none;background:white;padding:12px 0;color:#173c3e;
+  font-weight:400;min-height:clamp(224px,40dvh,560px);
+}
+#storyForm:not(.keyboard-writing) #storyBody:focus-visible {outline:2px solid #398078;outline-offset:2px}
+#storyForm:not(.keyboard-writing) .writer-artbar {clear:both;border-top:1px solid #d8e7e2;padding-top:8px}
+#storyForm:not(.keyboard-writing) .writer-artbar button {border-radius:12px;min-height:44px}
+#modal.drawing-focus .studio-toolset,#modal.drawing-focus .studio-history {
+  background:#e6f6f4;border-radius:12px;padding:2px;
+}
+#modal.drawing-focus .studio-sheet {border:0;background:#e2eee9;box-shadow:inset 0 0 0 1px #c5d8ce}
+#modal.drawing-focus .studio-sheet canvas {box-shadow:0 3px 14px #173c3e22}
+#modal.drawing-focus .studio-footer {border-top:1px solid #d3e0db;padding-top:4px}
+#modal.drawing-focus #drawingSave:not(:disabled) {background:#0f766e;color:white}
+#libraryHome .own-book {border-radius:16px;border-color:#c4dad6;box-shadow:0 3px 12px #173c3e0e}
+#modal.reading-focus .own-reading .reading-spread.facing-pages {
+  background:linear-gradient(90deg,#f7f9f2,#fff 46%,#d4dfd5 49.8%,#f6f6ef 51%,#fff);
+  box-shadow:0 3px 12px #173c3e1a;gap:12px;border-radius:8px 16px 16px 8px;
+}
+
+#storybookHome .home-intro > div {text-align:left;justify-self:start}
+#storybookHome .home-intro h1 {text-align:left}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) {position:relative}
+#storyForm:not(.keyboard-writing):not(.writer-focus) .writer-title {margin-right:128px}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) #saveStoryNow {
+  position:absolute;top:16px;right:clamp(12px,4vw,52px);max-width:116px;min-height:44px;
+  padding:4px 8px;background:#0f766e;color:white;border-radius:12px;
+}
+#storyForm:not(.keyboard-writing) #storyBody:focus-visible {outline:0;box-shadow:inset 0 -2px #398078}
+@media(max-width:500px){
+  #storyForm:not(.keyboard-writing):not(.writer-focus) .writer-title {padding-left:0;background:none;margin-right:122px}
+}
+@media(min-width:900px) and (min-height:680px){
+  #modal.drawing-focus:not(.canvas-full) #drawingPanel:not([hidden]) {
+    display:grid;grid-template-columns:152px minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;gap:8px;
+  }
+  #modal.drawing-focus:not(.canvas-full) #drawingPanel > .studio-tools {
+    display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;
+    padding:8px;min-height:0;overflow-y:auto;background:#f4f9f6;border-radius:16px;
+  }
+  #modal.drawing-focus:not(.canvas-full) .studio-toolset {display:grid;grid-template-columns:1fr;padding:0;gap:4px;background:transparent}
+  #modal.drawing-focus:not(.canvas-full) .studio-toolset button {text-align:left;padding-inline:12px}
+  #modal.drawing-focus:not(.canvas-full) .studio-tools .friend-tool {align-self:center}
+  #modal.drawing-focus:not(.canvas-full) .studio-tools #studioMore {margin:0}
+  #modal.drawing-focus:not(.canvas-full) .studio-workspace:not(.lesson-layout) {
+    grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;min-height:0;
+  }
+  #modal.drawing-focus:not(.canvas-full) .studio-workspace:not(.lesson-layout) .studio-sheet {grid-area:1/1}
+  #modal.drawing-focus:not(.canvas-full) .studio-workspace:not(.lesson-layout) .studio-palette {
+    grid-area:2/1;flex-direction:row;align-items:center;min-width:0;height:auto;gap:8px;padding:4px;
+  }
+  #modal.drawing-focus:not(.canvas-full) .studio-workspace:not(.lesson-layout) .drawing-colors {
+    display:flex;flex-wrap:nowrap;overflow-x:auto;min-width:0;padding:3px;gap:6px;
+  }
+  #modal.drawing-focus:not(.canvas-full) .drawing-colors button {flex:0 0 44px}
+  #modal.drawing-focus:not(.canvas-full) .studio-footer {grid-column:1/-1}
+}

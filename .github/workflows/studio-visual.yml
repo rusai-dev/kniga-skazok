@@ -1,0 +1,41 @@
+name: Studio screen comparison
+on:
+  pull_request:
+    paths:
+      - tests/studio-visual.cjs
+      - .github/workflows/studio-visual.yml
+permissions:
+  contents: read
+jobs:
+  screens:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: baseline
+          persist-credentials: false
+      - run: npm install --no-save --package-lock=false playwright@1.65.1
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Capture before and after
+        env:
+          BROWSER: ${{ matrix.browser }}
+        run: |
+          python -m http.server 8581 --bind 127.0.0.1 --directory baseline >/tmp/base.log 2>&1 &
+          python -m http.server 8582 --bind 127.0.0.1 >/tmp/candidate.log 2>&1 &
+          node tests/studio-visual.cjs http://127.0.0.1:8581 screens/before
+          node tests/studio-visual.cjs http://127.0.0.1:8582 screens/after
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: studio-${{ matrix.browser }}
+          path: screens

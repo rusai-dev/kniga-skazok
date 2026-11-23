@@ -863,3 +863,15 @@ Field report: in landscape Safari with keyboard open, controls left only a thin 
 Лимиты по-прежнему составляют 1 000 000 байт для пяти исходных файлов и 1 200 000 для холодного входа. Из галереи на главную загружается одна миниатюра. Измерения каждой конфигурации находятся в строках INITIAL SOURCE BYTES, COLD HOME RESOURCE BYTES и PASS keyboard viewport matrix браузерного журнала.
 
 [Скриншоты с синтетической сказкой](docs/acceptance/friends/) · [Тесты галереи](tests/studio-friends.cjs) · [Оригиналы и манифест PDF](assets/author/friends/)
+
+## 1.5.184 — independent visual and data acceptance follow-up (23 Nov 2026)
+
+Candidate based on 1.5.183. Real edits: studio-layout.css, index.html, studio-drawings.js, two small entry illustrations, versioned release.json and sw.js. Canonical 9 heroes and 18-scene rotation preserved.
+
+Visual evidence: https://github.com/rusai-dev/kniga-skazok/actions/workflows/studio-visual.yml captures before/after screenshots at 1024×768, 768×1024, 1194×834, 834×1194, 390×700, and 600×800, including 2 home visits, gallery, manuscript, simulated keyboard, canvas, fullscreen/palette, inserted illustration, shelf, book, family confirmation, learning sections. Examined Chromium before/after screenshots show a larger changing hero, composed creative entry cards, a calmer manuscript page, and a bigger drawing surface with lateral tools. These are actual running UI snapshots with synthetic data, not mocked screenshots.
+
+Data safety: rejection of image removal is compared using all authored book fields and exact persisted library bytes; only transient textarea scroll offset is excluded. Export/import now compares the published and unrelated draft records with the actual export-time canonical JSON, retaining exact authored PNG strings, revisions and images. Previous draft snapshots and JavaScript optional undefined fields are not valid comparators of portable JSON.
+
+Release gates: run regression and browser-smoke in Chromium and WebKit and studio-visual at exact final SHA. Five-file cold source limit <=1,000,000 bytes; cold home transferred bytes <=1,200,000. No storage schema migration, existing art overwrite, or forced reload of an open editor. An older green CI run is not a release gate for a new SHA.
+
+NOT VERIFIED (hardware/account required): physical iPad Safari keyboard, floating keyboard and safe area; real Apple Pencil pressure/palm rejection; actual family account delivery; 30-minute drawing stress and memory/rollback. Do not mark full acceptance PASS based on simulated browser tests alone.

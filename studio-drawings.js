@@ -239,7 +239,7 @@ function drawingStorage(legacyKey, outlineKey, story, fingerprint) {
 // Approved watercolors replace the decorative navigation art, never the work surface.
 // Keep the original vector underneath until the new thumbnail really decodes.
 document.addEventListener('DOMContentLoaded', () => {
-  const draw = (root, motif) => {
+  const draw = (root, motif, suffix = '-240') => {
     if (!root || root.querySelector('.studio-entry-watercolor')) return;
     const img = new Image(240, 240);
     img.alt = '';
@@ -250,10 +250,10 @@ document.addEventListener('DOMContentLoaded', () => {
     img.onerror = () => img.remove();
     root.classList.add('studio-entry-art');
     root.append(img);
-    img.src = './assets/author/studio/art-' + motif + '-240.webp';
+    img.src = './assets/author/studio/art-' + motif + suffix + '.webp';
   };
-  draw(document.getElementById('myBooksArt'), 'n03-owl-library');
-  draw(document.getElementById('createArt'), 'n02-rabbit-painting');
+  draw(document.getElementById('myBooksArt'), 'n03-owl-library', '-entry184');
+  draw(document.getElementById('createArt'), 'n02-rabbit-painting', '-entry184');
   const creative = document.getElementById('creativeHome');
   const paint = () => {
     if (creative.hidden) return;
