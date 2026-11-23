@@ -1315,3 +1315,240 @@ body[data-home-screen="home"] {
   #storybookHome .home-writer-links #homeNewStory {grid-column:1/-1;}
   #storybookHome .home-writer-links #homePaint[hidden] + #homeDrafts {grid-column:1/-1;}
 }
+
+
+/* 1.5.204 — illustrated watercolor home from the owner's approved reference.
+   This is the real semantic home with the existing button IDs and event
+   handlers. No bitmap buttons, no success badge without confirmed save. */
+body[data-home-screen="home"]{
+  background:linear-gradient(180deg,#f7fcfd 0%,#edf9f9 62%,#f7f3fc 100%);
+}
+#storybookHome{
+  max-width:1130px;
+  padding:clamp(2px,1vh,9px) clamp(8px,1.6vw,18px) 14px;
+}
+#storybookHome .home-intro{
+  grid-template-columns:minmax(0,34%) minmax(0,34%) minmax(0,32%);
+  min-height:230px;height:clamp(230px,30vh,302px);
+  padding:12px clamp(14px,2.6vw,30px);gap:3px;margin-bottom:11px;
+  overflow:hidden;border:3px solid #fffcf4;border-radius:29px;
+  background:
+    radial-gradient(ellipse at 8% 0%,#81a8b966 0 18%,transparent 40%),
+    radial-gradient(ellipse at 85% 0%,#60418173 0 20%,transparent 52%),
+    radial-gradient(ellipse at 45% 85%,#eec8ac33 0 10%,transparent 57%),
+    linear-gradient(112deg,#d6eeeb 0%,#d4d9f1 36%,#af94d9 73%,#d9c3e6 100%);
+  box-shadow:0 6px 0 #ddc7e778,0 13px 27px #583b7b26,inset 0 0 0 2px #fff9;
+}
+#storybookHome .home-intro::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+   radial-gradient(circle at 8% 19%,#fffbcf 0 2px,transparent 3px),
+   radial-gradient(circle at 30% 12%,#f6d889 0 3px,transparent 4px),
+   radial-gradient(circle at 49% 34%,#fff9de 0 2px,transparent 3px),
+   radial-gradient(circle at 71% 11%,#fffcd6 0 2px,transparent 3px),
+   radial-gradient(circle at 94% 49%,#fff7cf 0 2px,transparent 3px),
+   radial-gradient(circle at 62% 73%,#ffdf95 0 3px,transparent 4px),
+   radial-gradient(ellipse at 6% -4%,#286d6c77 0 17%,transparent 34%),
+   radial-gradient(ellipse at 98% -12%,#44657a55 0 16%,transparent 35%);
+}
+#storybookHome .home-intro::after{
+  content:"✧  ✦     ✧   ✦";position:absolute;top:4px;left:31%;
+  color:#ffe8a2;font:700 clamp(14px,2.5vw,24px) Georgia,serif;
+  letter-spacing:16px;text-shadow:0 0 9px #ffe4a5;pointer-events:none;z-index:1;
+}
+#storybookHome .home-hero-copy{
+  grid-row:1;grid-column:1;z-index:2;text-align:center;
+  display:flex;flex-direction:column;justify-content:center;align-items:center;
+  min-height:170px;padding:13px 8px;
+  border:2px solid #ffffffd4;
+  border-radius:45% 42% 47% 44% / 45% 42% 45% 42%;
+  background:radial-gradient(ellipse at 47% 37%,#fffef7ef 8%,#fff8fde8 59%,#f3e6ffe0 88%,#ffffffb9 100%);
+  box-shadow:0 5px 19px #5e3d7126,0 0 0 5px #ffffff20;
+}
+#storybookHome .home-hero-kicker{
+  color:#437b7c;letter-spacing:.11em;font-size:clamp(9px,1.15vw,12px);
+}
+#storybookHome .home-intro h1{
+  font:800 clamp(33px,4.6vw,53px)/.99 Georgia,serif;
+  color:#59316e;text-align:center;text-wrap:balance;
+  text-shadow:0 2px 1px #fff;
+}
+#storybookHome #friendGreeting{
+  max-width:90%;text-align:center;color:#60758b;font-size:clamp(11px,1.3vw,14px);
+}
+#storybookHome .home-hero-watercolor{
+  grid-row:1;grid-column:2;justify-self:center;z-index:1;
+  align-self:center;width:clamp(150px,21vw,236px);height:clamp(150px,21vw,236px);
+  aspect-ratio:1;max-height:none;border-radius:27px;
+  object-fit:cover;border:4px solid #fff4;
+  box-shadow:0 9px 24px #29356e45;
+}
+#storybookHome #homeFox{
+  grid-row:1;grid-column:3;justify-self:center;align-self:center;
+  z-index:1;min-width:0;width:100%;height:clamp(165px,22vw,235px);
+  filter:drop-shadow(0 9px 12px #241e5935);
+}
+#storybookHome #homeFox img[data-scene],#storybookHome #homeFox img[data-hero]{
+  border-radius:24px;object-fit:cover;border:4px solid #fff6;
+}
+#storybookHome .home-story-head{
+  min-height:36px;margin:0 5px 6px;
+}
+#storybookHome .home-story-head h2{
+  color:#076b79;font:800 clamp(25px,3.1vw,35px)/1.12 Georgia,serif;
+  text-shadow:0 1px 1px #fff;
+}
+#storybookHome .home-story-note{
+  color:#2b6c75;background:#ddf4f0;border-color:#aedcda;
+  border-radius:99px;padding:5px 12px;
+}
+#storybookHome #homeWrite{
+  grid-template-columns:minmax(140px,42%) minmax(0,1fr) 70px;
+  min-height:146px;gap:clamp(10px,2.4vw,24px);
+  padding:8px 15px 8px 8px;margin-bottom:11px;
+  border:3px solid #fffdfc;border-radius:27px;
+  background:linear-gradient(103deg,#c0edf1 0%,#f2e4fa 44%,#e7d5fd 75%,#f6eeff 100%);
+  box-shadow:0 0 0 1px #c4b0e7,0 7px 20px #4e327727;
+}
+#storybookHome .home-feature-art{
+  height:128px;border-radius:22px;
+  border:2px solid #fff9;
+  box-shadow:inset 0 0 0 2px #fff8,0 3px 10px #626ca629;
+}
+#storybookHome .home-feature-art img{object-position:center 52%}
+#storybookHome #homeWrite strong{
+  color:#62317e;font:800 clamp(25px,3.6vw,43px)/1.05 Georgia,serif;
+  text-shadow:0 1px 1px #fff9;
+}
+#storybookHome #homeWrite small{
+  color:#5c506c;font-size:clamp(13px,1.65vw,18px);
+}
+#storybookHome .home-feature-play{
+  width:67px;height:67px;border-radius:50%;
+  background:linear-gradient(140deg,#26b7b9,#087589);
+  border:3px solid #ffffffdc;font-size:26px;
+  box-shadow:0 3px 13px #17627c55;
+}
+#storybookHome .home-writer-links{gap:10px;margin-bottom:10px}
+#storybookHome .home-writer-links button:not([hidden]){
+  border-radius:23px;min-height:61px;
+  border:2px solid #fff;
+  font:800 clamp(16px,2.1vw,23px)/1.15 Georgia,serif;
+  box-shadow:0 0 0 1px #d0bfe4,0 5px 14px #59467f22;
+}
+#storybookHome #homeNewStory{
+  background:linear-gradient(128deg,#37b7bf,#0b879d 53%,#126d87);
+  color:#fffefb;letter-spacing:-.01em;
+}
+#storybookHome #homeNewStory::before{
+  content:"✒";font:normal 30px Georgia,serif;color:#fff6df;
+  margin-right:12px;text-shadow:0 0 7px #fff8;
+}
+#storybookHome #homePaint{background:#f2eafb;color:#623e8d}
+#storybookHome #homeDrafts{background:linear-gradient(120deg,#bca6e9,#e2cdf8);color:#603881}
+#storybookHome .home-paths{gap:11px;margin-bottom:10px}
+#storybookHome .home-paths button{
+  min-height:86px;padding:8px 14px;border:2px solid #fffaf8;
+  border-radius:25px;box-shadow:0 0 0 1px #d5c5e8,0 6px 13px #59437620;
+}
+#storybookHome #homeBooks{
+  background:linear-gradient(120deg,#e8dafa,#c49de9);
+}
+#storybookHome #homeCreate{
+  background:linear-gradient(110deg,#daf5f3,#e6d8fa);
+}
+#storybookHome .home-paths b{
+  color:#56397b;font:800 clamp(18px,2.1vw,25px)/1.14 Georgia,serif;
+}
+#storybookHome .home-paths button > span:first-child{
+  width:clamp(60px,7vw,78px);height:clamp(60px,7vw,78px);min-width:60px;
+  border:2px solid #fffa;border-radius:18px;
+}
+#storybookHome .home-paths small{color:#536579}
+#storybookHome .home-study-head{
+  min-height:26px;color:#6a567e;margin-bottom:7px;
+}
+#storybookHome .home-map{gap:10px}
+#storybookHome .home-map button{
+  flex-direction:column;min-height:83px;gap:2px;padding:6px 4px;
+  background:linear-gradient(145deg,#fffdfd,#eee5fb 90%);
+  border:2px solid #fffdfa;border-radius:24px;
+  box-shadow:0 0 0 1px #dfd0ec,0 4px 12px #50386a23;
+}
+#storybookHome .home-map .home-art{
+  width:clamp(34px,4.5vw,52px);height:clamp(34px,4.5vw,52px);
+}
+#storybookHome .home-map b{
+  font:800 clamp(13px,1.65vw,19px)/1.12 Georgia,serif;
+  color:#623a81;text-align:center;
+}
+#storybookHome button:active{transform:translateY(2px) scale(.995)}
+@media(max-height:820px) and (min-width:701px){
+  #storybookHome .home-intro{
+    min-height:187px;height:clamp(187px,26vh,208px);padding-block:4px;
+    margin-bottom:7px;
+  }
+  #storybookHome .home-hero-copy{min-height:156px;padding:8px}
+  #storybookHome .home-hero-watercolor{
+    width:min(19vw,179px);height:min(19vw,179px);
+  }
+  #storybookHome #homeFox{height:174px}
+  #storybookHome #homeWrite{min-height:112px;margin-bottom:6px;padding-block:4px}
+  #storybookHome .home-feature-art{height:106px}
+  #storybookHome .home-feature-play{width:56px;height:56px}
+  #storybookHome .home-writer-links button:not([hidden]){min-height:50px}
+  #storybookHome .home-writer-links{margin-bottom:6px}
+  #storybookHome .home-paths button{min-height:76px;padding-block:4px}
+  #storybookHome .home-paths button > span:first-child{width:54px;height:54px;min-width:54px}
+  #storybookHome .home-paths{margin-bottom:5px}
+  #storybookHome .home-map button{min-height:68px;padding:3px}
+  #storybookHome .home-map .home-art{width:37px;height:37px}
+}
+@media(max-width:700px){
+  #storybookHome .home-intro{
+    grid-template-columns:minmax(0,49%) minmax(0,51%);
+    min-height:178px;height:clamp(180px,27vw,240px);
+    padding:9px;
+  }
+  #storybookHome .home-hero-copy{grid-column:1;min-height:150px}
+  #storybookHome .home-hero-watercolor{
+    grid-column:2;width:clamp(120px,31vw,190px);height:clamp(120px,31vw,190px);
+    display:block;
+  }
+  #storybookHome #homeFox{display:none}
+  #storybookHome .home-intro h1{font-size:clamp(26px,5.9vw,40px)}
+  #storybookHome #homeWrite{
+    grid-template-columns:minmax(75px,38%) minmax(0,1fr) 44px;
+    min-height:100px;gap:7px;padding:5px;
+  }
+  #storybookHome .home-feature-art{height:98px}
+  #storybookHome #homeWrite strong{font-size:clamp(20px,4.4vw,30px)}
+  #storybookHome .home-feature-play{display:grid;width:44px;height:44px}
+  #storybookHome .home-paths button{min-height:76px}
+  #storybookHome .home-paths button > span:first-child{width:54px;height:54px;min-width:54px}
+  #storybookHome .home-map button{min-height:77px}
+}
+@media(max-width:470px){
+  #storybookHome .home-intro{
+    grid-template-columns:56% 44%;height:178px;min-height:178px;gap:0;
+  }
+  #storybookHome .home-hero-copy{min-height:140px;padding:6px 3px}
+  #storybookHome .home-hero-watercolor{width:min(36vw,150px);height:min(36vw,150px)}
+  #storybookHome .home-intro h1{font-size:clamp(25px,7.2vw,34px)}
+  #storybookHome #homeWrite{grid-template-columns:36% minmax(0,1fr);min-height:103px}
+  #storybookHome .home-feature-art{height:94px}
+  #storybookHome .home-feature-play{display:none}
+  #storybookHome .home-writer-links button:not([hidden]){min-height:54px}
+  #storybookHome #homeNewStory::before{margin-right:5px;font-size:24px}
+  #storybookHome .home-paths{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  #storybookHome .home-paths button{flex-direction:column;min-height:115px;padding:5px}
+  #storybookHome .home-paths .home-path-text{text-align:center}
+  #storybookHome .home-paths b{font-size:clamp(14px,4vw,19px);text-align:center}
+  #storybookHome .home-paths small{font-size:11px}
+  #storybookHome .home-map{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #storybookHome .home-map button{min-height:66px;flex-direction:row}
+  #storybookHome .home-map b{text-align:left}
+}
+@media(prefers-reduced-motion:reduce){
+  #storybookHome button{transition:none!important}
+}
