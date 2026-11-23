@@ -322,7 +322,7 @@
   line-height: 1.2;
 }
 
-#storyForm.keyboard-writing .writer-artbar > :not(#drawStory),
+#storyForm.keyboard-writing .writer-artbar > :not(#drawStory):not(#writerGallery):not(#pictureStory),
 #storyForm.keyboard-writing #wordCount {
   display: none !important;
 }
@@ -372,3 +372,45 @@
     #storyForm.keyboard-writing > .writer-quick { flex-direction: row; }
   }
 }
+
+#storybookHome #homeFox img[data-hero]{width:100%;height:100%;max-height:76px;object-fit:contain;border-radius:12px}
+#storybookHome #homeFox{align-self:stretch}
+#friendGreeting{display:block;color:#426562}
+#friendsOpen{margin-inline-start:auto;min-height:44px;color:#175a56}
+#friendsDialog{width:min(850px,94vw);max-height:92dvh;box-sizing:border-box;overflow:auto;padding:clamp(12px,2vw,24px);border:1px solid #aecac6;border-radius:20px;color:#173c3e;background:#f4fbfa}
+#friendsDialog::backdrop{background:#163a3cb5}
+#friendsDialog header{position:sticky;top:-1px;z-index:1;background:#f4fbfa;display:flex;align-items:center;justify-content:space-between}
+#friendsDialog h2,#friendsDialog h3{margin:4px 0;font-family:Georgia,serif}
+#friendsDialog button,#friendsDialog summary{min-height:44px}
+#friendsDialog [aria-pressed=true]{background:#155f59;color:white}
+.friends-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+.friends-grid article{display:grid;grid-template-columns:76px minmax(0,1fr);gap:4px 8px;padding:10px;border-radius:16px;background:white;border:1px solid #c5dcd8;align-items:center}
+.friends-grid article a{grid-row:span 2}
+.friends-grid article img{width:100%;height:auto;display:block;border-radius:12px}
+.friends-grid article button{line-height:1.2;padding:4px}
+.friends-grid [data-favorite]{grid-column:1/-1}
+.friend-route{color:#165951}
+.friend-tool{width:36px;height:36px;object-fit:contain;border-radius:8px;pointer-events:none}
+#modal.canvas-full .friend-tool{display:none}
+@media(max-width:700px){.friends-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.friends-grid article{display:flex;flex-direction:column}.friends-grid article img{width:84px}.friends-grid article button{width:100%}}
+@media(max-width:440px){#storybookHome .home-intro{gap:6px}#storybookHome .home-intro h1{font-size:22px}#friendsOpen{padding-inline:6px}}
+
+#storyForm.keyboard-writing > .writer-artbar{display:grid;grid-template-columns:repeat(3,minmax(44px,1fr))}
+#storyForm.keyboard-writing #writerGallery,#storyForm.keyboard-writing #pictureStory{display:block!important}
+@media(min-width:640px){#storyForm.keyboard-writing{grid-template-columns:minmax(0,1fr) clamp(220px,25%,252px)}}
+@media(max-width:639px){#storyForm.keyboard-writing{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}}
+#friendsDialog details a{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;color:#155f59}
+
+#modal.reading-focus .own-reading .reading-spread{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);padding:clamp(6px,2vw,24px)}#modal.reading-focus .own-reading .reading-text{max-width:55ch;margin:auto;line-height:1.55}#modal.reading-focus .own-reading [hidden]{display:none!important}#modal.reading-focus .own-reading .reading-art{height:100%;width:100%;border-radius:16px}#ownReadText{background:#fff;border-radius:12px}
+#modal.reading-focus .own-reading .reading-spread.facing-pages{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;background:#e6f1ec}
+#modal.reading-focus .own-reading .facing-page{grid-column:2;grid-row:1;background:white;border-radius:12px}
+#storybookHome .home-writer-links{grid-template-columns:repeat(3,minmax(0,1fr))}
+#storyForm.keyboard-writing .writer-artbar :is(#drawStory,#writerGallery,#pictureStory){font-size:0}
+#storyForm.keyboard-writing .writer-artbar button::before{font-size:14px}
+#storyForm.keyboard-writing #drawStory::before{content:'Рисунок'}
+#storyForm.keyboard-writing #writerGallery::before{content:'Галерея'}
+#storyForm.keyboard-writing #pictureStory::before{content:'Фото'}
+#storybookHome #homeFox{width:clamp(72px,14vw,144px);height:clamp(60px,10vh,92px);align-self:center}
+#storybookHome #homeFox img[data-hero]{max-height:100%;aspect-ratio:auto}
+#friendsDialog :focus-visible,#friendsOpen:focus-visible{outline:3px solid #6d3aa8;outline-offset:2px}
+@media(max-width:440px){#storybookHome #homeFox{width:60px;height:60px}}

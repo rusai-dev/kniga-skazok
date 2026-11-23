@@ -1,0 +1,96 @@
+{
+  "canonical_characters": [
+    {
+      "id": "squirrel",
+      "name_ru": "Белочка",
+      "role_ru": "Создание сказок",
+      "placement_ru": "Главный помощник писателя",
+      "scene_id": "squirrel-scene-01",
+      "file": "hero-squirrel-scene01.webp",
+      "sha256": "c0fc872b6cded8c7d620367ec29decd33bc0968b4ba97838d3cafe535f72bf5f",
+      "bytes": 61468
+    },
+    {
+      "id": "rabbit",
+      "name_ru": "Зайчонок",
+      "role_ru": "Рисование",
+      "placement_ru": "Мастерская красок и холст",
+      "scene_id": "rabbit-scene-01",
+      "file": "hero-rabbit-scene01.webp",
+      "sha256": "411c29ae582ce779a6f8c2678b4b541b3b0310f92b549fa4deaa447fbe158f7e",
+      "bytes": 50632
+    },
+    {
+      "id": "owl",
+      "name_ru": "Совёнок",
+      "role_ru": "Чтение и знания",
+      "placement_ru": "Библиотека и чтение",
+      "scene_id": "owl-scene-01",
+      "file": "hero-owl-scene01.webp",
+      "sha256": "462b6a71b111afbd1fcb5796fb6924882c958f19788fc574c6bee94c73cd99b3",
+      "bytes": 59864
+    },
+    {
+      "id": "bat",
+      "name_ru": "Летучая мышка",
+      "role_ru": "Тайны ночного мира",
+      "placement_ru": "Летучие мыши, ночь, совы",
+      "scene_id": "bat-scene-01",
+      "file": "hero-bat-scene01.webp",
+      "sha256": "d99d1b94414635df1fd213fa8c47e7a27fd2bff148c398815cf4c1acba4d4234",
+      "bytes": 53270
+    },
+    {
+      "id": "dragon",
+      "name_ru": "Дракончик",
+      "role_ru": "Фантазия и приключения",
+      "placement_ru": "Герои и идеи для сказок",
+      "scene_id": "dragon-scene-01",
+      "file": "hero-dragon-scene01.webp",
+      "sha256": "65596465cedf2194962fa1a91bea5ce0ff92f5314133adc5363f236e3c41ccb2",
+      "bytes": 56326
+    },
+    {
+      "id": "hedgehog",
+      "name_ru": "Ёжик",
+      "role_ru": "Книжная полка",
+      "placement_ru": "Сохранённые книги и чтение",
+      "scene_id": "hedgehog-scene-01",
+      "file": "hero-hedgehog-scene01.webp",
+      "sha256": "e69058d2bfb3b65b0f32c4dda856c4b507e105e3afc51661e471cefb023804fa",
+      "bytes": 60280
+    },
+    {
+      "id": "kitten",
+      "name_ru": "Котёнок",
+      "role_ru": "Путешествия и Египет",
+      "placement_ru": "Египет и страны мира",
+      "scene_id": "kitten-scene-01",
+      "file": "hero-kitten-scene01.webp",
+      "sha256": "a7ef8dcb65d97dce6b61d5cd47e992c7a81df5ba64452f60685a0b69ba847c44",
+      "bytes": 56148
+    },
+    {
+      "id": "raccoon",
+      "name_ru": "Енотик",
+      "role_ru": "Логика и открытия",
+      "placement_ru": "Головоломки и исследование",
+      "scene_id": "raccoon-scene-01",
+      "file": "hero-raccoon-scene01.webp",
+      "sha256": "670dc175a0ebc9fc598b507336258b3fcb77157679dd68e8237da42135c95ef1",
+      "bytes": 61322
+    },
+    {
+      "id": "fawn",
+      "name_ru": "Оленёнок",
+      "role_ru": "Природа и вдохновение",
+      "placement_ru": "Животные, природа, идеи",
+      "scene_id": "fawn-scene-01",
+      "file": "hero-fawn-scene01.webp",
+      "sha256": "d193d13422e025e730dc60f8cf68df10be994677527dfc94a8a14606ae4fc700",
+      "bytes": 56212
+    }
+  ],
+  "requirements": "G01-G08",
+  "note": "These 9 base portraits are app-ready artwork; create additional distinct scenes for favorite character rotation."
+}

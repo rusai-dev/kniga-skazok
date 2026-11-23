@@ -279,7 +279,7 @@ function fitStoryViewport(form, dialog, viewport) {
   const root = document.documentElement;
   const on = dialog.open && !dialog.classList.contains('drawing-focus') && viewport &&
     Math.max(innerHeight, root.clientHeight) - viewport.height * (viewport.scale || 1) > 32 &&
-    !otherInput && (writing || wasTyping);
+    !otherInput && (writing || (wasTyping && form.querySelector('#writerArtShelf')?.hidden));
   form.classList.toggle('keyboard-writing', !!on);
   form.classList.toggle('keyboard-title', !!on && (field === title || (!writing && form.classList.contains('keyboard-title'))));
 
@@ -335,3 +335,34 @@ function keepWriterCaretVisible(body) {
   if (top < body.scrollTop + inset) body.scrollTop = Math.max(0, top - inset);
   else if (bottom > body.scrollTop + body.clientHeight - inset) body.scrollTop = bottom - body.clientHeight + inset;
 }
+
+// The left page remains the measured page and the saved reading position.
+function paintFacingPage(spread, text, art, parts, next) {
+  let facing = spread.querySelector('.facing-page');
+  if (!spread.classList.contains('facing-pages') || !next) {
+    facing?.remove();
+    return;
+  }
+  const part = parts[next.scene];
+  const page = (part.image ? art : text).cloneNode(false);
+  page.removeAttribute('id');
+  page.hidden = false;
+  page.classList.add('facing-page');
+  if (part.image) {
+    const image = new Image();
+    image.alt = 'Иллюстрация ' + part.number;
+    image.src = part.image;
+    page.append(image);
+  } else {
+    page.innerHTML = storyReaderSlice(part,next.start,next.end);
+  }
+  if (facing) facing.replaceWith(page);
+  else spread.append(page);
+}
+
+function updateWriterEntry() {
+  const title = document.querySelector('#homeWrite strong');
+  if (title) title.textContent = ownDraftChoices(data,OWN).length || ownEditChoices(data.stories,data.edits,OWN).length
+    ? 'Продолжить сказку' : 'Пишу свою сказку';
+}
+updateWriterEntry();
