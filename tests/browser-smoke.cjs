@@ -80,6 +80,7 @@ const server=http.createServer((req,res)=>{
  await require("./home-watercolor.cjs")(browser,url);
  await require("./shelf-watercolor.cjs")(browser,url);
  await require("./writer-watercolor.cjs")(browser,url);
+ await require("./canvas-watercolor.cjs")(browser,url);
  await require("./family-cloud-routing.cjs")(browser,url);
  await require("./family-peer-fallback.cjs")(browser,url);
  await require("./family-disconnect.cjs")(browser,url);
