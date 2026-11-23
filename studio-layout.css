@@ -1153,7 +1153,7 @@ body[data-home-screen="home"] {
 #modal.drawing-focus:not(.canvas-full) #modalBody {
   background:linear-gradient(130deg,#e9f7f4 0%,#f3ebff 54%,#f8f9f4 100%);
 }
-#modal.drawing-focus #drawingPanel .studio-tools {
+#modal.drawing-focus:not(.canvas-full) #drawingPanel > .studio-tools {
   border:1px solid #d6c8e7;
   border-radius:18px;
   background:linear-gradient(145deg,#f4eeff 0%,#e9f8f6 100%);
