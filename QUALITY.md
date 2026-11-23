@@ -896,3 +896,11 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Both roles now evaluate the same family-scoped validated cloud config first; **when enabled and matching**, use the cloud. With disabled/unavailable config, retain the legacy GitHub reader and GitHub/Peer host paths. No storage schema or child asset changes.
 - `tests/family-cloud-routing.cjs` (invoked by Chromium + WebKit browser smoke) uses two isolated browser contexts and an AES-GCM-encrypted synthetic story to verify real client-side decode/display, and tests matching writer selection with a synthetic GitHub token plus the legacy disabled-config fallback.
 - R13 is still **BLOCKED / NOT TESTED on real family devices**. A mocked RPC cannot prove the server ACL, real device reception, revocation or a successful live deployment. Physical iPad remains HARDWARE PENDING; do not merge merely on green CI.
+
+## Candidate 1.5.190 — cloud reader revision rollback protection (2026-11-23)
+
+- **R13/P0**, stacked on #154. Confirmed: `cloudTick(role=view)` previously accepted any changed server revision, including a lower revision, and replaced locally cached family books. A stale/misconfigured server response could make previously received books disappear from the reader.
+- Cloud reader now rejects versions below the last verified cloud-specific revision, and rejects different book content under an unchanged received revision. New revision marker is additive (`<existing family cache key>-cloud-revision`); the legacy cached-book format and personal stories remain unchanged. Persisting books is attempted before the marker; if either write fails, UI states the local copy is not confirmed and retries.
+- `tests/family-cloud-routing.cjs`: synthetic AES-GCM cloud transport plus lower-revision response, cache preservation and reload replay. No real family/child content or backend credentials used.
+- Five startup source files: **999,900 UTF-8 bytes** versus **1,000,000** limit (exact candidate tree before final PR checks); cold-home HTTP budget, physical iPad and live second-family-device delivery remain separate, unverified gates.
+- Overall **R13 BLOCKED/NOT TESTED on real family devices**, `R14 PARTIAL`, `R18 HARDWARE PENDING`. Release **NO-GO** without the requirements in Production MAX.
