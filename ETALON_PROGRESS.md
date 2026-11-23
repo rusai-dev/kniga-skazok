@@ -52,3 +52,6 @@
 ### 1.5.197 R13 draft (after #162)
 - Existing fallback bug: the reader always entered the GitHub polling branch when cloud was disabled; no direct PeerJS route was reached.
 - Added conditional direct encrypted fallback on confirmed missing archive, preserving the archived high-water guard. CI and hardware release gates to be checked on final SHA. Main/Pages untouched.
+
+### 1.5.198 R13 candidate — truthful local disconnect
+- Source audit: old «Отключить» removed only browser key, did not revoke public encrypted archive/invitation. UI now distinguishes local stop from archive revocation. Synthetic browser test checks cancel/accept and unchanged story storage. Exact SHA CI pending; no production merge or hardware claim.

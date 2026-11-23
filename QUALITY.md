@@ -952,3 +952,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Repair: after confirmed 404 of the public archive and with **no verified archive revision**, retry the same invitation through already-existing direct PeerJS transport. A saved archive high-water revision disables direct fallback to prevent silent downgrades. Both devices must be online simultaneously for direct delivery.
 - Existing direct encryption, local reader cache and recipient ACK are reused; no new storage keys, secrets, persistent backend or child content is introduced. Later confirmed archive results take precedence and dispose of the direct peer.
 - Synthetic end-to-end regression: `tests/family-peer-fallback.cjs` loaded by Chromium/WebKit browser smoke. Exact-SHA CI pending. Physical iPad / real A→B delivery **NOT TESTED**, release **NO-GO**.
+
+### 1.5.198 — R13 local disconnect is not archive revocation (candidate)
+- Confirmed defect: familyStop deleted only FAMILY_SECRET locally but showed «Семейная ссылка отключена», which could be mistaken for revocation; fremoveBook confirmed local removal using an unconditional family-shelf completion message.
+- The button now says «Отключить здесь», confirmation warns that old invitations, remote encrypted archive and already saved copies remain accessible, and success says only the current iPad was disconnected. New-link creation and family invitation warn about older access. Removing a family-selected copy explicitly leaves archive deletion unconfirmed.
+- No old family secret is sent to diagnostics, no remote deletions, no child data mutations or automatic key rotation. The existing GitHub archive token stays in browser until separately disconnected by the adult in Archive setup.
+- Tests: browser smoke synthetic host cancel/confirm, personal archive invariants and regression labels. CI and actual A→B revocation NOT TESTED on this candidate until verified. Release NO-GO.
