@@ -2,17 +2,19 @@
 // R15/R17: approved watercolor direction implemented as real, accessible child-home UI.
 // Exercises synthetic browser profiles only, with no children's books or family credentials.
 const assert=require('node:assert/strict');
+const banner=require('../assets/author/studio/home-storybook-banner-manifest.json');
+const cat=require('../assets/author/studio/home-egypt-cat-manifest.json');
 module.exports=async function verifyWatercolorHome(browser,url){
  const ctx=await browser.newContext({serviceWorkers:'block'});
  const page=await ctx.newPage(),errors=[];
  const seenCompanions=new Set();
  page.on('pageerror',err=>errors.push(String(err)));
  try{
-   for(const [width,height] of [[1024,768],[768,1024],[834,1194],[390,844]]){
+   for(const [width,height] of [[1024,768],[1194,834],[1366,1024],[768,1024],[834,1194],[600,800],[512,384],[390,844],[320,700]]){
      await page.setViewportSize({width,height});await page.goto(url);
      assert.equal(await page.locator('#storybookHome .home-intro h1').textContent(),'Книга сказок');
      assert.equal(await page.locator('#storybookHome .home-story-head h2').textContent(),'Мои сказки');
-     assert.ok(['Пишу свою сказку','Продолжить сказку'].includes(await page.locator('#homeWrite strong').textContent()),'main action distinguishes blank start vs existing books');
+     assert.equal(await page.locator('#homeWrite strong').textContent(),'Пишу свою сказку','blank profile starts a new story');
      assert.equal(await page.locator('#homeNewStory').textContent(),'✦ Написать сказку');
      assert.equal(await page.locator('.home-map button').count(),4);
      assert.equal(await page.locator('.home-paths button').count(),2);
@@ -49,31 +51,37 @@ module.exports=async function verifyWatercolorHome(browser,url){
        'primary turquoise action must preserve AA text contrast at both gradient endpoints: '+JSON.stringify(accessibleTeal));
      assert.ok(!await page.locator('#storybookHome .home-story-head').textContent().then(x=>x.includes('Сохранено')),
        'visual design must not lie about a successful storage write');
-     for(const selector of ['.home-hero-watercolor','.home-feature-art img']){
+     for(const [selector,asset,faces] of [
+       ['.home-hero-watercolor',banner,[[3,126,83,224],[132,31,301,197],[328,6,403,66]]],
+       ['.home-feature-art img',cat,[[87,40,161,108]]]
+     ]){
        const image=page.locator(selector);
-       // On a narrow portrait screen, the secondary hero decoration intentionally
-       // disappears so text and the existing dynamic hero remain usable.
-       if(selector==='.home-hero-watercolor'&&width<=700){
-         assert.equal(await image.isVisible(),false,'phone must prioritize essential content');
-         continue;
+       assert.ok(await image.isVisible(),selector+' must be painted at '+width+'×'+height);
+       const frame=await image.evaluate(async (img,faces)=>{
+         await img.decode();
+         const style=getComputedStyle(img),box=img.getBoundingClientRect();
+         const scales=[box.width/img.naturalWidth,box.height/img.naturalHeight];
+         const scale=style.objectFit==='cover'?Math.max(...scales):Math.min(...scales);
+         const [px,py]=style.objectPosition.split(' ').map(value=>parseFloat(value)/100);
+         const x=(box.width-img.naturalWidth*scale)*px;
+         const y=(box.height-img.naturalHeight*scale)*py;
+         return {
+           width:img.naturalWidth,height:img.naturalHeight,fit:style.objectFit,ratio:box.width/box.height,
+           path:new URL(img.currentSrc).pathname,position:style.objectPosition,
+           visible:faces.every(([left,top,right,bottom])=>
+             x+left*scale>=0&&y+top*scale>=0&&x+right*scale<=box.width&&y+bottom*scale<=box.height)
+         };
+       },faces);
+       assert.ok(frame.path.endsWith('/'+asset.path),selector+' uses approved project artwork');
+       assert.deepEqual([frame.width,frame.height],[asset.width,asset.height]);
+       assert.ok(frame.visible,selector+' must keep every face inside its painted frame at '+width+'×'+height);
+       if(asset===banner&&width<950){
+         assert.ok(Math.abs(frame.ratio-asset.width/asset.height)<.02,'portrait banner preserves its natural proportions');
        }
-       assert.ok(await image.isVisible(),selector+' must be actually painted');
-       const size=await image.evaluate(async element=>{await element.decode();return [element.naturalWidth,element.naturalHeight]});
-       const asset=selector==='.home-hero-watercolor'
-         ? {width:240,path:'assets/author/studio/art-v01-squirrel-author-240.webp'}
-         : {width:320,path:'assets/author/studio/home-egypt-cat-320x120.webp'};
-       assert.equal(size[0],asset.width,selector+' decoded artwork width must match the repo manifest');
-       if(selector==='.home-feature-art img')assert.equal(size[1],120,'approved cat safe crop must use 320x120 artwork');
-       if(selector==='.home-feature-art img'){
-         const frame=await image.evaluate(element=>{
-           const s=getComputedStyle(element);
-           return {position:s.objectPosition,fit:s.objectFit};
-         });
-         assert.equal(frame.fit,'cover','wide Egyptian cat art fills story CTA');
-         assert.equal(frame.position,'42% 92%','cat muzzle must stay in the approved visible crop');
+       if(asset===cat){
+         assert.equal(frame.fit,'cover','wide Egyptian cat art fills the story CTA');
+         assert.equal(frame.position,'42% 92%','cat muzzle remains in the approved crop');
        }
-       assert.ok((await image.getAttribute('src')).endsWith(asset.path),
-         selector+' must use the selected existing approved project artwork');
      }
      // A real screenshot audit found the old absolutely-positioned Friends
      // button covering the title in landscape, portrait and phone.
@@ -134,20 +142,35 @@ module.exports=async function verifyWatercolorHome(browser,url){
      assert.ok(checks.overflow<=1,'no horizontal scroll for '+width+'x'+height+': '+checks.overflow);
      for(const b of checks.buttons)assert.ok(b.width>=44&&b.height>=44,
        'finger target '+b.id+' '+width+'x'+height+': '+b.width+'x'+b.height);
-     if(width===1024)assert.ok(checks.scroll<=50,
+     if(width===1024)assert.ok(checks.scroll<=2,
        'landscape iPad first screen should not require long forced scrolling: '+checks.scroll);
    }
    assert.ok(seenCompanions.size>=2,'automatic companions should change between separate visits');
    await page.setViewportSize({width:1024,height:768});await page.goto(url);
    await page.locator('#friendsOpen').click();
    assert.ok(await page.locator('#friendsDialog').isVisible(),'moved Friends entry opens gallery');
+   await page.locator('[data-favorite="bat"]').click();
+   const bat=page.locator('#homeFox img[data-hero="bat"]');
+   await bat.waitFor();
    await page.locator('#friendsDialog [data-close]').click();
+   if(await bat.getAttribute('data-scene')==='bat-scene02')await page.reload();
+   const portrait=page.locator('#homeFox img[data-scene="bat-scene01"]');
+   await portrait.waitFor();
+   assert.match(await portrait.evaluate(img=>getComputedStyle(img).clipPath),/^inset\(.*9%/,
+     'the original tile fringe below the bat portrait is clipped');
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),
+     'even the longest companion greeting fits the landscape first screen');
    await page.locator('#homeNewStory').click();
    assert.ok(await page.locator('#storyBody').isVisible(),'new story CTA opens real writer');
+   const body='Белочка нашла книгу у Нила.';
+   await page.locator('#storyBody').fill(body);
    await page.keyboard.press('Escape');
+   await page.waitForFunction(()=>document.querySelector('#homeWrite strong').textContent==='Продолжить сказку');
    await page.locator('#homeWrite').click();
-   assert.ok(await page.locator('#storyBody').isVisible(),'resume CTA opens real writer');
+   assert.equal(await page.locator('#storyBody').inputValue(),body,'resume opens the saved draft after closing with Escape');
    await page.keyboard.press('Escape');
+   await page.reload();
+   assert.equal(await page.locator('#homeWrite strong').textContent(),'Продолжить сказку','resume label is restored on reload');
    await page.locator('#homeBooks').click();
    assert.ok(await page.locator('#libraryHome').isVisible(),'book shelf CTA still navigates');
    await page.locator('#home').click();

@@ -1328,68 +1328,55 @@ body[data-home-screen="home"]{
   padding:clamp(2px,1vh,9px) clamp(8px,1.6vw,18px) 14px;
 }
 #storybookHome .home-intro{
-  grid-template-columns:minmax(0,34%) minmax(0,34%) minmax(0,32%);
-  min-height:230px;height:clamp(230px,30vh,302px);
-  padding:12px clamp(14px,2.6vw,30px);gap:3px;margin-bottom:11px;
-  overflow:hidden;border:3px solid #fffcf4;border-radius:29px;
+  grid-template-columns:minmax(0,1fr) minmax(0,2.15fr) minmax(184px,1fr);
+  height:auto;
+  min-height:220px;
+  padding:7px clamp(8px,1.4vw,16px);
+  gap:clamp(6px,1.2vw,14px);
+  margin-bottom:9px;
+  border:3px solid #fffaf0;
+  border-radius:29px;
   background:
-    radial-gradient(ellipse at 8% 0%,#81a8b966 0 18%,transparent 40%),
-    radial-gradient(ellipse at 85% 0%,#60418173 0 20%,transparent 52%),
-    radial-gradient(ellipse at 45% 85%,#eec8ac33 0 10%,transparent 57%),
-    linear-gradient(112deg,#d6eeeb 0%,#d4d9f1 36%,#af94d9 73%,#d9c3e6 100%);
-  box-shadow:0 6px 0 #ddc7e778,0 13px 27px #583b7b26,inset 0 0 0 2px #fff9;
+    radial-gradient(ellipse at 7% 13%,#659ca0 0,transparent 49%),
+    radial-gradient(ellipse at 95% 92%,#855caa 0,transparent 52%),
+    linear-gradient(112deg,#223866,#2b3375 55%,#472961);
+  box-shadow:0 6px 0 #ddc7e778,0 11px 25px #583b7b26;
 }
 #storybookHome .home-intro::before{
-  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  z-index:0;
   background:
-   radial-gradient(circle at 8% 19%,#fffbcf 0 2px,transparent 3px),
-   radial-gradient(circle at 30% 12%,#f6d889 0 3px,transparent 4px),
-   radial-gradient(circle at 49% 34%,#fff9de 0 2px,transparent 3px),
-   radial-gradient(circle at 71% 11%,#fffcd6 0 2px,transparent 3px),
-   radial-gradient(circle at 94% 49%,#fff7cf 0 2px,transparent 3px),
-   radial-gradient(circle at 62% 73%,#ffdf95 0 3px,transparent 4px),
-   radial-gradient(ellipse at 6% -4%,#286d6c77 0 17%,transparent 34%),
-   radial-gradient(ellipse at 98% -12%,#44657a55 0 16%,transparent 35%);
+    radial-gradient(circle at 5% 13%,#fff2af 0 2px,transparent 3px),
+    radial-gradient(circle at 23% 10%,#ffe193 0 2px,transparent 3px),
+    radial-gradient(circle at 82% 84%,#ffe193 0 2px,transparent 3px),
+    radial-gradient(circle at 97% 12%,#fff2af 0 2px,transparent 3px);
 }
-#storybookHome .home-intro::after{
-  content:"✧  ✦     ✧   ✦";position:absolute;top:4px;left:31%;
-  color:#ffe8a2;font:700 clamp(14px,2.5vw,24px) Georgia,serif;
-  letter-spacing:16px;text-shadow:0 0 9px #ffe4a5;pointer-events:none;z-index:1;
+#storybookHome .home-intro > .home-hero-copy{
+  grid-area:1 / 1;z-index:1;justify-self:stretch;
+  display:grid;justify-items:center;align-content:center;
+  min-height:0;padding:12px 6px 16px;
+  border:2px solid #fff8dc;
+  border-radius:44% 42% 38% 40% / 38% 40% 34% 36%;
+  background:radial-gradient(ellipse at 48% 36%,#fffdf4 20%,#fbecfa 76%,#d8c6eb 100%);
+  box-shadow:0 0 16px #ffdfa05e;
 }
-#storybookHome .home-hero-copy{
-  grid-row:1;grid-column:1;z-index:2;text-align:center;
-  display:flex;flex-direction:column;justify-content:center;align-items:center;
-  min-height:170px;padding:13px 8px;
-  border:2px solid #ffffffd4;
-  border-radius:45% 42% 47% 44% / 45% 42% 45% 42%;
-  background:radial-gradient(ellipse at 47% 37%,#fffef7ef 8%,#fff8fde8 59%,#f3e6ffe0 88%,#ffffffb9 100%);
-  box-shadow:0 5px 19px #5e3d7126,0 0 0 5px #ffffff20;
-}
-#storybookHome .home-hero-kicker{
-  color:#437b7c;letter-spacing:.11em;font-size:clamp(9px,1.15vw,12px);
+#storybookHome .home-hero-star{
+  color:#a05d20;font:700 26px/1 Georgia,serif;
 }
 #storybookHome .home-intro h1{
-  font:800 clamp(33px,4.6vw,53px)/.99 Georgia,serif;
-  color:#59316e;text-align:center;text-wrap:balance;
+  max-width:7ch;
+  font:800 clamp(30px,4.5vw,53px)/1 Georgia,serif;
+  color:#512364;text-align:center;overflow-wrap:anywhere;
   text-shadow:0 2px 1px #fff;
 }
-#storybookHome #friendGreeting{
-  max-width:90%;text-align:center;color:#60758b;font-size:clamp(11px,1.3vw,14px);
-}
 #storybookHome .home-hero-watercolor{
-  grid-row:1;grid-column:2;justify-self:center;z-index:1;
-  align-self:center;width:clamp(150px,21vw,236px);height:clamp(150px,21vw,236px);
-  aspect-ratio:1;max-height:none;border-radius:27px;
-  object-fit:cover;border:4px solid #fff4;
-  box-shadow:0 9px 24px #29356e45;
+  grid-area:1 / 2;z-index:1;
+  display:block;width:100%;height:auto;max-height:none;aspect-ratio:560 / 285;
+  border-radius:14px;object-fit:contain;
+  filter:drop-shadow(0 2px 8px #17113470);
 }
-#storybookHome #homeFox{
-  grid-row:1;grid-column:3;justify-self:center;align-self:center;
-  z-index:1;min-width:0;width:100%;height:clamp(165px,22vw,235px);
-  filter:drop-shadow(0 9px 12px #241e5935);
-}
-#storybookHome #homeFox img[data-scene],#storybookHome #homeFox img[data-hero]{
-  border-radius:24px;object-fit:cover;border:4px solid #fff6;
+#storybookHome .home-intro > .home-companion{
+  grid-area:1 / 3;z-index:1;justify-self:stretch;min-width:0;
+  display:grid;justify-items:center;gap:4px;
 }
 #storybookHome .home-story-head{
   min-height:36px;margin:0 5px 6px;
@@ -1397,10 +1384,6 @@ body[data-home-screen="home"]{
 #storybookHome .home-story-head h2{
   color:#076b79;font:800 clamp(25px,3.1vw,35px)/1.12 Georgia,serif;
   text-shadow:0 1px 1px #fff;
-}
-#storybookHome .home-story-note{
-  color:#2b6c75;background:#ddf4f0;border-color:#aedcda;
-  border-radius:99px;padding:5px 12px;
 }
 #storybookHome #homeWrite{
   grid-template-columns:minmax(140px,42%) minmax(0,1fr) 70px;
@@ -1485,48 +1468,39 @@ body[data-home-screen="home"]{
 }
 #storybookHome button:active{transform:translateY(2px) scale(.995)}
 @media(max-height:820px) and (min-width:701px){
+  #storybookHome{padding-block:0}
+  #storybookHome .home-story-head,#storybookHome .home-study-head{margin-bottom:4px}
   #storybookHome .home-intro{
-    min-height:187px;height:clamp(187px,26vh,208px);padding-block:4px;
-    margin-bottom:7px;
+    min-height:216px;padding-block:2px;margin-bottom:5px;
   }
-  #storybookHome .home-hero-copy{min-height:156px;padding:8px}
-  #storybookHome .home-hero-watercolor{
-    width:min(19vw,179px);height:min(19vw,179px);
-  }
-  #storybookHome #homeFox{height:174px}
   #storybookHome #homeWrite{min-height:112px;margin-bottom:6px;padding-block:4px}
   #storybookHome .home-feature-art{height:106px}
   #storybookHome .home-feature-play{width:56px;height:56px}
   #storybookHome .home-writer-links button:not([hidden]){min-height:50px}
   #storybookHome .home-writer-links{margin-bottom:6px}
-  #storybookHome .home-paths button{min-height:98px;padding-block:4px}
+  #storybookHome .home-paths button{min-height:91px;padding-block:4px}
   #storybookHome .home-paths button > span:first-child{width:54px;height:54px;min-width:54px}
   #storybookHome .home-paths{margin-bottom:5px}
   #storybookHome .home-map button{min-height:58px;padding:3px}
   #storybookHome .home-map .home-art{width:37px;height:37px}
 }
+@media(min-width:950px){
+  #storybookHome .home-hero-watercolor{
+    height:clamp(205px,22vw,240px);
+    object-fit:cover;object-position:center top;
+  }
+}
+@media(min-width:950px) and (max-height:820px){
+  #storybookHome .home-hero-watercolor{height:205px}
+}
 @media(max-width:700px){
   #storybookHome .home-intro{
-    grid-template-columns:minmax(0,49%) minmax(0,51%);
-    min-height:178px;height:clamp(180px,27vw,240px);
-    padding:9px;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    min-height:0;padding:9px;
   }
-  #storybookHome .home-hero-copy{grid-column:1;min-height:150px}
-  #storybookHome .home-hero-watercolor{
-    grid-column:2;width:clamp(120px,31vw,190px);height:clamp(120px,31vw,190px);
-    display:none;
-  }
-  #storybookHome #homeFox{
-    display:block;position:relative;grid-column:2;grid-row:1;
-    right:auto;bottom:auto;z-index:2;justify-self:center;align-self:center;
-    width:100%;height:clamp(125px,30vw,184px);
-    min-width:0;overflow:hidden;border:3px solid #fffc;
-    border-radius:23px;box-shadow:0 3px 12px #382d6533;
-    background:#f6eeff;
-  }
-  #storybookHome #homeFox img[data-scene],
-  #storybookHome #homeFox img[data-hero]{border:0;border-radius:20px;object-fit:cover}
-  #storybookHome .home-intro h1{font-size:clamp(26px,5.9vw,40px)}
+  #storybookHome .home-intro > .home-companion{grid-area:1 / 2}
+  #storybookHome .home-hero-watercolor{grid-area:2 / 1 / auto / -1;width:min(100%,400px)}
+  #storybookHome .home-intro h1{font-size:clamp(28px,7vw,43px)}
   #storybookHome #homeWrite{
     grid-template-columns:minmax(75px,38%) minmax(0,1fr) 44px;
     min-height:100px;gap:7px;padding:5px;
@@ -1539,15 +1513,9 @@ body[data-home-screen="home"]{
   #storybookHome .home-map button{min-height:77px}
 }
 @media(max-width:470px){
-  #storybookHome .home-intro{
-    grid-template-columns:56% 44%;height:178px;min-height:178px;gap:0;
-  }
-  #storybookHome .home-hero-copy{min-height:140px;padding:6px 3px}
-  #storybookHome .home-hero-watercolor{width:min(36vw,150px);height:min(36vw,150px)}
-  #storybookHome .home-intro h1{font-size:clamp(25px,7.2vw,34px)}
-  #storybookHome #homeWrite{grid-template-columns:36% minmax(0,1fr);min-height:103px}
+  #storybookHome #homeWrite{grid-template-columns:minmax(74px,36%) minmax(0,1fr) 34px;min-height:103px}
   #storybookHome .home-feature-art{height:94px}
-  #storybookHome .home-feature-play{display:none}
+  #storybookHome .home-feature-play{width:34px;height:34px}
   #storybookHome .home-writer-links button:not([hidden]){min-height:54px}
   #storybookHome #homeNewStory::before{margin-right:5px;font-size:24px}
   #storybookHome .home-paths{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
@@ -1567,27 +1535,27 @@ body[data-home-screen="home"]{
 /* R08/R09/R15 · Rotating companion remains on the illustrated home, with
    an honest, live-updated "Сегодня с тобой ..." label. Every 288px scene
    retains its whole face: NO cropping or image-specific zoom. */
-#storybookHome .home-hero-copy #friendGreeting{
+#storybookHome .home-companion #friendGreeting{
   display:inline-flex;
   align-items:center;
   justify-content:center;
   max-width:100%;
-  min-height:34px;
-  margin:9px 0 0;
-  padding:6px 11px;
+  min-height:calc(2.5em + 8px);
+  margin:0;
+  padding:3px 7px;
   color:#4e3778;
   background:#fffaf4ed;
   border:1px solid #d6bfed;
   border-radius:999px;
   box-shadow:0 3px 9px #54407825;
-  font-size:clamp(12px,1.55vw,17px);
+  font-size:clamp(12px,1.25vw,14px);
   font-weight:750;
   line-height:1.25;
   text-wrap:balance;
   text-align:center;
   overflow-wrap:anywhere;
 }
-#storybookHome .home-hero-copy #friendGreeting::before{
+#storybookHome .home-companion #friendGreeting::before{
   content:"✦";
   flex:none;
   margin-right:6px;
@@ -1595,7 +1563,10 @@ body[data-home-screen="home"]{
 }
 #storybookHome #homeFox{
   box-sizing:border-box;
-  width:min(100%,clamp(190px,22vw,232px));
+  position:relative;
+  display:grid;
+  width:min(100%,184px);
+  height:auto;
   min-width:0;
   aspect-ratio:1;
   align-items:center;
@@ -1617,43 +1588,24 @@ body[data-home-screen="home"]{
   border:0;
   border-radius:21px;
 }
-@media(max-height:820px) and (min-width:701px){
-  #storybookHome #homeFox{
-    width:min(100%,184px);
-    height:184px;
-  }
+/* These source tiles retain a strip of the neighboring illustration below the portrait. */
+#storybookHome #homeFox img:is([data-scene="bat-scene01"],[data-scene="dragon-scene01"],[data-scene="hedgehog-scene01"]){
+  clip-path:inset(0 0 9% round 18px);
+  transform:translateY(4.5%);
 }
 @media(max-width:700px){
-  #storybookHome #homeFox{
-    width:min(100%,clamp(126px,31vw,184px));
-    height:clamp(126px,31vw,184px);
-    aspect-ratio:1;
-  }
-  #storybookHome .home-hero-copy #friendGreeting{
-    margin-top:6px;
-    padding:5px 8px;
-    font-size:clamp(11px,2.4vw,14px);
-    min-height:29px;
-    border-radius:17px;
-  }
+  #storybookHome #homeFox{width:min(100%,clamp(112px,30vw,154px))}
 }
-@media(max-width:470px){
-  #storybookHome #homeFox{
-    width:min(100%,clamp(120px,34vw,146px));
-    height:clamp(120px,34vw,146px);
-  }
-  #storybookHome .home-hero-copy #friendGreeting{
-    margin-top:4px;
-    padding:4px 6px;
-    font-size:11px;
-  }
+#storybookHome .home-feature-play::before{
+  content:"";width:0;height:0;margin-left:3px;
+  border-block:clamp(6px,1vw,10px) solid transparent;
+  border-left:clamp(10px,1.8vw,18px) solid currentColor;
 }
-
 
 /* R15 · Egyptian-cat feature from the approved illustrated reference.
    Wide art was deliberately framed with both ears and the entire face inside
    the visible safe area. Keep real Russian CTA text outside the artwork. */
-#storybookHome #homeWrite .home-feature-art img[src$="home-egypt-cat-320x120.webp"]{
+#storybookHome #homeWrite .home-feature-art img{
   width:100%;
   height:100%;
   object-fit:cover;
