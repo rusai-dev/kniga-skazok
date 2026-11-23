@@ -19,6 +19,12 @@ module.exports=async function verifyWatercolorHome(browser,url){
        'visual design must not lie about a successful storage write');
      for(const selector of ['.home-hero-watercolor','.home-feature-art img']){
        const image=page.locator(selector);
+       // On a narrow portrait screen, the secondary hero decoration intentionally
+       // disappears so text and the existing dynamic hero remain usable.
+       if(selector==='.home-hero-watercolor'&&width<=700){
+         assert.equal(await image.isVisible(),false,'phone must prioritize essential content');
+         continue;
+       }
        assert.ok(await image.isVisible(),selector+' must be actually painted');
        const size=await image.evaluate(async element=>{await element.decode();return [element.naturalWidth,element.naturalHeight]});
        assert.equal(size[0],240,selector+' must use small real authored watercolor asset');
