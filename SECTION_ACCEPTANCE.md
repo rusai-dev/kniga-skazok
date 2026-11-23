@@ -325,3 +325,8 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 ### R01/R02/R15/R16/R17 1.5.199 watercolor home
 - Visual approval basis: 23 Nov 2026 illustrated `Книга сказок` concept. Implement using real DOM controls, existing watercolor assets and no new lazy/eager art bank. Validate 1024×768 landscape and 768×1024 portrait, 44×44 tap areas, no horizontal overflow, accessible focus and reduced motion.
 - Resume opens writer, create opens clean editor without compulsory title/theme, personal bookshelf keeps existing ID route, creative studio and four learning buttons are usable. Regressions/visual diff must PASS on final SHA and original two budgets remain unchanged.
+
+### 1.5.200 R07/R15 — owner bookshelf art and usability
+- On personal shelf, a synthetic saved book must render with cover, readable title and 44×44 CSS px or larger cover/title/read/edit/info buttons at 1024×768, 768×1024 and 390×844, and no horizontal overflow.
+- Reading and returning must not change book id/title/body/theme/rich fields. Book remains after reload. Visual regressions across Chromium/WebKit must pass; existing external author catalogs may not be restyled accidentally.
+- No new art assets or child data migrations. Real iPad, family publishing and final merge gates unchanged.

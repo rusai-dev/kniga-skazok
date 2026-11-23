@@ -55,3 +55,6 @@
 
 ### 1.5.198 R13 candidate — truthful local disconnect
 - Source audit: old «Отключить» removed only browser key, did not revoke public encrypted archive/invitation. UI now distinguishes local stop from archive revocation. Synthetic browser test checks cancel/accept and unchanged story storage. Exact SHA CI pending; no production merge or hardware claim.
+
+### Candidate 1.5.200 — watercolor personal bookshelf
+- Personal saved-book cards now share the approved home art palette and book-like surface. Isolated CSS and smoke test added; no data model, image manifest or publishing changes. QA requires current SHA checks and iPad hardware remains pending.
