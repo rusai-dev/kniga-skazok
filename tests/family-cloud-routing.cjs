@@ -134,16 +134,18 @@ module.exports = async function verifyFamilyCloudRoute(browser, baseUrl) {
     }finally{await ctx.close()}
   }
 
-  // Legacy deployment with disabled cloud must retain the existing GitHub reader path.
+  // Without cloud, query the public archive FIRST. On confirmed 404 the direct
+  // online transport may take over; do not require a permanently absent GitHub reader.
   {
     const ctx=await browser.newContext({serviceWorkers:'block'});
     try {
       const page=await ctx.newPage();
-      await mockTransport(page,false);
+      const calls=await mockTransport(page,false);
       await page.goto(link.href);
-      await page.waitForFunction(()=>fam?.role==='view'&&fam?.ghReader===true);
+      await page.waitForFunction(()=>fam?.role==='view'&&fam.ghReader!==true);
       assert.equal(await page.evaluate(()=>Boolean(fam?.cloud)),false);
+      assert.ok(calls.github>=2,'disabled cloud must check raw and API archive before direct fallback');
     }finally{await ctx.close()}
   }
-  console.log('PASS R13 encrypted cloud family reader + matching host + disabled-config fallback');
+  console.log('PASS R13 encrypted cloud reader + matching host + verified missing-archive direct routing');
 };
