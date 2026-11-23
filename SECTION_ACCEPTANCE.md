@@ -339,3 +339,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 ### R15/R17 1.5.202 — hero title must remain unobscured
 - At 1024×768, 768×1024, 834×1194, 390×844 the Friends button does not intersect H1, remains ≥44×44 and opens the real gallery. Hero and featured images decode to known project-manifest dimensions (240/320), without baked text, and all normal author actions keep working.
 - Verify cold-home budget ≤1,200,000 B and startup five files ≤1,000,000 B on exact SHA. Physical iPad: PENDING.
+
+
+### R01/R03/R04/R05/R07/R15/R17/R18 · 1.5.203 integrated candidate
+- Verify actual squirrel/Egypt watercolor on first screen, no Friends/H1 overlap, 44px actions and simple start/resume/shelf routes at 1024×768, 768×1024, 834×1194 and narrow viewports.
+- Verify real manuscript text and drawing tools side by side where space permits, and real canvas/brush/undo/redo/fullscreen/return with text unchanged. Confirm keyboard/caret during IME, zoom and orientation on physical iPad before granting hardware PASS.
+- Full regression, Chromium and WebKit, visual checks, five-startup-file and cold-home budgets on final candidate SHA. Family publication to a real second account and authenticated revocation are BLOCKED with `enabled:false`; release NO-GO until verified.

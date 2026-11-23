@@ -64,3 +64,7 @@
 
 ### Candidate 1.5.202 — real screenshot audit
 - Fixed Friends button occluding home title and replaced previously used watercolor thumbnails with the approved squirrel/Egypt existing optimized illustrations. No local storage keys touched. CI pending; no Pages deployment.
+
+
+### Candidate 1.5.203 — watercolor integration, NOT DEPLOYED
+- Integration branch combines approved squirrel/Egypt home correction (PR #171) and non-destructive watercolor drawing style (PR #170). New source/test files do not alter personal work keys, publish permissions or cloud configuration. Exact SHA CI required; physical iPad and real family A→B checks still missing. Main remains 1.5.185.

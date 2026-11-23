@@ -978,3 +978,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Audited actual 1024×768, 768×1024 and 390×700 browser screenshots of 1.5.201. The absolute Friends action covered the home H1. Moved it into compact secondary navigation; same id/handler, ≥44px touch area, visible focus and responsive wrapping.
 - Reused two existing owner-approved optimized WebP assets: squirrel author art 240px in hero and Egypt/Nile 320px in featured writer card. No new binary files, no screenshot with rasterized buttons, no schema or saved-story changes.
 - Strict browser test now verifies image decode/path, H1 nonoverlap, Friends modal, core navigation and resource budgets. Exact-SHA Chromium/WebKit/visual CI pending. Real device/R13 NO-GO.
+
+
+### 1.5.203 — integrated watercolor candidate (NOT RELEASED)
+- Combines audited non-overlapping watercolor hero and Friends button fix with the real drawing canvas/palette CSS from the Chromium/WebKit verified PR #170. Consolidation branch is based on PR #171 test fix and keeps all personal book storage untouched.
+- Browser smoke explicitly allows the two approved 240px squirrel and 320px Egypt assets on cold home while preserving the original total encoded-response limit and disallowing unapproved eager art. Adds `tests/drawing-watercolor.cjs` to the existing full smoke path; no tests or failure conditions removed.
+- Exact-SHA regression, Chromium, WebKit, visual comparison and performance budgets require a NEW run on this integrated commit. No physical iPad/Pencil or authenticated A→B family delivery proof exists. `family-cloud-config.json` remains disabled. Release NO-GO; main/Pages unchanged.
