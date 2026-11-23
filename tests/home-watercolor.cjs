@@ -35,10 +35,24 @@ module.exports=async function verifyWatercolorHome(browser,url){
        }
        assert.ok(await image.isVisible(),selector+' must be actually painted');
        const size=await image.evaluate(async element=>{await element.decode();return [element.naturalWidth,element.naturalHeight]});
-       assert.equal(size[0],240,selector+' decoded artwork width must match the repo manifest');
-       assert.ok((await image.getAttribute('src')).endsWith('-entry184.webp'),
-         selector+' must reuse exactly a previously loaded navigation thumbnail');
+       const asset=selector==='.home-hero-watercolor'
+         ? {width:240,path:'assets/author/studio/art-v01-squirrel-author-240.webp'}
+         : {width:320,path:'assets/world/egypt-nile-cover-320-v1.webp'};
+       assert.equal(size[0],asset.width,selector+' decoded artwork width must match the repo manifest');
+       assert.ok((await image.getAttribute('src')).endsWith(asset.path),
+         selector+' must use the selected existing approved project artwork');
      }
+     // A real screenshot audit found the old absolutely-positioned Friends
+     // button covering the title in landscape, portrait and phone.
+     const [headBox,friendBox]=await Promise.all([
+       page.locator('#storybookHome .home-hero-copy h1').boundingBox(),
+       page.locator('#friendsOpen').boundingBox()
+     ]);
+     assert.ok(headBox&&friendBox,'friends remains visible');
+     const overlap=Math.max(0,Math.min(headBox.x+headBox.width,friendBox.x+friendBox.width)-Math.max(headBox.x,friendBox.x))
+       *Math.max(0,Math.min(headBox.y+headBox.height,friendBox.y+friendBox.height)-Math.max(headBox.y,friendBox.y));
+     assert.equal(overlap,0,'Friends must never cover H1 at '+width+'x'+height);
+     assert.ok(friendBox.width>=44&&friendBox.height>=44,'Friends remains finger-sized');
      const checks=await page.evaluate(()=>{
        const ids=['homeWrite','homeNewStory','homeDrafts','homeBooks','homeCreate','readingEntry','homeMath','homeLogic','childWorld'];
        return {overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
@@ -52,6 +66,9 @@ module.exports=async function verifyWatercolorHome(browser,url){
        'landscape iPad first screen should not require long forced scrolling: '+checks.scroll);
    }
    await page.setViewportSize({width:1024,height:768});await page.goto(url);
+   await page.locator('#friendsOpen').click();
+   assert.ok(await page.locator('#friendsDialog').isVisible(),'moved Friends entry opens gallery');
+   await page.locator('#friendsDialog [data-close]').click();
    await page.locator('#homeNewStory').click();
    assert.ok(await page.locator('#storyBody').isVisible(),'new story CTA opens real writer');
    await page.keyboard.press('Escape');
