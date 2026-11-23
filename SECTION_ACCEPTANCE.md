@@ -289,3 +289,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Given: хранилище отклонило эту запись. When: ребёнок закрывает редактор. Then: редактор остаётся открытым, прежняя сохранённая версия не повреждена, доступны повтор и спасательная копия. Когда запись снова доступна, повторное закрытие сохраняет текст; reload восстанавливает его.
 - Автотест: `tests/writer-background-save.cjs`, запуск через `tests/browser-smoke.cjs` в Chromium и WebKit. Переход от синтетического теста к реальному iPad — только после аппаратного воспроизведения.
 - Кандидат 1.5.192, PR зависим от #156; до exact-SHA CI — NOT TESTED, реальный iPad — HARDWARE PENDING.
+
+
+## R16 · candidate 1.5.193 — defer educational atlas until learning
+- Given: new service-worker-blocked Chromium/WebKit page showing personal home. When: cold-home resources settle. Then: no request to `assets/ui/learning-sprite-1536.webp`, but visible `#otherArt` remains at least 24×24 CSS px; both independent performance budgets pass.
+- Given: the child enters a mathematics/logic lesson. Then: original learning sprite remains available, illustrated buttons and navigation operate as before. Offline shell keeps atlas cached for later sections.
+- Synthetic browser tests do not substitute for real iPad memory, throughput or visual quality assessments. No final acceptance without exact-SHA CI and physical device review.
