@@ -883,3 +883,9 @@ Reported on a physical iPad: section buttons appear non-responsive. Independent 
 Safety changes: persistent family reader mode has an explicit link to personal studio without deleting family settings; a stale non-open dialog no longer leaves `modal-open` after Safari `pageshow`; failed startup library shape/read blocks writes instead of silently overwriting source bytes; a static navigation recovery link works even if application JavaScript fails. All changes retain the same local-library key/schema and no cache or child data is deleted. Additional browser tests include malformed stored library, restoration of stale modal CSS, and switching back from family to personal view. Public-site touch probe is kept as an isolated, synthetic-data check.
 
 Required release gates: exact final-SHA regression, browser smoke in Chromium and WebKit, startup <=1,000,000 source bytes, cold page <=1,200,000; then live public site version and touch navigation after deployment. Not yet verified: actual user's iPad session and Safari storage, physical/floating keyboard and Apple Pencil, real family account delivery, 30-minute stress, and safe downgrade. Never close those debts based on CI alone.
+
+## Candidate 1.5.188 — R14 legacy drawing transaction (2026-11-23)
+
+- Based on the stacked 1.5.187 candidate. Fixes the legacy unfinished-drawing source/outline metadata pair: metadata is checked before replacing the source, failed writes trigger guarded rollback, deletion accepts empty/null as a confirmed state, and a stale tab does not overwrite another tab's source. No child data is touched or migrated.
+- New isolated Chromium/WebKit browser smoke exercises metadata quota, source quota, unchanged image/outline after rejection, clearing a drawing, and a stale-write guard. These are synthetic fixtures, not physical iPad evidence.
+- R14 remains **PARTIAL** pending exact SHA CI and failure/recovery checks on hardware. No family delivery or live deploy is claimed.

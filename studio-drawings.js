@@ -225,13 +225,36 @@ function drawingStorage(legacyKey, outlineKey, story, fingerprint) {
     store(src, outline) {
       if (story) return story.store(src, outline);
       if (!same()) return false;
-      if (src) localStorage.setItem(legacyKey, src);
-      else localStorage.removeItem(legacyKey);
-      if (localStorage.getItem(legacyKey) !== src) return false;
-      raw = src;
-      if (outline && src) localStorage.setItem(outlineKey, JSON.stringify({ key: outline, fingerprint: fingerprint(src) }));
-      else localStorage.removeItem(outlineKey);
-      return true;
+      const next = src || null;
+      const metadata = next && outline ? JSON.stringify({ key: outline, fingerprint: fingerprint(next) }) : null;
+      let oldMetadata, wroteMetadata = false, wroteSource = false;
+      try {
+        oldMetadata = localStorage.getItem(outlineKey);
+        // Write derived metadata first: failed metadata must never replace the only source image.
+        if (metadata === null) localStorage.removeItem(outlineKey);
+        else localStorage.setItem(outlineKey, metadata);
+        wroteMetadata = true;
+        if (localStorage.getItem(outlineKey) !== metadata || !same()) throw Error('drawing metadata conflict');
+        if (next === null) localStorage.removeItem(legacyKey);
+        else localStorage.setItem(legacyKey, next);
+        wroteSource = true;
+        if (localStorage.getItem(legacyKey) !== next) throw Error('drawing source unconfirmed');
+        raw = next;
+        return true;
+      } catch (error) {
+        // Best-effort rollback without overwriting a value changed by another tab.
+        try {
+          if (wroteSource && localStorage.getItem(legacyKey) === next) {
+            if (raw === null) localStorage.removeItem(legacyKey);
+            else localStorage.setItem(legacyKey, raw);
+          }
+          if (wroteMetadata && localStorage.getItem(outlineKey) === metadata) {
+            if (oldMetadata === null) localStorage.removeItem(outlineKey);
+            else localStorage.setItem(outlineKey, oldMetadata);
+          }
+        } catch (rollbackError) {}
+        return false;
+      }
     }
   };
 }
