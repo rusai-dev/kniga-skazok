@@ -1594,7 +1594,7 @@ body[data-home-screen="home"]{
 }
 #storybookHome #homeFox{
   box-sizing:border-box;
-  width:min(100%,clamp(166px,22vw,232px));
+  width:min(100%,clamp(190px,22vw,232px));
   min-width:0;
   aspect-ratio:1;
   align-items:center;
@@ -1618,8 +1618,8 @@ body[data-home-screen="home"]{
 }
 @media(max-height:820px) and (min-width:701px){
   #storybookHome #homeFox{
-    width:min(100%,174px);
-    height:174px;
+    width:min(100%,184px);
+    height:184px;
   }
 }
 @media(max-width:700px){
