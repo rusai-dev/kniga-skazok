@@ -935,3 +935,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Change: listen only for another tab's main library `KEY` write (same storageArea, changed serialized state). Do **not** merge or adopt external storage automatically. Set visible editor status and rescue draft export immediately; an unchanged stale editor may close normally, while an attempted edit fails its existing persist-first save check and activates the `data-save-failed` exit gate. No data/schema/migrations or new assets.
 - New `tests/writer-tab-conflict.cjs`: same-origin Chromium/WebKit two-tab scenario, unsaved second writer, early warning, refusal to overwrite first tab, export visible, Back blocked, reload recovers the first tab's durable draft. Uses synthetic prose.
 - Full test gates: regression, Chromium/WebKit browser-smoke, studio visual and live navigation on the **exact new commit SHA**. Physical iPad keyboard/Pencil, Cloud A-to-B family delivery remain HARDWARE PENDING/BLOCKED. Full release NO-GO.
+
+
+## 2026-11-23 · 1.5.195 candidate · P0 cross-tab R14 + P1 deferred SVG R16
+- Base is the exact tested R14 fix PR #159, SHA `d02b8a0154b13def4b2a16d44511a6b43d860fe1`. No source code from that fix was reset. Test `tests/writer-tab-conflict.cjs` remains enabled.
+- Move existing world SVG scene strings to `world-scenes-194.js` and load them at first world entry. The single versioned module is included in the Service Worker shell. User drawings, saved stories, backup keys, private/family data and server endpoints untouched.
+- New checks: full Node regression including the original SVG scenes, two-tab conflict, Chromium/WebKit cold-home resource budget, visible world navigation and offline fallback, studio screens. All gates must PASS on 1.5.195 exact SHA before considering merge. Physical iPad and real family receive remain HARDWARE PENDING / BLOCKED; release NO-GO.
