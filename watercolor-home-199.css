@@ -28,7 +28,7 @@ body[data-home-screen=home] .storybook-header{background:#fcfffd;border-color:#d
 #storybookHome #homeWrite .write-arrow{align-self:center;display:grid;place-items:center;width:52px;height:52px;margin:0;border:2px solid #b7e9ed;border-radius:18px;background:#118f9a;color:white;font-size:25px;box-shadow:0 3px 9px #18778744}
 #storybookHome .home-writer-links{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:10px;margin:0}
 #storybookHome .home-writer-links button{min-height:clamp(56px,10vh,76px);font:750 clamp(16px,2.2vw,24px)/1.15 Georgia,serif;border:2px solid white;border-radius:21px;box-shadow:0 4px 14px #25445c2a}
-#storybookHome #homeNewStory{display:flex;align-items:center;justify-content:center;gap:11px;color:white;background:linear-gradient(120deg,#108c97,#0b647b)}
+#storybookHome #homeNewStory{display:flex;align-items:center;justify-content:center;gap:11px;color:white;background:linear-gradient(120deg,#0b7a89,#0b647b)}
 #storybookHome #homeNewStory:before{content:"✎";font:700 clamp(26px,3.2vw,36px) Georgia,serif;color:#f8e8ff}
 #storybookHome #homeDrafts{color:#633f8d;background:linear-gradient(125deg,#fcfaff,#e4d7f8)}
 #storybookHome .home-paths{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:none;margin:0}
