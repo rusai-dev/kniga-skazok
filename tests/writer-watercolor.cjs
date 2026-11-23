@@ -20,7 +20,7 @@ module.exports=async function verifyWatercolorWriter(browser,url){
       const metrics=await page.evaluate(()=>{
         const form=$('storyForm'),art=form.querySelector('.writer-artbar'),title=art.querySelector('.writer-artbar-title'),
           box=el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,bottom:r.bottom};};
-        const buttons=['drawStory','writerGallery','pictureStory','previewStory'].map(id=>({id,...box($(id))}));
+        const buttons=['drawStory','writerGallery','pictureStory','previewStory'].map(id=>({id,...box($(id)),display:getComputedStyle($(id)).display}));
         return {width:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth,
           keyboard:form.classList.contains('keyboard-writing'),display:getComputedStyle(form).display,
           artImage:getComputedStyle(art,'::before').backgroundImage,
@@ -29,7 +29,8 @@ module.exports=async function verifyWatercolorWriter(browser,url){
       });
       assert.ok(metrics.width<=metrics.viewport+2,'writer horizontal overflow at '+width+'x'+height);
       for(const b of metrics.buttons){
-        assert.ok(b.w>=44&&b.h>=44,'writer action '+b.id+' not finger-sized at '+width+'x'+height);
+        if(b.display==='none')continue;
+        assert.ok(b.w>=44&&b.h>=44,'writer action '+b.id+' not finger-sized at '+width+'x'+height+': '+b.w+'x'+b.h+'; keyboard='+metrics.keyboard+'; grid='+metrics.display);
       }
       if(width===1024&&!metrics.keyboard){
         assert.equal(metrics.display,'grid','landscape iPad should place tools beside manuscript');
