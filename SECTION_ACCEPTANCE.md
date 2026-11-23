@@ -295,3 +295,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Given: new service-worker-blocked Chromium/WebKit page showing personal home. When: cold-home resources settle. Then: no request to `assets/ui/learning-sprite-1536.webp`, but visible `#otherArt` remains at least 24×24 CSS px; both independent performance budgets pass.
 - Given: the child enters a mathematics/logic lesson. Then: original learning sprite remains available, illustrated buttons and navigation operate as before. Offline shell keeps atlas cached for later sections.
 - Synthetic browser tests do not substitute for real iPad memory, throughput or visual quality assessments. No final acceptance without exact-SHA CI and physical device review.
+
+
+## R14 · 1.5.194 — cross-tab conflict before typing
+- Given: two browser tabs open the same local library and both have an author editor. When: tab A persists a draft and tab B receives the native `storage` event. Then: tab B immediately displays an understandable warning and a draft export control, **before** its next input.
+- Given: tab B types after the conflict. Then: its text remains in the open DOM for rescue but never overwrites tab A's saved draft. Back/Escape must not close an edited, unsaved stale editor silently; a passive unchanged stale editor may close without writing. Reload from a deliberate recovery retrieves tab A's persisted version.
+- No automatic merging, no replacement of user text, and no forced reload while the user is typing. The two-tab CI test verifies synthetic scenarios only; real child/iPad acceptance still pending.
