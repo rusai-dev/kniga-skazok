@@ -766,7 +766,7 @@ body[data-home-screen="home"] {
 #storybookHome .home-feature-play {
   box-sizing:border-box;display:grid;place-items:center;
   width:58px;height:58px;border-radius:20px;
-  color:#fff;background:linear-gradient(145deg,#1fbabb,#04768d);
+  color:#fff;background:linear-gradient(145deg,#08727c,#035a71);
   border:3px solid #ffffffd9;font-size:22px;
   box-shadow:0 3px 9px #12576d35;
 }
@@ -782,7 +782,7 @@ body[data-home-screen="home"] {
   box-shadow:0 3px 0 #8073a43b,0 7px 13px #6b629b12;
 }
 #storybookHome #homeNewStory {
-  color:#fff;background:linear-gradient(125deg,#09aeb6,#087d8d);
+  color:#fff;background:linear-gradient(125deg,#087d89,#085a72);
   border:2px solid #58c5c5;
 }
 #storybookHome #homeDrafts {
