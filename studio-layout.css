@@ -1147,3 +1147,41 @@ body[data-home-screen="home"] {
 @media(prefers-reduced-motion:reduce) {
  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar button{transition:none;}
 }
+
+/* 1.5.202 R15/R17: keep 'Мои друзья' away from title in real iPad layouts. */
+#storybookHome .home-hero-copy {min-width:0}
+#storybookHome .home-hero-copy h1 {overflow-wrap:anywhere}
+#storybookHome .home-study-head {display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+#storybookHome .home-study-head strong {flex:1 1 120px;min-width:0}
+#storybookHome .home-study-head #friendsOpen {
+  position:static;inset:auto;transform:none;display:inline-flex;
+  align-items:center;justify-content:center;flex:0 0 auto;
+  min-width:44px;min-height:44px;padding:5px 12px;margin:0;
+  color:#503579;background:#fffdff;border:1px solid #cfb9e6;
+  border-radius:14px;font-weight:700;box-shadow:0 2px 7px #61418518
+}
+#storybookHome .home-study-head #friendsOpen[hidden] {display:none!important}
+#storybookHome .home-hero-watercolor {object-fit:cover;object-position:center}
+#storybookHome .home-feature-art img {object-fit:cover;object-position:center}
+@media(max-width:470px){
+  #storybookHome .home-study-head strong {flex:1 0 100%;font-size:14px}
+  #storybookHome .home-study-head #friendsOpen {flex:1 1 120px}
+  #storybookHome .home-study-head #childLearn {flex:1 1 120px;justify-content:center}
+}
+@media(prefers-reduced-motion:reduce){#storybookHome .home-study-head #friendsOpen{transition:none}}
+
+/* R15: close the empty half-row from the first approved home screenshot.
+   On iPad all three real author actions share one line. On narrow screens the
+   primary writing action owns the full line and drawing/drafts follow below. */
+@media(min-width:701px){
+  #storybookHome .home-writer-links{
+    grid-template-columns:minmax(0,1.7fr) minmax(0,1fr) minmax(0,1fr);
+  }
+}
+@media(max-width:700px){
+  #storybookHome .home-writer-links{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #storybookHome .home-writer-links #homeNewStory {grid-column:1/-1;}
+  #storybookHome .home-writer-links #homePaint[hidden] + #homeDrafts {grid-column:1/-1;}
+}

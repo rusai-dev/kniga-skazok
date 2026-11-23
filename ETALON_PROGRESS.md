@@ -61,3 +61,6 @@
 
 ### 1.5.201 proposed — writing page complements approved watercolor home and shelf
 - Separate real CSS presentation + one accessible art heading. Changes are scoped to the existing writer surface; not a stand-alone mock. Illustration uses an existing optimized project asset after editor open. CI exact-SHA pending, no Pages deployment.
+
+### Candidate 1.5.202 — real screenshot audit
+- Fixed Friends button occluding home title and replaced previously used watercolor thumbnails with the approved squirrel/Egypt existing optimized illustrations. No local storage keys touched. CI pending; no Pages deployment.
