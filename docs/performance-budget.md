@@ -23,3 +23,7 @@ The existing 1 MB initial source cap stays unchanged. The test now samples cold 
 - Root cause: `#otherArt` on home inserted `fairyArt('spelling')`, which applied the entire `learning-sprite-1536.webp` CSS background to a 27px icon. The full educational atlas weighed **78,056 B** and loaded before any learning activity.
 - Candidate: reuse existing `childArt('learn')` at a square 27px viewBox for this small secondary home icon. The original learning sprite and styling remain intact for math, logic and language screens; its service-worker precache entry remains intact to support offline use. No asset edits, additional requests, storage migrations or child data modifications.
 - Acceptance: `tests/browser-smoke.cjs` asserts the learning sprite is **not** in cold-home resources and the replacement SVG is >=24×24 CSS px, while existing learning checks still require the real learning sprite and usable learning routes. Keep independent cold-home <1,200,000 B and source <=1,000,000 B. Final measurement and exact SHA CI must be recorded separately; not a claim about actual iPad RAM.
+
+
+## 1.5.194 guardrail
+- This patch targets P0 cross-tab data safety, not source-size optimization. Catalog data cannot be trivially deferred because `readyAuthorBooks` is referenced while constructing the primary author shelf; a simple separate script would add an asynchronous dependency to the child's main story pathway. Do not claim catalog deferral or 800–850 KB achieved. Keep both existing performance budgets and instrument future refactors before moving content.
