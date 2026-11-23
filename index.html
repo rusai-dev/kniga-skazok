@@ -3807,6 +3807,9 @@ if(fam!==s||s.ghBusy)return;s.ghBusy=true;if($('familyRefresh'))$('familyRefresh
 try{
 const remote=await ghReadPublic(s,manual,fetcher);if(fam!==s)return;
 if(remote){
+if(s.peer&&s.received&&JSON.stringify(remote.books)!==JSON.stringify(s.books)){
+readerRecovery('error');fstatus('В архиве другая редакция. Полученную напрямую сказку не заменяем без проверки взрослого.');return;
+}
 const accepted=ghPublicCache(s,remote);
 if(accepted){
 s.ghReader=true;
