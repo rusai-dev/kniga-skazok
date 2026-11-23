@@ -77,6 +77,7 @@ const server=http.createServer((req,res)=>{
  try{
  browser=await engine.launch({headless:true});
  await require("./studio-friends.cjs")(browser,url);
+ await require("./family-cloud-routing.cjs")(browser,url);
  // R14: isolated legacy drawing storage must roll back both source and metadata.
  {
  const ctx=await browser.newContext({serviceWorkers:'block'}),page=await ctx.newPage();
