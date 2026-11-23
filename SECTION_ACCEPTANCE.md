@@ -321,3 +321,7 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Given a prepared synthetic family secret and locally saved books, cancelling the disconnect prompt must preserve the session and key. Confirming must stop only the local connection, preserve personal manuscripts and offline artifacts, and never promise remote revocation.
 - Removing a locally selected story must not claim existing server copies disappeared. New family invitations must state that old archives/links are not automatically revoked.
 - Actual authenticated revocation requires separate backend credentials, deletion/rotation and real second-device verification; BLOCKED, no user data used in CI.
+
+### R01/R02/R15/R16/R17 1.5.199 watercolor home
+- Visual approval basis: 23 Nov 2026 illustrated `Книга сказок` concept. Implement using real DOM controls, existing watercolor assets and no new lazy/eager art bank. Validate 1024×768 landscape and 768×1024 portrait, 44×44 tap areas, no horizontal overflow, accessible focus and reduced motion.
+- Resume opens writer, create opens clean editor without compulsory title/theme, personal bookshelf keeps existing ID route, creative studio and four learning buttons are usable. Regressions/visual diff must PASS on final SHA and original two budgets remain unchanged.
