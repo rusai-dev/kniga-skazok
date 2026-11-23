@@ -351,3 +351,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - At 1024×768 and 768×1024 check a strong watercolor illustrated header with real "Книга сказок" text, a dominant "Мои сказки" section, Egypt-themed "Продолжить"/writer card, large real writing/drawing/shelf actions and compact reading/mathematics/logic/world cards. No home H1/Friends overlap, 44px clickable controls, horizontal overflow or forced long scroll in 1024×768.
 - At 390×844, allow stacked cards but keep actual new/resume writing entry accessible and preserve readers/drafts. A confirmation-of-save badge must be tied to successful persistence, never decorative by default.
 - All illustrations remain actual optimized assets; all action labels remain DOM text. Verify reduced-motion and visible focus. Exact-SHA Chromium/WebKit plus physical iPad Safari and Pencil proof required. Family A→B still BLOCKED while cloud disabled. Production release NO-GO.
+
+
+### R15 / 1.5.205 — cat face framing in the real continuation CTA
+- At 1024×768, 768×1024, 834×1194 and 390×844 visually verify that both ears and the whole black Egyptian cat face remain inside the left rounded image and are not occluded by the CTA text/play button. Use actual Chromium and WebKit screenshot artifacts and inspect them manually; source dimensions/hash tests are a necessary but not sufficient visual check.
+- The writing/resume action remains one working button and is not a baked screenshot. Real nine-hero scene rotation, honest "Сегодня с тобой ..." caption, shelf, drafting, drawing and all four secondary learning entries remain functional and accessible. Cold-home must use ≤1,200,000 encoded bytes; the five original source files ≤1,000,000.
+- Physical iPad Safari, keyboard, portrait/landscape and Pencil acceptance remain pending, family-cloud A→B delivery blocked; do not deploy without those checks.
