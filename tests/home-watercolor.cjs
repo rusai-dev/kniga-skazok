@@ -61,8 +61,9 @@ module.exports=async function verifyWatercolorHome(browser,url){
        const size=await image.evaluate(async element=>{await element.decode();return [element.naturalWidth,element.naturalHeight]});
        const asset=selector==='.home-hero-watercolor'
          ? {width:240,path:'assets/author/studio/art-v01-squirrel-author-240.webp'}
-         : {width:320,path:'assets/world/egypt-nile-cover-320-v1.webp'};
+         : {width:320,path:'assets/author/studio/home-egypt-cat-320x120.webp'};
        assert.equal(size[0],asset.width,selector+' decoded artwork width must match the repo manifest');
+       if(selector==='.home-feature-art img')assert.equal(size[1],120,'approved cat safe crop must use 320x120 artwork');
        assert.ok((await image.getAttribute('src')).endsWith(asset.path),
          selector+' must use the selected existing approved project artwork');
      }
