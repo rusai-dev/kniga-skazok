@@ -1106,7 +1106,18 @@ body[data-home-screen="home"] {
   }
 }
 @media(max-width:899px) {
- #storyForm:not(.keyboard-writing) .writer-artbar-title {font-size:15px;padding:0 4px 2px;}
+  /* On portrait iPad the 100%-basis heading previously collapsed four buttons.
+     Wrap the heading onto its own row and keep real, finger-sized actions. */
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar {
+    display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;
+  }
+  #storyForm:not(.keyboard-writing) .writer-artbar-title {
+    flex:1 0 100%;font-size:15px;padding:0 4px 2px;
+  }
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar button {
+    flex:1 1 calc(50% - 8px);min-width:44px;min-height:48px;
+    white-space:normal;overflow-wrap:anywhere;
+  }
 }
 @media(max-height:600px) {
  #storyForm:not(.keyboard-writing) .writer-artbar-title {display:none;}
