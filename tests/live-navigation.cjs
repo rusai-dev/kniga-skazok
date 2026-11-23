@@ -2,15 +2,13 @@
 const {chromium,webkit}=require('playwright');
 const URL=process.env.SITE_URL||'https://rusai-dev.github.io/kniga-skazok/';
 const engine=process.env.BROWSER==='webkit'?webkit:chromium;
-(async()=>{
- const browser=await engine.launch();
- try{
+async function verifyNavigation(browser,siteUrl=URL){
   for(const viewport of [{width:1024,height:768},{width:768,height:1024},{width:390,height:700}]){
    const ctx=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'allow'});
    const page=await ctx.newPage(),errors=[],failed=[];
    page.on('pageerror',e=>errors.push(e.message));
    page.on('requestfailed',r=>failed.push(r.url()+' '+r.failure()?.errorText));
-   const response=await page.goto(URL,{waitUntil:'domcontentloaded',timeout:25000});
+   const response=await page.goto(siteUrl,{waitUntil:'domcontentloaded',timeout:25000});
    const htmlStatus=response?.status(),location=page.url();
    const status=await page.evaluate(()=>({
     footer:document.querySelector('footer')?.textContent,
@@ -39,12 +37,23 @@ const engine=process.env.BROWSER==='webkit'?webkit:chromium;
    }
    await page.locator('#homeWrite').tap();
    await page.locator('#storyBody').waitFor({state:'visible'});
-   await page.locator('#storyBody').fill('Тестовый текст без данных ребёнка.');
+   const sample='Проверочная сказка QA: ёжик, сова и белочка. Без личных данных.';
+   await page.locator('#storyBody').fill(sample);
    await page.locator('#saveStoryNow').tap();
    await page.locator('#modal').waitFor({state:'hidden'});
+   await page.reload({waitUntil:'domcontentloaded'});
+   await page.locator('#storybookHome').waitFor({state:'visible'});
+   const persisted=await page.evaluate(text=>
+     Object.values(data.drafts||{}).some(d=>d.body===text),sample);
+   if(!persisted)throw Error('Synthetic private story did not survive reload at '+viewport.width+'×'+viewport.height);
    if(errors.length)throw Error('Runtime errors: '+errors.join(' | '));
-   console.log('PASS LIVE all home touch routes',process.env.BROWSER,viewport);
+   console.log('PASS LIVE all home touch routes + private draft reload',process.env.BROWSER,viewport);
    await ctx.close();
   }
- }finally{await browser.close()}
+}
+module.exports=verifyNavigation;
+if(require.main===module)(async()=>{
+ const browser=await engine.launch();
+ try{await verifyNavigation(browser,URL)}
+ finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});
