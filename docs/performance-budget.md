@@ -29,3 +29,9 @@ The existing 1 MB initial source cap stays unchanged. The test now samples cold 
 - This patch targets P0 cross-tab data safety, not source-size optimization. Catalog data cannot be trivially deferred because `readyAuthorBooks` is referenced while constructing the primary author shelf; a simple separate script would add an asynchronous dependency to the child's main story pathway. Do not claim catalog deferral or 800–850 KB achieved. Keep both existing performance budgets and instrument future refactors before moving content.
 
 - 1.5.194 requires an additional storage-event listener despite the existing 1 MB HTML budget. Removed only explanatory inline source comments (copied rationale into QUALITY/SECTION_ACCEPTANCE) to maintain the unchanged 1,000,000-byte gate. No CSS declarations, runtime APIs, educational text, data, or artwork were removed. Confirm exact UTF-8 bytes in CI; comments are not a substitute for architectural chunking.
+
+
+## R16 · 1.5.195 combined R14 + lazy world scenes
+- Baseline: 1.5.194 cross-tab draft PR #159 includes tested P0 data-conflict protection. Candidate preserves it and removes 15,748 characters of eager world SVG data from the HTML, moving exact same assets to on-demand `world-scenes-194.js` with versioned `?v=1.5.195` and Service Worker precache.
+- Prior isolated R16 test SHA `9d90c35f74ecdf7a5be1c4ab863e31fe56ff6903` in PR #160: 985,298/1,000,000 startup bytes; Chromium 1,099,266 and WebKit 1,100,807 cold-home bytes at 768×1024. The combined candidate requires *fresh* measurements; do not reuse old green CI as proof.
+- First-install SW precache still downloads the module; only the page's eager script parsing and cold-home requests are deferred. Real iPad memory/latency remain unmeasured.

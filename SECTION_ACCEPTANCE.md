@@ -301,3 +301,9 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Given: two browser tabs open the same local library and both have an author editor. When: tab A persists a draft and tab B receives the native `storage` event. Then: tab B immediately displays an understandable warning and a draft export control, **before** its next input.
 - Given: tab B types after the conflict. Then: its text remains in the open DOM for rescue but never overwrites tab A's saved draft. Back/Escape must not close an edited, unsaved stale editor silently; a passive unchanged stale editor may close without writing. Reload from a deliberate recovery retrieves tab A's persisted version.
 - No automatic merging, no replacement of user text, and no forced reload while the user is typing. The two-tab CI test verifies synthetic scenarios only; real child/iPad acceptance still pending.
+
+
+## R14 + R16 · 1.5.195 integrated candidate
+- Given two simultaneous same-origin story tabs, When A saves and B has stale edits, Then warning/rescue and refusal of stale overwrite remain exactly as in tested PR #159. Existing synthetic `tests/writer-tab-conflict.cjs` must PASS Chromium and WebKit.
+- Given cold home, Then world scene JS must not be requested before world entry. Given world entry after the script loads, Then every original distinct SVG is available and offline shell retains the script. On missing scripts, show retry message without changing personal work.
+- Exact-SHA tests/visuals pending; physical iPad/Safari and second real family device remain not tested, release NO-GO.
