@@ -889,3 +889,10 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - Based on the stacked 1.5.187 candidate. Fixes the legacy unfinished-drawing source/outline metadata pair: metadata is checked before replacing the source, failed writes trigger guarded rollback, deletion accepts empty/null as a confirmed state, and a stale tab does not overwrite another tab's source. No child data is touched or migrated.
 - New isolated Chromium/WebKit browser smoke exercises metadata quota, source quota, unchanged image/outline after rejection, clearing a drawing, and a stale-write guard. These are synthetic fixtures, not physical iPad evidence.
 - R14 remains **PARTIAL** pending exact SHA CI and failure/recovery checks on hardware. No family delivery or live deploy is claimed.
+
+## Candidate 1.5.189 — R13 cloud transport routing (2026-11-23)
+
+- Identified a real unreachable path in `fstart`: a family viewer always returned via the GitHub archive before evaluating provisioned `family-cloud-config.json`, while a host without GitHub token could use Supabase. This prevented a matching Supabase transport on the reader.
+- Both roles now evaluate the same family-scoped validated cloud config first; **when enabled and matching**, use the cloud. With disabled/unavailable config, retain the legacy GitHub reader and GitHub/Peer host paths. No storage schema or child asset changes.
+- `tests/family-cloud-routing.cjs` (invoked by Chromium + WebKit browser smoke) uses two isolated browser contexts and an AES-GCM-encrypted synthetic story to verify real client-side decode/display, and tests matching writer selection with a synthetic GitHub token plus the legacy disabled-config fallback.
+- R13 is still **BLOCKED / NOT TESTED on real family devices**. A mocked RPC cannot prove the server ACL, real device reception, revocation or a successful live deployment. Physical iPad remains HARDWARE PENDING; do not merge merely on green CI.
