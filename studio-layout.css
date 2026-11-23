@@ -1448,7 +1448,7 @@ body[data-home-screen="home"]{
 #storybookHome #homeDrafts{background:linear-gradient(120deg,#bca6e9,#e2cdf8);color:#603881}
 #storybookHome .home-paths{gap:11px;margin-bottom:10px}
 #storybookHome .home-paths button{
-  min-height:86px;padding:8px 14px;border:2px solid #fffaf8;
+  min-height:120px;padding:8px 14px;border:2px solid #fffaf8;
   border-radius:25px;box-shadow:0 0 0 1px #d5c5e8,0 6px 13px #59437620;
 }
 #storybookHome #homeBooks{
@@ -1470,7 +1470,7 @@ body[data-home-screen="home"]{
 }
 #storybookHome .home-map{gap:10px}
 #storybookHome .home-map button{
-  flex-direction:column;min-height:83px;gap:2px;padding:6px 4px;
+  flex-direction:column;min-height:68px;gap:2px;padding:5px 4px;
   background:linear-gradient(145deg,#fffdfd,#eee5fb 90%);
   border:2px solid #fffdfa;border-radius:24px;
   box-shadow:0 0 0 1px #dfd0ec,0 4px 12px #50386a23;
@@ -1498,10 +1498,10 @@ body[data-home-screen="home"]{
   #storybookHome .home-feature-play{width:56px;height:56px}
   #storybookHome .home-writer-links button:not([hidden]){min-height:50px}
   #storybookHome .home-writer-links{margin-bottom:6px}
-  #storybookHome .home-paths button{min-height:76px;padding-block:4px}
+  #storybookHome .home-paths button{min-height:98px;padding-block:4px}
   #storybookHome .home-paths button > span:first-child{width:54px;height:54px;min-width:54px}
   #storybookHome .home-paths{margin-bottom:5px}
-  #storybookHome .home-map button{min-height:68px;padding:3px}
+  #storybookHome .home-map button{min-height:58px;padding:3px}
   #storybookHome .home-map .home-art{width:37px;height:37px}
 }
 @media(max-width:700px){
@@ -1533,7 +1533,7 @@ body[data-home-screen="home"]{
   #storybookHome .home-feature-art{height:98px}
   #storybookHome #homeWrite strong{font-size:clamp(20px,4.4vw,30px)}
   #storybookHome .home-feature-play{display:grid;width:44px;height:44px}
-  #storybookHome .home-paths button{min-height:76px}
+  #storybookHome .home-paths button{min-height:112px}
   #storybookHome .home-paths button > span:first-child{width:54px;height:54px;min-width:54px}
   #storybookHome .home-map button{min-height:77px}
 }
