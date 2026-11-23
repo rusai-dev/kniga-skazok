@@ -238,6 +238,9 @@ const server=http.createServer((req,res)=>{
  await page.locator('img[src*="art-n04-hedgehog-book-show"]').waitFor({state:'visible'});
  await page.getByRole('button',{name:'Посмотреть мою книгу'}).click();
  assert.ok(await page.locator('#ownReadSpread').isVisible());
+ const publishedAtBackup=await page.evaluate(()=>structuredClone(data.stories.find(b=>b.title==='Две картинки').studio));
+ const independentAtBackup=await page.evaluate(()=>structuredClone(Object.values(data.drafts).find(d=>d.title==='Отдельная сказка').studio));
+ assert.equal(publishedAtBackup.originals[0].src,savedStudio.originals[0].src,'publication preserves exact authored PNG');
  await page.evaluate(()=>backup());
  const [download]=await Promise.all([page.waitForEvent('download'),page.locator('#download').click()]);
  const backupFile=fs.readFileSync(await download.path());
@@ -249,8 +252,8 @@ const server=http.createServer((req,res)=>{
   await recipient.locator('#importFile').setInputFiles({name:'studio.json',mimeType:'application/json',buffer:backupFile});
   await recipient.locator('#confirmRestore').click();
   await recipient.waitForFunction(()=>data.stories.some(book=>book.title==='Две картинки'));
-  assert.ok(JSON.stringify(await recipient.evaluate(()=>data.stories.find(b=>b.title==='Две картинки').studio))===JSON.stringify(savedStudio),'restored book matches the backup byte-for-byte');
-  assert.deepEqual(await recipient.evaluate(()=>Object.values(data.drafts).find(d=>d.title==='Отдельная сказка').studio),other);
+  assert.deepEqual(await recipient.evaluate(()=>data.stories.find(b=>b.title==='Две картинки').studio),publishedAtBackup,'restored book equals the exact exported published record');
+  assert.deepEqual(await recipient.evaluate(()=>Object.values(data.drafts).find(d=>d.title==='Отдельная сказка').studio),independentAtBackup,'unrelated draft equals exact exported record');
   assert.equal(await recipient.evaluate(()=>localStorage.getItem(DRAWING_DRAFT)),legacy);
  }finally{await restored.close()}
  console.log('PASS studio independent drafts, PNG roundtrip, insertion, revision and reading');
