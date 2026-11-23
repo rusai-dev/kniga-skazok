@@ -590,7 +590,7 @@ const server=http.createServer((req,res)=>{
  }finally{await legacy.close()}
  // A family reader preference must never trap the author away from their studio.
  {
-  const context=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'});
+  const context=await browser.newContext({viewport:{width:768,height:1024},hasTouch:true,serviceWorkers:'block'});
   try{
    const page=await context.newPage(),secret='a'.repeat(64);
    await page.goto(url);
