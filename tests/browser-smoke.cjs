@@ -80,6 +80,7 @@ const server=http.createServer((req,res)=>{
  await require("./family-cloud-routing.cjs")(browser,url);
  await require("./live-navigation.cjs")(browser,url);
  await require("./writer-background-save.cjs")(browser,url);
+ await require("./writer-tab-conflict.cjs")(browser,url);
  // R14: isolated legacy drawing storage must roll back both source and metadata.
  {
  const ctx=await browser.newContext({serviceWorkers:'block'}),page=await ctx.newPage();
