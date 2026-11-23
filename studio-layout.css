@@ -1228,10 +1228,19 @@ body[data-home-screen="home"] {
 #modal.drawing-focus #drawingSave {
   min-width:44px;
   min-height:48px;
+  font-weight:750;
+}
+#modal.drawing-focus #drawingSave:not(:disabled) {
   color:#fff;
   border:1px solid #0f766e;
   background:#0f766e;
-  font-weight:750;
+}
+#modal.drawing-focus #drawingSave:disabled {
+  color:#476669;
+  border:1px solid #c4d5d2;
+  background:#dce8e6;
+  box-shadow:none;
+  cursor:default;
 }
 #modal.drawing-focus .studio-tools button:focus-visible,
 #modal.drawing-focus #drawingExpand:focus-visible,

@@ -28,6 +28,7 @@ module.exports=async function verifyWatercolorCanvas(browser,url){
           toolBg:getComputedStyle(document.querySelector('#drawingPanel .studio-tools')).backgroundImage,
           paletteBg:getComputedStyle(document.querySelector('#drawingPanel .studio-palette')).backgroundImage,
           saveBg:style('drawingSave').backgroundColor,
+          saveDisabled:pick('drawingSave').disabled,
           sheet:box('studioSheet'),canvas:box('drawingCanvas'),buttons
         };
       });
@@ -37,7 +38,7 @@ module.exports=async function verifyWatercolorCanvas(browser,url){
       assert.ok(values.toolBg.includes('gradient'),'R15 watercolor tools background missing');
       assert.ok(values.paletteBg.includes('gradient'),'R15 watercolor palette missing');
       assert.equal(values.canvasBg,'rgb(255, 255, 255)','R05 drawing paper must remain pure white');
-      assert.equal(values.saveBg,'rgb(15, 118, 110)','R05 confirmed primary insert stays turquoise');
+      assert.equal(values.saveBg,values.saveDisabled?'rgb(220, 232, 230)':'rgb(15, 118, 110)','R05 primary insert must look inactive until there is a drawing');
       assert.ok(values.canvas.w>120&&values.canvas.h>90,'R05 drawing area must be visible and usable');
       for(const b of values.buttons){
         if(!b.visible)continue;
