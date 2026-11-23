@@ -16,3 +16,10 @@ The existing 1 MB initial source cap stays unchanged. The test now samples cold 
 - Preserve full-quality original masters; responsive delivery by real display size and DPR. Only decode the visible scene; maintain fallback text and navigation.
 - Reuse lightweight models and pointer handling for direct manipulation. Check continuous drag/brush frame pacing, cancel/undo, rotation and save/reopen, including long sessions. Never evict user work when pruning derived asset cache; bound artwork cache only with a tested offline strategy.
 - Measure actual cold/warm startup, chapter opening, input response, frame times, peak memory and disk/cache growth on the same device and conditions before and after structural changes. No hardware/child observation obtained yet. Proposed targets are engineering objectives, not measured results.
+
+
+## R16 · 1.5.193 cold-home icon deferral (candidate, 2026-11-23)
+- Baseline 1.5.192 exact SHA `b739224b15c88364b82c8fdcda345720577b6574`: five source files **999,951 B**; Chromium cold-home maximum **1,191,975 B**; WebKit maximum **1,192,307 B** (local browser tests, NOT hardware).
+- Root cause: `#otherArt` on home inserted `fairyArt('spelling')`, which applied the entire `learning-sprite-1536.webp` CSS background to a 27px icon. The full educational atlas weighed **78,056 B** and loaded before any learning activity.
+- Candidate: reuse existing `childArt('learn')` at a square 27px viewBox for this small secondary home icon. The original learning sprite and styling remain intact for math, logic and language screens; its service-worker precache entry remains intact to support offline use. No asset edits, additional requests, storage migrations or child data modifications.
+- Acceptance: `tests/browser-smoke.cjs` asserts the learning sprite is **not** in cold-home resources and the replacement SVG is >=24×24 CSS px, while existing learning checks still require the real learning sprite and usable learning routes. Keep independent cold-home <1,200,000 B and source <=1,000,000 B. Final measurement and exact SHA CI must be recorded separately; not a claim about actual iPad RAM.
