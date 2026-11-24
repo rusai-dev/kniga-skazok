@@ -17,7 +17,7 @@ const extras = ['skazki-unfinished-drawing-v1','skazki-study-skills-v2','skazki-
 const mime = {'.html':'text/html; charset=utf-8','.js':'application/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml'};
 const oldFiles = new Map();
 function oldRead(name) {
-  if (!oldFiles.has(name)) oldFiles.set(name, execFileSync('git',['show',oldSha+':'+name],{cwd:root,maxBuffer:32*1024*1024,stdio:['ignore','pipe','ignore']}));
+  if (!oldFiles.has(name)) oldFiles.set(name, execFileSync('git',['-c','safe.directory='+root,'show',oldSha+':'+name],{cwd:root,maxBuffer:32*1024*1024,stdio:['ignore','pipe','pipe']}));
   return oldFiles.get(name);
 }
 function newRead(name) { return fs.readFileSync(path.join(root,name)); }
