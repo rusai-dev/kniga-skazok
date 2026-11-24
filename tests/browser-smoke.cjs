@@ -201,10 +201,14 @@ const server=http.createServer((req,res)=>{
  };
  const paint=async(x,y)=>page.locator('#drawingCanvas').click({position:{x,y}});
  const back=async()=>page.locator('#drawingCancel').click();
- const loaded=async()=>page.waitForFunction(()=>!$('drawingStatus').textContent.startsWith('Открываем'));
+ const loaded=async()=>{
+  await page.locator('#drawingCanvas').waitFor({state:'visible'});
+  await page.waitForFunction(()=>!$('drawingStatus').textContent.startsWith('Открываем'));
+ };
  await newBook('Две картинки');
  await page.locator('#storyBody').evaluate(e=>e.setSelectionRange(15,15));
  await page.locator('#drawStory').click();
+ await loaded();
  assert.equal(await page.locator('#drawingSave').isEnabled(),false,'legacy draft never assigned automatically');
  await paint(30,30);await back();
  const sheet=(await read('Две картинки')).studio.sheets[0];
