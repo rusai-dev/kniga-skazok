@@ -2,7 +2,7 @@
 'use strict';
 const REV='1.5.207',ART_CACHE='skazki-book-art-v1';
 // BEGIN GENERATED SHELL INTEGRITY
-const SHELL_FINGERPRINT='6d77eb1cf11d5d82aca7ef2e';
+const SHELL_FINGERPRINT='3836bb73062cb7176e3c876f';
 const SHELL_SHA256={
   "index.html": "b7e8b87ee6261281f1f7c92e5b13eca6a7bf915a05b35c546cb2fa042b294315",
   "classic-art-153.js?v=1.5.207": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
@@ -13,8 +13,9 @@ const SHELL_SHA256={
   "studio-drawings.js?v=1.5.207": "05111d4188b328e1cd2c7cf5465b4ff5da111618cc04d88c590ef71c9bae536f",
   "studio-layout.css?v=1.5.207": "acddc9e0a1decaa03d53be13a52db8932fc4088840cd3208e518c1d86039daeb",
   "studio-friends.js?v=1.5.207": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858",
-  "studio-engine-208.js?v=1.5.207": "1f5f65582dd4f6f88939388cad97dc8f9f5930c3acb23b9e923392f84cdddf63",
+  "studio-engine-208.js?v=1.5.207": "c287598133c3a986ff7bb4eec8b5244867bd418c0bad5f416ec1d13889778a68",
   "studio-project-store.js?v=1.5.207": "a50c256b4f83c74d21d51754b88d7e87c941937a4e519e87b038ee790ede2ea3",
+  "studio-filters-208.js?v=1.5.207": "876af4646662f37098a88230a22d337eaf32ca962819cf7a180b8cd3129b4625",
   "assets/ui/home-sprite-1548.webp": "1e974ad768ec11b50d63b52675b99621b6d28667e22f06bbcb318bcb687a3ed8",
   "assets/ui/learning-sprite-1536.webp": "e4b8ec07f3417b50023021aa542de958db0a4df397864b5687da50584e9208fd",
   "assets/ui/writer-squirrel-144-v1.webp": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee",
@@ -28,7 +29,7 @@ const READY=new URL('__skazki_shell_verified__',ROOT).href;
 const LEGACY_CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css','world-scenes-194.js'].map(name=>new URL(name,ROOT).href);
 const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1536.webp','assets/ui/writer-squirrel-144-v1.webp','assets/author/studio/home-storybook-banner-560.webp','assets/author/studio/home-egypt-cat-320x120.webp?v=206'].map(name=>new URL(name,ROOT).href);
 for(const asset of ['studio-drawings.js','studio-layout.css','studio-friends.js'])LEGACY_CORE.push(new URL(asset,ROOT).href);
-const VERSIONED_CORE=[...LEGACY_CORE,...['studio-engine-208.js','studio-project-store.js'].map(name=>new URL(name,ROOT).href)];
+const VERSIONED_CORE=[...LEGACY_CORE,...['studio-engine-208.js','studio-project-store.js','studio-filters-208.js'].map(name=>new URL(name,ROOT).href)];
 const CORE=[...VERSIONED_CORE.map(url=>url+'?v='+REV),...UI_SPRITES];
 const RELEASE_URLS=[INDEX,...CORE];
 const ART=new Set(['andersen-pea-bed.webp','andersen-pea-journey.webp','andersen-pea-morning.webp','andersen-pea-rain.webp','classic-cinder-1.jpg','classic-cinder-11.jpg','classic-cinder-3.jpg','classic-cinder-7.jpg','historic-pea-morning.jpg','historic-sunny.jpg','historic-wind1.jpg','historic-wind2.jpg','premium-coloring.png','premium-storybook.webp'].map(name=>new URL('assets/books/'+name,ROOT).href));

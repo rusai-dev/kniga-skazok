@@ -753,6 +753,18 @@ function colorFromHSV(h,s,v){
   return '#'+channel(5)+channel(3)+channel(1);
 }
 
+function studioFilterUrl(){return './studio-filters-208.js?v='+APP_RELEASE}
+let filterFallback;
+function loadStudioFilter(){
+  if(window.renderStudioFilter)return Promise.resolve(window.renderStudioFilter);
+  if(!filterFallback)filterFallback=new Promise((resolve,reject)=>{
+    const script=document.createElement('script');script.src=studioFilterUrl();
+    script.onload=()=>{script.remove();if(window.renderStudioFilter)resolve(window.renderStudioFilter);else reject(Error('filter'))};
+    script.onerror=()=>{script.remove();reject(Error('filter'))};document.head.append(script);
+  }).catch(error=>{filterFallback=null;throw error});
+  return filterFallback;
+}
+
 function preciseColorPanel(host,choose){
   const root=document.createElement('details');
   root.innerHTML=`<summary>Точный цвет sRGB</summary><label class="field">HEX RGBA<input id="preciseHex" type="text" maxlength="9" autocapitalize="off" spellcheck="false"></label>
@@ -1202,7 +1214,7 @@ const activeLayer=()=>layers.find(layer=>layer.id===activeLayerId);
 const onMask=()=>activeTarget==='mask';
 const alphaLocked=()=>!!layers&&!onMask()&&activeLayer().alphaLock;
 if(layers)selectLayer(activeLayerId,activeTarget);
-let layerPanel,selectionPanel,selection,transformPreview;
+let layerPanel,selectionPanel,selection,transformPreview,filterPanel;
 function editableLayer(){
   if(!layers||activeLayer().visible&&!activeLayer().locked)return true;
   $('drawingStatus').textContent='Выбери видимый и разблокированный слой.';
@@ -1234,7 +1246,7 @@ function selectLayer(id,target='layer'){
 }
 
 function updateLayers(action){
-  if(restoring)return;
+  if(restoring||transformPreview||filterPanel&&!filterPanel.hidden)return;
   endStroke();
   const frame=capture();
   try{action()}catch(error){
@@ -1451,8 +1463,133 @@ function setupSelectionPanel(){
   };
   $('cancelProjectTransform').onclick=()=>{endPreview();start.focus()};
 }
+
+function setupProjectFilters(){
+  const trigger=document.createElement('button');
+  trigger.id='openProjectFilters';trigger.type='button';trigger.textContent='Фильтры слоя';trigger.setAttribute('aria-expanded','false');
+  $('openProjectSelection').after(trigger);
+  filterPanel=document.createElement('section');filterPanel.className='project-layer-panel';filterPanel.hidden=true;filterPanel.setAttribute('aria-label','Фильтры слоя');
+  filterPanel.innerHTML=`<label>Эффект<select id="projectFilterKind"><option value="tone">Тон и цвет</option><option value="blur">Гауссово размытие</option><option value="glow">Свечение</option><option value="gradient">Градиент</option></select></label>
+    <fieldset data-filter="tone"><legend>Тон и цвет</legend><label>Яркость<input id="filterBrightness" type="number" min="-100" max="100" value="0"></label><label>Контраст<input id="filterContrast" type="number" min="-100" max="100" value="0"></label><label>Насыщенность<input id="filterSaturation" type="number" min="-100" max="100" value="0"></label><label>Поворот оттенка, °<input id="filterHue" type="number" min="-360" max="360" value="0"></label></fieldset>
+    <fieldset data-filter="blur glow" hidden><legend>Размытие</legend><label>Радиус, пиксели<input id="filterRadius" type="number" min="1" max="32" value="4"></label></fieldset>
+    <fieldset data-filter="glow" hidden><legend>Свечение</legend><label>Цвет<input id="filterGlow" type="color" value="#ffb847"></label><label>Интенсивность, %<input id="filterStrength" type="number" min="1" max="200" value="100"></label></fieldset>
+    <fieldset data-filter="gradient" hidden><legend>Градиент</legend><label>Вид<select id="filterGradient"><option value="linear">Линейный</option><option value="radial">Радиальный</option></select></label><label>Угол, °<input id="filterGradientAngle" type="number" min="-360" max="360" value="0"></label><label>Первый цвет<input id="filterFrom" type="color" value="#483e97"></label><label>Альфа первого цвета<input id="filterFromAlpha" type="number" min="0" max="255" value="255"></label><label>Второй цвет<input id="filterTo" type="color" value="#ef9885"></label><label>Альфа второго цвета<input id="filterToAlpha" type="number" min="0" max="255" value="255"></label></fieldset>
+    <p id="projectFilterStatus" role="status"></p><div class="actions"><button id="applyProjectFilter" type="button" disabled>Применить</button><button id="cancelProjectFilter" type="button">Отмена</button></div>`;
+  form.querySelector('.studio-workspace').append(filterPanel);
+  const kind=$('projectFilterKind'),status=$('projectFilterStatus'),apply=$('applyProjectFilter'),cancel=$('cancelProjectFilter');
+  const groups=[...filterPanel.querySelectorAll('[data-filter]')];
+  let request=0,timer,worker,result;
+
+  function stop(){
+    request++;clearTimeout(timer);if(worker)worker.terminate();worker=null;
+    if(result){result.canvas.width=0;result=null}
+    apply.disabled=true;
+  }
+  function close(){
+    stop();filterPanel.hidden=true;trigger.setAttribute('aria-expanded','false');renderProject();
+    $('studioMore').open=true;trigger.focus({preventScroll:true});
+  }
+  function active(token){return token===request&&!filterPanel.hidden&&onProjectCanvas()}
+  function error(token){if(active(token)){renderProject();status.textContent='Не удалось показать эффект. Можно выбрать другой параметр или отменить.'}}
+  function options(){
+    const fields=[...filterPanel.querySelectorAll('fieldset:not([hidden]) input[type=number]')];
+    if(fields.some(input=>!Number.isFinite(input.valueAsNumber)||!input.checkValidity()))return null;
+    const number=id=>$(id).valueAsNumber;
+    if(kind.value==='tone')return {kind:'tone',brightness:number('filterBrightness'),contrast:number('filterContrast'),saturation:number('filterSaturation'),hue:number('filterHue')};
+    if(kind.value==='gradient')return {kind:'gradient',radial:$('filterGradient').value==='radial',angle:number('filterGradientAngle'),
+      from:$('filterFrom').value+channelHex(number('filterFromAlpha')),to:$('filterTo').value+channelHex(number('filterToAlpha'))};
+    return {kind:kind.value,radius:number('filterRadius'),strength:number('filterStrength'),rgb:colorChannels($('filterGlow').value)};
+  }
+  function preview(token,filtered,source,replace){
+    if(!active(token))return;
+    const layer=activeLayer();
+    if(selection.active){
+      const combined=newLayerCanvas(canvas.width,canvas.height),drawing=combined.getContext('2d');
+      if(!drawing)throw Error('profile');
+      drawing.drawImage(source,0,0);drawing.save();drawing.clip(selection.clipPath(),'evenodd');
+      if(replace)drawing.clearRect(0,0,canvas.width,canvas.height);
+      drawing.drawImage(filtered,0,0);drawing.restore();filtered.width=0;filtered=combined;
+    }else if(!replace){
+      const drawing=filtered.getContext('2d');
+      drawing.globalCompositeOperation='destination-over';drawing.drawImage(source,0,0);drawing.globalCompositeOperation='source-over';
+    }
+    renderLayers(layers.map(entry=>entry.id===layer.id?{...entry,canvas:filtered}:entry));
+    result={canvas:filtered,source,generation:projectGeneration};status.textContent=selection.active?'Предпросмотр выделения.':'Предпросмотр слоя.';apply.disabled=false;
+  }
+  function fromBytes(token,bytes,source){
+    if(!active(token))return;
+    const filtered=newLayerCanvas(canvas.width,canvas.height),drawing=filtered.getContext('2d');
+    if(!drawing)throw Error('profile');
+    drawing.putImageData(new ImageData(new Uint8ClampedArray(bytes),canvas.width,canvas.height),0,0);
+    preview(token,filtered,source,true);
+  }
+  function gradient(state){
+    const filtered=newLayerCanvas(canvas.width,canvas.height),drawing=filtered.getContext('2d');
+    if(!drawing)throw Error('profile');
+    const x=canvas.width/2,y=canvas.height/2,radians=state.angle*Math.PI/180;
+    const dx=Math.cos(radians),dy=Math.sin(radians),radius=Math.abs(dx)*x+Math.abs(dy)*y;
+    const ramp=state.radial?drawing.createRadialGradient(x,y,0,x,y,Math.hypot(x,y)):
+      drawing.createLinearGradient(x-dx*radius,y-dy*radius,x+dx*radius,y+dy*radius);
+    ramp.addColorStop(0,state.from);ramp.addColorStop(1,state.to);
+    drawing.fillStyle=ramp;drawing.fillRect(0,0,canvas.width,canvas.height);return filtered;
+  }
+  async function fallback(token,state,source){
+    try{
+      if(canvas.width*canvas.height>1048576)throw Error('profile');
+      const run=await loadStudioFilter();
+      if(!active(token))return;
+      const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
+      fromBytes(token,run(pixels.data,canvas.width,canvas.height,state).buffer,source);
+    }catch(failure){error(token)}
+  }
+  function calculate(token,state){
+    if(!active(token))return;
+    const source=ctx.canvas;
+    try{
+      if(state.kind==='gradient'){preview(token,gradient(state),source,false);return}
+      if(typeof Worker!=='function'){fallback(token,state,source);return}
+      worker=new Worker(studioFilterUrl());
+      const current=worker;
+      function stopWorker(){current.terminate();if(worker===current)worker=null}
+      current.onerror=event=>{event.preventDefault();stopWorker();fallback(token,state,source)};
+      current.onmessage=event=>{
+        stopWorker();
+        try{if(event.data.failed)throw Error('filter');fromBytes(token,event.data.bytes,source)}catch(failure){error(token)}
+      };
+      const bytes=ctx.getImageData(0,0,canvas.width,canvas.height).data.buffer;
+      current.postMessage({bytes,width:canvas.width,height:canvas.height,options:state},[bytes]);
+    }catch(failure){if(worker)worker.terminate();worker=null;fallback(token,state,source)}
+  }
+  function schedule(){
+    stop();renderProject();
+    for(const group of groups)group.hidden=!group.dataset.filter.split(' ').includes(kind.value);
+    const state=options();
+    if(!state){status.textContent='Проверь числовые параметры.';return}
+    if(alphaLocked()&&state.kind!=='tone'){status.textContent='Выключи альфа-замок для этого эффекта.';return}
+    if(state.kind==='tone'&&!state.brightness&&!state.contrast&&!state.saturation&&!state.hue){status.textContent='Выбери параметр для предпросмотра.';return}
+    if(!projectProfile(canvas.width,canvas.height,layers.length,maskCount()+1)){status.textContent='Для этого эффекта недостаточно свободной памяти.';return}
+    status.textContent='Готовим предпросмотр…';const token=request;
+    timer=setTimeout(()=>calculate(token,state),100);
+  }
+
+  trigger.onclick=()=>{
+    if(restoring||transformPreview||!editableLayer())return;
+    if(onMask()){$('drawingStatus').textContent='Выбери слой, чтобы открыть фильтры цвета.';return}
+    endStroke();if(!pro.hidden)showPro(false);extra(null);$('studioMore').open=false;
+    filterPanel.hidden=false;trigger.setAttribute('aria-expanded','true');schedule();kind.focus();
+  };
+  filterPanel.oninput=schedule;filterPanel.onchange=schedule;
+  filterPanel.onkeydown=event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close()}};
+  cancel.onclick=close;
+  apply.onclick=()=>{
+    if(!result||result.source!==ctx.canvas||result.generation!==projectGeneration)return;
+    remember();projectEncoded.delete(ctx.canvas);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(result.canvas,0,0);
+    close();$('studioMore').open=false;dirty=true;changed();
+  };
+}
+
 async function exportProjectImage(type,matte=false){
-  if(transformPreview)return;
+  if(transformPreview||filterPanel&&!filterPanel.hidden)return;
   endStroke();renderProject();
   try{
     const source=matte&&transparent?newLayerCanvas(canvas.width,canvas.height):canvas;
@@ -1671,7 +1808,7 @@ function remember(full=true){
   undo.push(frame);redo=[];trimUndo();return frame;
 }
 function exchangeHistory(from,to){
-  if(pointer!==null||transformPreview||!from.length)return;
+  if(pointer!==null||transformPreview||filterPanel&&!filterPanel.hidden||!from.length)return;
   const previous=from.pop(),current=capture();
   for(const {target,x,y,pixels} of previous.patches)capturePatch(current,target,x,y,pixels.width,pixels.height);
   current.bytes=previous.bytes;
@@ -1723,7 +1860,7 @@ function appendStrokePoint(event,bounds,ending=false){
   lastPressure=pressure;
 }
 canvas.addEventListener('pointerdown',e=>{
-  if(!pro.hidden||layerPanel&&!layerPanel.hidden||selectionPanel&&!selectionPanel.hidden||modal.classList.contains('canvas-pan')||restoring||e.button>0)return;
+  if(!pro.hidden||layerPanel&&!layerPanel.hidden||selectionPanel&&!selectionPanel.hidden||filterPanel&&!filterPanel.hidden||modal.classList.contains('canvas-pan')||restoring||e.button>0)return;
   if(pointer!==null){if(!e.isPrimary)return;endStroke()}
   e.preventDefault();
   const p=point(e),x=Math.min(canvas.width-1,Math.floor(p.x)),y=Math.min(canvas.height-1,Math.floor(p.y));
@@ -1818,7 +1955,7 @@ dirty=stored=true;restoring=false;sync();$('drawingStatus').textContent='Про�
 image.onerror=failed;
 image.src=src
 };
-if(project){if(openedProject.onReturn){form.dataset.storyLink='yes';$('drawingCancel').textContent='К сказке';$('close').onclick=()=>$('drawingCancel').click()}$('drawingSave').textContent=$('drawingFullSave').textContent='Сохранить проект';setOutline(project.outline);dirty=stored=true;renderProject();sync();$('drawingStatus').textContent='Продолжай свой сохранённый рисунок.';setupLayerPanel();setupSelectionPanel();}
+if(project){if(openedProject.onReturn){form.dataset.storyLink='yes';$('drawingCancel').textContent='К сказке';$('close').onclick=()=>$('drawingCancel').click()}$('drawingSave').textContent=$('drawingFullSave').textContent='Сохранить проект';setOutline(project.outline);dirty=stored=true;renderProject();sync();$('drawingStatus').textContent='Продолжай свой сохранённый рисунок.';setupLayerPanel();setupSelectionPanel();setupProjectFilters();}
 else if(!art){const item=storage.load();form.loadDrawing(item.src,item.outline)}
 if(form.id==='standaloneDrawing')focusDrawing(true);else if(!art)$('drawingFullSave').textContent='Вставить в сказку';
 }
