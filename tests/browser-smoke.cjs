@@ -106,6 +106,7 @@ const server=http.createServer((req,res)=>{
  await require("./drawing-story-context.cjs")(browser,url);
  await require("./project-profiles.cjs")(browser,url);
  await require("./story-project-link.cjs")(browser,url);
+ await require("./project-selection.cjs")(browser,url);
  await require("./family-cloud-routing.cjs")(browser,url);
  await require("./family-peer-fallback.cjs")(browser,url);
  await require("./family-disconnect.cjs")(browser,url);

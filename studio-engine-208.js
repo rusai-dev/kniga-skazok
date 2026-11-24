@@ -594,36 +594,141 @@ function newLayerCanvas(width,height){
 function projectRenderer(target,background){
   const {width,height}=target.canvas;
   let scratch;
-  function source(layers,layer,index){
+  function clip(context,x,y,w,h){
+    context.beginPath();context.rect(x,y,w,h);context.clip();
+  }
+  function source(layers,layer,index,area){
     if(!(layer.mask&&layer.maskEnabled)&&!(layer.clipping&&index>0))return layer.canvas;
-    scratch ||= newLayerCanvas(width,height).getContext('2d');
-    scratch.clearRect(0,0,width,height);
-    scratch.save();scratch.drawImage(layer.canvas,0,0);
+    if(!scratch)scratch=newLayerCanvas(width,height).getContext('2d');
+    scratch.save();clip(scratch,...area);scratch.clearRect(...area);
+    const draw=pixels=>scratch.drawImage(pixels,...area,...area);
+    draw(layer.canvas);
     function applyMask(item){
       if(!item.mask||!item.maskEnabled)return;
       scratch.globalCompositeOperation=item.maskInverted?'destination-out':'destination-in';
-      scratch.drawImage(item.mask,0,0);
+      draw(item.mask);
     }
     applyMask(layer);
     while(layer.clipping&&index>0){
       layer=layers[--index];
-      if(!layer.visible){scratch.clearRect(0,0,width,height);break}
-      scratch.globalCompositeOperation='destination-in';scratch.drawImage(layer.canvas,0,0);
+      if(!layer.visible){scratch.clearRect(...area);break}
+      scratch.globalCompositeOperation='destination-in';draw(layer.canvas);
       applyMask(layer);
     }
     scratch.restore();return scratch.canvas;
   }
-  return layers=>{
+  return (layers,area=[0,0,width,height])=>{
     target.save();
-    if(background===null)target.clearRect(0,0,width,height);
-    else{target.fillStyle=background||'#fffdf7';target.fillRect(0,0,width,height)}
+    if(background===null)target.clearRect(...area);
+    else{target.fillStyle=background||'#fffdf7';target.fillRect(...area)}
     for(const [index,layer] of layers.entries()){
       if(!layer.visible)continue;
       target.globalAlpha=layer.opacity;target.globalCompositeOperation=layer.blend;
-      target.drawImage(source(layers,layer,index),0,0);
+      target.drawImage(source(layers,layer,index,area),...area,...area);
     }
     target.restore();
   };
+}
+
+function projectSelection(canvas,view,showStatus){
+  const overlay=document.createElement('canvas');
+  overlay.setAttribute('aria-hidden','true');overlay.hidden=true;
+  overlay.style.cssText='position:absolute;pointer-events:none;z-index:2;margin:0;border:0;box-shadow:none';
+  view.style.position='relative';view.append(overlay);
+  const modes={rectangle:'Прямоугольник',lasso:'Лассо'};
+  let mode=null,gesture=null,shape=null,inverted=false,stencil,inversePath,selectionArea;
+
+  function path(draft){
+    if(!draft)return shape;
+    const trace=new Path2D(),[first]=draft.points,last=draft.points[draft.points.length-1];
+    if(draft.mode==='rectangle')trace.rect(Math.min(first.x,last.x),Math.min(first.y,last.y),Math.abs(last.x-first.x),Math.abs(last.y-first.y));
+    else{
+      trace.moveTo(first.x,first.y);
+      for(const point of draft.points.slice(1))trace.lineTo(point.x,point.y);
+      trace.closePath();
+    }
+    return trace;
+  }
+
+  function paint(){
+    const outline=path(gesture);
+    const box=canvas.getBoundingClientRect(),frame=view.getBoundingClientRect();
+    if(!outline||!box.width||!box.height){overlay.hidden=true;return}
+    overlay.hidden=false;
+    overlay.style.left=box.left-frame.left+view.scrollLeft-view.clientLeft+'px';
+    overlay.style.top=box.top-frame.top+view.scrollTop-view.clientTop+'px';
+    overlay.style.width=box.width+'px';overlay.style.height=box.height+'px';
+    const width=Math.round(box.width),height=Math.round(box.height);
+    if(overlay.width!==width||overlay.height!==height){overlay.width=width;overlay.height=height}
+    const ctx=overlay.getContext('2d');
+    if(!ctx)return;
+    ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,width,height);ctx.setLineDash([]);
+    ctx.scale(overlay.width/canvas.width,overlay.height/canvas.height);
+    const scale=canvas.width/overlay.width;
+    ctx.lineWidth=2*scale;ctx.strokeStyle='#ffffff';ctx.stroke(outline);
+    ctx.setLineDash([4*scale,5*scale]);ctx.strokeStyle='#273a58';ctx.stroke(outline);
+  }
+
+  function setMode(next){
+    mode=next;
+    if(next)showStatus(modes[next]+'. Обведи область на листе.');
+  }
+
+  function start(event,point){
+    if(!mode||gesture)return false;
+    gesture={id:event.pointerId,mode,points:[point]};
+    try{canvas.setPointerCapture(event.pointerId)}catch(error){}
+    paint();return true;
+  }
+
+  function move(event,point){
+    if(gesture?.id!==event.pointerId)return false;
+    if(gesture.mode==='rectangle')gesture.points[1]=point;
+    else if(gesture.points.length<4096)gesture.points.push(point);
+    paint();return true;
+  }
+
+  function finish(event,point){
+    if(gesture?.id!==event.pointerId)return false;
+    if(event.type==='pointerup'){
+      move(event,point);
+      const [first,last]=[gesture.points[0],gesture.points[gesture.points.length-1]];
+      const valid=gesture.mode==='rectangle'?Math.abs(last.x-first.x)>1&&Math.abs(last.y-first.y)>1:gesture.points.length>2;
+      if(valid){
+        const xs=gesture.points.map(point=>point.x),ys=gesture.points.map(point=>point.y);
+        const x=Math.floor(Math.min(...xs)),y=Math.floor(Math.min(...ys));
+        selectionArea={x,y,width:Math.ceil(Math.max(...xs))-x,height:Math.ceil(Math.max(...ys))-y};
+        shape=path(gesture);inverted=false;stencil=inversePath=null;showStatus('Выделение готово. Выбери инструмент и рисуй внутри.');
+      }
+    }
+    gesture=null;mode=null;
+    try{canvas.releasePointerCapture(event.pointerId)}catch(error){}
+    paint();return true;
+  }
+
+  function clipPath(){
+    if(!inverted)return shape;
+    if(!inversePath){inversePath=new Path2D();inversePath.rect(0,0,canvas.width,canvas.height);inversePath.addPath(shape)}
+    return inversePath;
+  }
+
+  function barrier(prior){
+    if(!shape)return prior;
+    if(!stencil){
+      const mask=newLayerCanvas(canvas.width,canvas.height),ctx=mask.getContext('2d');
+      ctx.fill(clipPath(),'evenodd');
+      const alpha=ctx.getImageData(0,0,mask.width,mask.height).data;
+      stencil=new Uint8Array(mask.width*mask.height);
+      for(let i=0;i<stencil.length;i++)stencil[i]=alpha[4*i+3]===0?1:0;
+      mask.width=mask.height=0;
+    }
+    return prior?Uint8Array.from(stencil,(outside,i)=>outside||prior[i]):stencil;
+  }
+
+  return {start,move,finish,paint,barrier,setMode,get active(){return !!shape},get tracking(){return !!gesture},clipPath,
+    area(){return inverted?{x:0,y:0,width:canvas.width,height:canvas.height}:selectionArea},
+    invert(){if(shape){inverted=!inverted;stencil=null;showStatus(inverted?'Выделение инвертировано.':'Прямое выделение.');}},
+    clear(){mode=gesture=shape=stencil=inversePath=null;inverted=false;paint();showStatus('Выделение снято.');}};
 }
 
 function projectLayerCapacity(width,height,masks=0){
@@ -925,11 +1030,12 @@ let projectTimer,projectDeadline=0,projectStroke;
 const projectUndoLimit=128,projectUndoBytes=48*1024*1024;
 let layers=openedProject?.layers,activeLayerId=project?.activeLayerId||layers?.[0].id;
 let activeTarget=project?.activeTarget||'layer';
+let repaintBounds;
 const activeLayer=()=>layers.find(layer=>layer.id===activeLayerId);
 const onMask=()=>activeTarget==='mask';
 const alphaLocked=()=>!!layers&&!onMask()&&activeLayer().alphaLock;
 if(layers)selectLayer(activeLayerId,activeTarget);
-let layerPanel;
+let layerPanel,selectionPanel,selection,transformPreview;
 function editableLayer(){
   if(!layers||activeLayer().visible&&!activeLayer().locked)return true;
   $('drawingStatus').textContent='Выбери видимый и разблокированный слой.';
@@ -937,12 +1043,18 @@ function editableLayer(){
 }
 function replaceableLayer(){
   if(!editableLayer())return false;
+  if(selection?.active){$('drawingStatus').textContent='Сними выделение, чтобы очистить слой или заменить его раскраской.';return false}
   if(!onMask()&&!alphaLocked())return true;
   $('drawingStatus').textContent='Выбери слой без альфа-замка, чтобы очистить его или открыть раскраску.';
   return false;
 }
 const renderLayers=project?projectRenderer(composite,profile.background):null;
-function renderProject(){if(renderLayers)renderLayers(layers)}
+function renderProject(){if(renderLayers){renderLayers(layers);repaintBounds=null}}
+function renderStroke(){
+  if(!repaintBounds)return;
+  const [x,y,right,bottom]=repaintBounds;repaintBounds=null;
+  renderLayers(layers,[x,y,right-x,bottom-y]);
+}
 
 function selectLayer(id,target='layer'){
   activeLayerId=id;
@@ -1062,7 +1174,118 @@ function setupLayerPanel(){
     });
   };
 }
+function setupSelectionPanel(){
+  const status=$('drawingStatus');
+  status.style.blockSize='2.6em';status.style.overflow='auto';
+  selection=projectSelection(canvas,view,text=>{status.textContent=text});
+  canvas.repaintSelection=selection.paint;
+  view.addEventListener('scroll',selection.paint,{passive:true});
+  selectionPanel=document.createElement('section');
+  selectionPanel.className='project-layer-panel';selectionPanel.hidden=true;selectionPanel.setAttribute('aria-label','Выделение');
+  selectionPanel.innerHTML=`<div class="actions"><button type="button" data-select="rectangle">Прямоугольник</button><button type="button" data-select="lasso">Лассо</button><button type="button" id="invertProjectSelection">Инвертировать</button><button type="button" id="clearProjectSelection">Снять выделение</button><button type="button" id="copyProjectSelection">Копировать</button><button type="button" id="cutProjectSelection">Вырезать</button><button type="button" id="pasteProjectSelection">Вставить</button><button type="button" id="startProjectTransform">Трансформация</button><button type="button" id="closeProjectSelection">Готово</button></div>
+    <fieldset id="projectTransform" hidden><legend>Трансформация выделенных пикселей</legend><label>Сдвиг по X, пиксели<input id="projectTransformX" type="number" step="1" value="0"></label><label>Сдвиг по Y, пиксели<input id="projectTransformY" type="number" step="1" value="0"></label><label>Угол, градусы<input id="projectTransformAngle" type="number" min="-360" max="360" value="0"></label><label>Масштаб, %<input id="projectTransformScale" type="number" min="5" max="800" value="100"></label><label><input id="projectTransformFlip" type="checkbox">Отразить по горизонтали</label><p id="projectTransformStatus" role="status"></p><button type="button" id="applyProjectTransform" disabled>Применить</button><button type="button" id="cancelProjectTransform">Отменить предпросмотр</button></fieldset>`;
+  form.querySelector('.studio-workspace').append(selectionPanel);
+  const transform=$('projectTransform'),start=$('startProjectTransform'),apply=$('applyProjectTransform');
+  const copy=$('copyProjectSelection'),cut=$('cutProjectSelection'),paste=$('pasteProjectSelection');
+  const actions=selectionPanel.firstElementChild;
+  let pendingTransform,clipboard;
+  function endPreview(){
+    if(!transformPreview)return;
+    transformPreview.patch.width=transformPreview.result.width=0;
+    transformPreview=null;cancelAnimationFrame(pendingTransform);pendingTransform=0;
+    transform.hidden=true;actions.hidden=false;renderProject();
+  }
+  const open=document.createElement('button');
+  open.id='openProjectSelection';open.type='button';open.textContent='Выделение';open.setAttribute('aria-expanded','false');
+  $('openProjectLayers').after(open);
+  function dismiss(back=false){
+    endPreview();
+    selectionPanel.hidden=true;open.setAttribute('aria-expanded','false');
+    if(back){$('studioMore').open=true;open.focus({preventScroll:true})}
+  }
+  open.onclick=()=>{
+    endStroke();if(!pro.hidden)showPro(false);extra(null);
+    $('studioMore').open=false;selectionPanel.hidden=false;open.setAttribute('aria-expanded','true');
+    start.disabled=copy.disabled=cut.disabled=$('invertProjectSelection').disabled=$('clearProjectSelection').disabled=!selection.active;
+    paste.disabled=!clipboard;
+    $('closeProjectSelection').focus({preventScroll:true});
+  };
+  for(const tool of selectionPanel.querySelectorAll('[data-select]'))tool.onclick=()=>{selection.setMode(tool.dataset.select);dismiss()};
+  $('invertProjectSelection').onclick=()=>{selection.invert();dismiss()};
+  $('clearProjectSelection').onclick=()=>{selection.clear();dismiss()};
+  $('closeProjectSelection').onclick=()=>dismiss(true);
+  selectionPanel.onkeydown=event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();dismiss(true)}};
+
+  function copySelection(){
+    if(!selection.active)return false;
+    const {x,y,width,height}=selection.area(),content=newLayerCanvas(width,height),brush=content.getContext('2d');
+    if(!brush){status.textContent='Для копии недостаточно памяти.';return false}
+    brush.translate(-x,-y);brush.clip(selection.clipPath(),'evenodd');brush.drawImage(ctx.canvas,0,0);
+    if(clipboard)clipboard.content.width=0;
+    clipboard={x,y,content};paste.disabled=false;
+    status.textContent='Выделение скопировано.';return true;
+  }
+  function patchSelection(x,y,w,h,operation){
+    const frame=remember(false);
+    capturePatch(frame,ctx,x,y,w,h);trimUndo();
+    ctx.save();
+    if(selection.active)ctx.clip(selection.clipPath(),'evenodd');
+    operation();ctx.restore();
+    projectEncoded.delete(ctx.canvas);dirty=true;changed();
+  }
+  copy.onclick=copySelection;
+  cut.onclick=()=>{
+    if(!editableLayer()||alphaLocked()||!copySelection())return;
+    const {x,y,width,height}=selection.area();
+    patchSelection(x,y,width,height,()=>ctx.clearRect(x,y,width,height));dismiss();
+  };
+  paste.onclick=()=>{
+    if(!clipboard||!editableLayer()||alphaLocked())return;
+    const {x,y,content}=clipboard;
+    patchSelection(x,y,content.width,content.height,()=>ctx.drawImage(content,x,y));dismiss();
+  };
+
+  const offsets=['X','Y','Angle','Scale'].map(name=>$('projectTransform'+name)),flip=$('projectTransformFlip');
+  function refreshTransform(){
+    pendingTransform=0;
+    if(!transformPreview)return;
+    const [dx,dy,angle,scale]=offsets.map(input=>input.valueAsNumber),mirror=flip.checked;
+    if(!offsets.every(input=>input.checkValidity()&&Number.isFinite(input.valueAsNumber))||Math.abs(dx)>canvas.width*2||Math.abs(dy)>canvas.height*2){
+      $('projectTransformStatus').textContent='Проверь значения смещения, угла и масштаба.';apply.disabled=true;renderProject();return;
+    }
+    $('projectTransformStatus').textContent='Предпросмотр';
+    apply.disabled=!dx&&!dy&&!angle&&scale===100&&!mirror;
+    if(apply.disabled){renderProject();return}
+    const {patch,result,source,shape,center,layerId,target}=transformPreview,drawing=result.getContext('2d');
+    drawing.clearRect(0,0,canvas.width,canvas.height);drawing.drawImage(source,0,0);
+    drawing.save();drawing.clip(shape,'evenodd');drawing.clearRect(0,0,canvas.width,canvas.height);drawing.restore();
+    drawing.save();drawing.translate(center.x+dx,center.y+dy);drawing.rotate(angle*Math.PI/180);
+    drawing.scale((mirror?-scale:scale)/100,scale/100);drawing.drawImage(patch,-center.x,-center.y);drawing.restore();
+    renderLayers(layers.map(layer=>layer.id===layerId?{...layer,[target]:result}:layer));
+  }
+  transform.oninput=()=>{apply.disabled=true;if(!pendingTransform)pendingTransform=requestAnimationFrame(refreshTransform)};
+  start.onclick=()=>{
+    if(restoring||!selection.active||!editableLayer())return;
+    if(alphaLocked()){$('drawingStatus').textContent='Выключи альфа-замок, чтобы переместить пиксели.';return}
+    const patch=newLayerCanvas(canvas.width,canvas.height),result=newLayerCanvas(canvas.width,canvas.height);
+    const brush=patch.getContext('2d');
+    if(!brush||!result.getContext('2d')){$('drawingStatus').textContent='Для предпросмотра недостаточно памяти.';return}
+    const shape=selection.clipPath();
+    brush.clip(shape,'evenodd');brush.drawImage(ctx.canvas,0,0);
+    const {x,y,width,height}=selection.area(),center={x:x+width/2,y:y+height/2};
+    transformPreview={patch,result,shape,source:ctx.canvas,center,layerId:activeLayerId,target:onMask()?'mask':'canvas'};
+    offsets.forEach((input,i)=>{input.value=i===3?'100':'0'});flip.checked=false;
+    actions.hidden=true;transform.hidden=false;refreshTransform();offsets[0].focus();
+  };
+  apply.onclick=()=>{
+    if(!transformPreview||apply.disabled||transformPreview.source!==ctx.canvas)return;
+    remember();projectEncoded.delete(ctx.canvas);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(transformPreview.result,0,0);
+    selection.clear();dismiss();dirty=true;changed();
+  };
+  $('cancelProjectTransform').onclick=()=>{endPreview();start.focus()};
+}
 async function exportProjectImage(type,matte=false){
+  if(transformPreview)return;
   endStroke();renderProject();
   try{
     const source=matte&&transparent?newLayerCanvas(canvas.width,canvas.height):canvas;
@@ -1079,7 +1302,7 @@ async function exportProjectImage(type,matte=false){
 }
 let outlineKey=null,outlineLayer=null,outlineBarrier=null;
 function setOutline(key){if(outlineLayer){outlineLayer.width=0;outlineLayer.height=0}outlineKey=null;outlineLayer=null;outlineBarrier=null;if(!key||!ORIGINAL_COLORING_IDS.includes(key))return;const layer=document.createElement('canvas');layer.width=canvas.width;layer.height=canvas.height;const c=layer.getContext('2d');if(!c||!drawTemplate(c,key))return;const img=c.getImageData(0,0,layer.width,layer.height),barrier=new Uint8Array(layer.width*layer.height);for(let i=0;i<barrier.length;i++){const p=i*4,ink=img.data[p]<225||img.data[p+1]<225||img.data[p+2]<215;barrier[i]=ink?1:0;img.data[p+3]=ink?255:0}c.putImageData(img,0,0);outlineKey=key;outlineLayer=layer;outlineBarrier=barrier}
-function protectOutline(){if(layers){renderProject();return}if(outlineLayer)ctx.drawImage(outlineLayer,0,0)}
+function protectOutline(){if(layers){renderStroke();return}if(outlineLayer)ctx.drawImage(outlineLayer,0,0)}
 const controls=$('drawingColors'),basicColors=new Set(['#25272a','#344b3d','#79564a','#fffdf7','#bd3948','#f18eaa','#e48641','#f1bc48','#609a58','#87bee7','#487ec3','#785098','#70bfbd','#a5c76f','#f8df71','#9b83b9']);
 const pro=$('studioProPane'),proEffect=$('proEffect'),proColor=$('proColor'),proWidth=$('proWidth'),proOpacity=$('proOpacity');
 const sets={warm:[6,7,12,13,16,17,33,35],cool:[21,22,23,24,25,26,47,48],pastel:[8,9,15,20,27,43,45,50],nature:[1,2,3,4,18,19,52,53],night:[26,29,42,44,46,49,61,71],bright:[6,12,14,19,22,25,38,41]};
@@ -1157,7 +1380,7 @@ function scheduleProject(){
   clearTimeout(projectTimer);
   if(onProjectCanvas()&&!projectWrite)$('drawingStatus').textContent='Изменения ожидают сохранения…';
   const now=performance.now();
-  projectDeadline ||= now+4000;
+  if(!projectDeadline)projectDeadline=now+4000;
   projectTimer=setTimeout(()=>{if(pointer===null)persistProject()},Math.min(650,Math.max(0,projectDeadline-now)));
 }
 function persistProject(){
@@ -1280,7 +1503,7 @@ function remember(full=true){
   undo.push(frame);redo=[];trimUndo();return frame;
 }
 function exchangeHistory(from,to){
-  if(pointer!==null||!from.length)return;
+  if(pointer!==null||transformPreview||!from.length)return;
   const previous=from.pop(),current=capture();
   for(const {target,x,y,pixels} of previous.patches)capturePatch(current,target,x,y,pixels.width,pixels.height);
   current.bytes=previous.bytes;
@@ -1290,6 +1513,8 @@ function captureStrokePatch(to,reach){
   if(!projectStroke)return;
   const tile=64,x1=Math.max(0,Math.min(last.x,to.x)-reach),x2=Math.min(canvas.width,Math.max(last.x,to.x)+reach);
   const y1=Math.max(0,Math.min(last.y,to.y)-reach),y2=Math.min(canvas.height,Math.max(last.y,to.y)+reach);
+  const bounds=[Math.floor(x1),Math.floor(y1),Math.ceil(x2),Math.ceil(y2)];
+  repaintBounds=repaintBounds?repaintBounds.map((value,i)=>i<2?Math.min(value,bounds[i]):Math.max(value,bounds[i])):bounds;
   for(let y=Math.floor(y1/tile)*tile;y<y2;y+=tile)for(let x=Math.floor(x1/tile)*tile;x<x2;x+=tile){
     const key=y*canvas.width+x;
     if(projectStroke.tiles.has(key))continue;
@@ -1301,7 +1526,8 @@ function point(e,r=canvas.getBoundingClientRect()){if(!r.width||!r.height)return
 function line(to,pressure=1){
   const mask=onMask(),erase=mask?eraser!==activeLayer().maskInverted:!!layers&&eraser;
   const mode=erase?'destination-out':alphaLocked()?'source-atop':null;
-  if(mode){ctx.save();ctx.globalCompositeOperation=mode}
+  const clipped=selection?.active;
+  if(mode||clipped){ctx.save();if(mode)ctx.globalCompositeOperation=mode;if(clipped)ctx.clip(selection.clipPath(),'evenodd')}
   const w=eraser?width:Math.max(1,width*pressure),kind=eraser||mask?'solid':effect;
   // Stamps and every current brush stay within twice the brush width of the path.
   captureStrokePatch(to,2*w+4);
@@ -1315,7 +1541,7 @@ function line(to,pressure=1){
     hue=(hue+Math.max(5,len*2))%360;
     studioStroke(ctx,last,to,w,kind,mask?'#fff':eraser?paper:color,hue,eraser?1:opacity);
   }
-  if(mode)ctx.restore();
+  if(mode||clipped)ctx.restore();
   last=to;
 }
 const penWidth=e=>$('proPressure').checked&&e.pointerType==='pen'&&e.pressure>0?Math.max(.2,Math.min(1,e.pressure)):1;
@@ -1328,10 +1554,11 @@ function appendStrokePoint(event,bounds,ending=false){
   lastPressure=pressure;
 }
 canvas.addEventListener('pointerdown',e=>{
-  if(!pro.hidden||layerPanel&&!layerPanel.hidden||modal.classList.contains('canvas-pan')||restoring||e.button>0)return;
+  if(!pro.hidden||layerPanel&&!layerPanel.hidden||selectionPanel&&!selectionPanel.hidden||modal.classList.contains('canvas-pan')||restoring||e.button>0)return;
   if(pointer!==null){if(!e.isPrimary)return;endStroke()}
   e.preventDefault();
   const p=point(e),x=Math.min(canvas.width-1,Math.floor(p.x)),y=Math.min(canvas.height-1,Math.floor(p.y));
+  if(selection&&(selection.tracking||selection.start(e,p)))return;
   if(picked){
     const v=composite.getImageData(x,y,1,1).data;
     color='#'+Array.from(v.slice(0,3)).map(n=>n.toString(16).padStart(2,'0')).join('');
@@ -1341,7 +1568,8 @@ canvas.addEventListener('pointerdown',e=>{
   if(fillMode){
     const image=ctx.getImageData(0,0,canvas.width,canvas.height);
     const rgba=onMask()?(activeLayer().maskInverted?[0,0,0,0]:[255,255,255,255]):[1,3,5].map(i=>parseInt(color.slice(i,i+2),16)).concat(255);
-    const barrier=onMask()||layers&&activeLayerId!==layers[0].id?null:outlineBarrier;
+    const outline=onMask()||layers&&activeLayerId!==layers[0].id?null:outlineBarrier;
+    const barrier=selection?.barrier(outline)||outline;
     if(artFill(image.data,canvas.width,canvas.height,x,y,rgba,barrier,alphaLocked())){
       remember();if(layers)projectEncoded.delete(ctx.canvas);ctx.putImageData(image,0,0);protectOutline();dirty=true;changed();
     }
@@ -1353,6 +1581,7 @@ canvas.addEventListener('pointerdown',e=>{
   lastPressure=penWidth(e);line(last,lastPressure);protectOutline();dirty=true;projectGeneration++;stored=false;sync();
 });
 canvas.addEventListener('pointermove',event=>{
+  if(selection?.tracking){event.preventDefault();selection.move(event,point(event));return}
   if(pointer!==event.pointerId)return;
   event.preventDefault();
   let samples;
@@ -1360,11 +1589,12 @@ canvas.addEventListener('pointermove',event=>{
   const bounds=canvas.getBoundingClientRect();
   for(const sample of samples||[])appendStrokePoint(sample,bounds);
   appendStrokePoint(event,bounds);
-  if(layers){if(!previewFrame)previewFrame=requestAnimationFrame(()=>{previewFrame=0;renderProject()})}
+  if(layers){if(!previewFrame)previewFrame=requestAnimationFrame(()=>{previewFrame=0;renderStroke()})}
   else protectOutline();
 });
 let previewFrame=0;
 function finish(event){
+  if(selection?.tracking){selection.finish(event,point(event));return}
   if(pointer!==event.pointerId)return;
   if(event.type==='pointerup'){
     appendStrokePoint(event,canvas.getBoundingClientRect(),true);
@@ -1419,7 +1649,7 @@ dirty=stored=true;restoring=false;sync();$('drawingStatus').textContent='Про�
 image.onerror=failed;
 image.src=src
 };
-if(project){if(openedProject.onReturn){form.dataset.storyLink='yes';$('drawingCancel').textContent='К сказке';$('close').onclick=()=>$('drawingCancel').click()}$('drawingSave').textContent=$('drawingFullSave').textContent='Сохранить проект';setOutline(project.outline);dirty=stored=true;renderProject();sync();$('drawingStatus').textContent='Продолжай свой сохранённый рисунок.';setupLayerPanel();}
+if(project){if(openedProject.onReturn){form.dataset.storyLink='yes';$('drawingCancel').textContent='К сказке';$('close').onclick=()=>$('drawingCancel').click()}$('drawingSave').textContent=$('drawingFullSave').textContent='Сохранить проект';setOutline(project.outline);dirty=stored=true;renderProject();sync();$('drawingStatus').textContent='Продолжай свой сохранённый рисунок.';setupLayerPanel();setupSelectionPanel();}
 else if(!art){const item=storage.load();form.loadDrawing(item.src,item.outline)}
 if(form.id==='standaloneDrawing')focusDrawing(true);else if(!art)$('drawingFullSave').textContent='Вставить в сказку';
 }
