@@ -38,24 +38,30 @@ function createStudioProjectStore(database, digest, identity) {
   const isHash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
   const blends = ['source-over', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'soft-light'];
   const layerMetadata = layer => ({name: layer.name || 'Слой', visible: layer.visible !== false,
-    locked: layer.locked === true, opacity: layer.opacity ?? 1, blend: layer.blend || 'source-over'});
+    locked: layer.locked === true, opacity: layer.opacity ?? 1, blend: layer.blend || 'source-over',
+    alphaLock: layer.alphaLock === true, clipping: layer.clipping === true,
+    maskHash: layer.maskHash ?? null, maskEnabled: layer.maskEnabled !== false, maskInverted: layer.maskInverted === true});
   const isBlob = value => value instanceof Blob && value.type === 'image/png' && value.size > 0 && value.size <= 16777216;
   async function pixelHash(bytes) {
     const result = new Uint8Array(await digest('SHA-256', bytes));
     return Array.from(result, byte => byte.toString(16).padStart(2, '0')).join('');
   }
 
-  function validateDetail(input) {
-    const {schemaVersion, documentId, title, width, height, layers, activeLayerId} = input;
+  function validateDetail(input, writing = false) {
+    const {schemaVersion, documentId, title, width, height, layers, activeLayerId, activeTarget} = input;
     return schemaVersion === 1 && validId(documentId) && typeof title === 'string' && title.trim().length > 0 && title.length <= 120 &&
       Number.isInteger(width) && width > 0 && width <= 4096 && Number.isInteger(height) && height > 0 && height <= 4096 &&
       Array.isArray(layers) && layers.length > 0 && layers.length <= 12 &&
       layers.every(layer => layer && validId(layer.id) && (layer.name === undefined || typeof layer.name === 'string' && layer.name.length <= 80) &&
         (layer.visible === undefined || typeof layer.visible === 'boolean') && (layer.locked === undefined || typeof layer.locked === 'boolean') &&
         (layer.opacity === undefined || Number.isFinite(layer.opacity) && layer.opacity >= 0 && layer.opacity <= 1) &&
-        (layer.blend === undefined || blends.includes(layer.blend))) &&
+        (layer.blend === undefined || blends.includes(layer.blend)) &&
+        (layer.maskHash == null || isHash(layer.maskHash)) &&
+        ['alphaLock', 'clipping', 'maskEnabled', 'maskInverted'].every(field => layer[field] === undefined || typeof layer[field] === 'boolean')) &&
       new Set(layers.map(layer => layer.id)).size === layers.length &&
-      (activeLayerId === undefined || layers.some(layer => layer.id === activeLayerId));
+      (activeLayerId === undefined || layers.some(layer => layer.id === activeLayerId)) &&
+      (activeTarget === undefined || activeTarget === 'layer' || activeTarget === 'mask' &&
+        layers.some(layer => layer.id === activeLayerId && (layer.maskHash || writing && layer.maskBlob)));
   }
 
   function addPixels(store, assets) {
@@ -66,16 +72,21 @@ function createStudioProjectStore(database, digest, identity) {
   }
 
   async function commit(input, expectedRevision) {
-    if (!validateDetail(input) || (expectedRevision !== null && !validId(expectedRevision))) throw Error('project');
+    if (!validateDetail(input, true) || (expectedRevision !== null && !validId(expectedRevision))) throw Error('project');
     const {documentId, title, width, height} = input;
     const layers = [];
     const assets = new Map();
-    for (const layer of input.layers) {
-      if (!isBlob(layer.blob)) throw Error('pixels');
-      const bytes = await layer.blob.arrayBuffer();
+    async function register(blob) {
+      if (!isBlob(blob)) throw Error('pixels');
+      const bytes = await blob.arrayBuffer();
       const hash = await pixelHash(bytes);
       assets.set(hash, bytes);
-      layers.push({id: layer.id, hash, ...layerMetadata(layer)});
+      return hash;
+    }
+    for (const layer of input.layers) {
+      const hash = await register(layer.blob);
+      const maskHash = layer.maskBlob ? await register(layer.maskBlob) : null;
+      layers.push({id: layer.id, hash, ...layerMetadata({...layer, maskHash})});
     }
     const revision = identity();
     const outline = typeof input.outline === 'string' && input.outline.length <= 80 ? input.outline : null;
@@ -90,7 +101,7 @@ function createStudioProjectStore(database, digest, identity) {
         if (head && head.schemaVersion !== 1) return abort('schema');
         if ((head?.revision ?? null) !== expectedRevision) return abort('conflict');
         const activeLayerId = input.activeLayerId || layers[0].id;
-        const snapshot = {schemaVersion: 1, documentId, title, width, height, layers, outline, activeLayerId};
+        const snapshot = {schemaVersion: 1, documentId, title, width, height, layers, outline, activeLayerId, activeTarget: input.activeTarget || 'layer'};
         const write = () => {
           const originalHash = head?.originalHash || layers[0].hash;
           const updated = {...snapshot, revision, originalHash, updatedAt: Date.now()};
@@ -107,7 +118,7 @@ function createStudioProjectStore(database, digest, identity) {
           const {schemaVersion, documentId: storedId, title, width, height, layers, outline} = saved;
           const previous = {schemaVersion, documentId: storedId, title, width, height,
             layers: layers.map(layer => ({id: layer.id, hash: layer.hash, ...layerMetadata(layer)})), outline,
-            activeLayerId: saved.activeLayerId || layers[0].id};
+            activeLayerId: saved.activeLayerId || layers[0].id, activeTarget: saved.activeTarget || 'layer'};
           if (JSON.stringify(previous) === JSON.stringify(snapshot)) {
             done(saved);
           } else write();
@@ -143,7 +154,10 @@ function createStudioProjectStore(database, digest, identity) {
                 !isHash(detail.originalHash) || detail.originalHash !== head.originalHash ||
                 detail.layers.some(layer => !isHash(layer.hash))) return abort('corrupt');
             chain.push(detail);
-            for (const layer of detail.layers) hashes.add(layer.hash);
+            for (const layer of detail.layers) {
+              hashes.add(layer.hash);
+              if (layer.maskHash) hashes.add(layer.maskHash);
+            }
             if (includeHistory && detail.parentRevision !== null) { load(detail.parentRevision); return; }
             const pixels = new Map(), source = tx.objectStore('pixels');
             let total = 0;
@@ -184,7 +198,10 @@ function createStudioProjectStore(database, digest, identity) {
           detail.layers.some(layer => !isHash(layer.hash))) throw Error('archive');
       ids.add(detail.revision);
       wanted.add(detail.originalHash);
-      for (const layer of detail.layers) wanted.add(layer.hash);
+      for (const layer of detail.layers) {
+        wanted.add(layer.hash);
+        if (layer.maskHash) wanted.add(layer.maskHash);
+      }
       parent = detail.revision;
     }
     if (wanted.size !== pixels.size) throw Error('archive');
@@ -208,7 +225,7 @@ function createStudioProjectStore(database, digest, identity) {
         const {width, height, outline, originalHash} = snapshot;
         const revision = identity(), layers = snapshot.layers.map(layer => ({id: layer.id, hash: layer.hash, ...layerMetadata(layer)}));
         current = {schemaVersion: 1, documentId, title, width, height, layers, outline, originalHash, revision,
-          parentRevision, updatedAt: snapshot.updatedAt, activeLayerId: snapshot.activeLayerId || layers[0].id};
+          parentRevision, updatedAt: snapshot.updatedAt, activeLayerId: snapshot.activeLayerId || layers[0].id, activeTarget: snapshot.activeTarget || 'layer'};
         history.add(current, revision);
         parentRevision = revision;
       }

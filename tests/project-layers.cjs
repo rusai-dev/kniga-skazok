@@ -95,8 +95,71 @@ module.exports = async function verifyProjectLayers(browser, url) {
       {name: 'Цвет', visible: true, locked: true, opacity: 1, blend: 'multiply'},
       {name: 'Слой 1', visible: true, locked: false, opacity: 1, blend: 'source-over'},
     ]);
+
+    const mark = {x: 225, y: 190}, outside = {x: 270, y: 200};
+    const pixel = point => page.locator('#drawingCanvas').evaluate((canvas, {x, y}) => {
+      const bounds = canvas.getBoundingClientRect();
+      return Array.from(canvas.getContext('2d').getImageData(Math.floor(x * canvas.width / bounds.width),
+        Math.floor(y * canvas.height / bounds.height), 1, 1).data);
+    }, point);
+    const paper = await pixel(mark);
+    await openPanel();
+    await page.locator('#addProjectLayer').click();
+    await dismiss();
+    await paint(page, '#2b3ca0', mark);
+    await saved(page);
+    const ink = await pixel(mark);
+    assert.notDeepEqual(ink, paper);
+    await openPanel();
+    await top.getByRole('button', {name: 'Альфа-замок'}).click();
+    await dismiss();
+    await paint(page, '#4a891e', outside);
+    assert.deepEqual(await pixel(outside), paper);
+    await paint(page, '#4a891e', mark);
+    const green = await pixel(mark);
+    assert.notDeepEqual(green, ink);
+    assert.notDeepEqual(green, paper);
+
+    await openPanel();
+    await top.getByRole('button', {name: 'Добавить маску'}).click();
+    assert.equal(await top.getByRole('button', {name: 'Рисовать на маске'}).getAttribute('aria-pressed'), 'true');
+    await dismiss();
+    await page.locator('#drawingPanel [data-tool="eraser"]').first().click();
+    await page.locator('#drawingCanvas').click({position: mark});
+    assert.deepEqual(await pixel(mark), paper);
+    await page.locator('#drawingUndo').click();
+    assert.deepEqual(await pixel(mark), green);
+    await page.locator('#drawingRedo').click();
+    assert.deepEqual(await pixel(mark), paper);
+    await openPanel();
+    await top.getByRole('button', {name: 'Инвертировать маску'}).click();
+    assert.deepEqual(await pixel(mark), green);
+    await top.getByRole('button', {name: 'Инвертировать маску'}).click();
+    assert.deepEqual(await pixel(mark), paper);
+    await top.getByRole('button', {name: 'Выключить маску'}).click();
+    assert.deepEqual(await pixel(mark), green);
+
+    await page.locator('#addProjectLayer').click();
+    await top.getByRole('button', {name: 'Обтравка'}).click();
+    await dismiss();
+    await paint(page, '#fe3905', outside);
+    assert.deepEqual(await pixel(outside), paper);
+    await paint(page, '#fe3905', mark);
+    const orange = await pixel(mark);
+    assert.notDeepEqual(orange, green);
+    await saved(page);
+    const model = await page.evaluate(async id => {
+      const {detail, pixels} = await (await studioProjectStore()).read(id, true);
+      return {layer: detail.layers[2], clip: detail.layers[3].clipping, hasMask: pixels.has(detail.layers[2].maskHash)};
+    }, original.documentId);
+    assert.ok(model.clip && model.hasMask && model.layer.alphaLock && !model.layer.maskEnabled);
+    await page.locator('#drawingSave').click();
+    await open();
+    assert.deepEqual(await pixel(mark), orange);
+    assert.deepEqual(await pixel(outside), paper);
   } finally {
     await page.close();
   }
   console.log('PASS LY01 layer pixels, visibility, lock, opacity, blend, order, undo/redo and reopen');
+  console.log('PASS LY02 locked alpha, editable mask, reversal, clipping and durable separate mask PNG');
 };
