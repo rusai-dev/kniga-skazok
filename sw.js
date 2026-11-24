@@ -5,7 +5,8 @@ const ROOT=new URL('./',self.registration.scope).href,INDEX=new URL('index.html'
 const LEGACY_CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css','world-scenes-194.js'].map(name=>new URL(name,ROOT).href);
 const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1536.webp','assets/ui/writer-squirrel-144-v1.webp','assets/author/studio/home-storybook-banner-560.webp','assets/author/studio/home-egypt-cat-320x120.webp?v=206'].map(name=>new URL(name,ROOT).href);
 for(const asset of ['studio-drawings.js','studio-layout.css','studio-friends.js'])LEGACY_CORE.push(new URL(asset,ROOT).href);
-const CORE=[...LEGACY_CORE.map(url=>url+'?v='+REV),...UI_SPRITES];
+const VERSIONED_CORE=[...LEGACY_CORE,new URL('studio-engine-208.js',ROOT).href];
+const CORE=[...VERSIONED_CORE.map(url=>url+'?v='+REV),...UI_SPRITES];
 const ART=new Set(['andersen-pea-bed.webp','andersen-pea-journey.webp','andersen-pea-morning.webp','andersen-pea-rain.webp','classic-cinder-1.jpg','classic-cinder-11.jpg','classic-cinder-3.jpg','classic-cinder-7.jpg','historic-pea-morning.jpg','historic-sunny.jpg','historic-wind1.jpg','historic-wind2.jpg','premium-coloring.png','premium-storybook.webp'].map(name=>new URL('assets/books/'+name,ROOT).href));
 for(const name of ['egypt-nile-thumb-128-v1.webp','night-owl-thumb-128-v1.webp','night-bats-scene-320-v1.webp','night-bats-scene-504-v1.webp','night-roost-scene-320-v1.webp','night-roost-scene-504-v1.webp','night-owl-cover-320-v1.webp','night-owl-cover-504-v1.webp','egypt-nile-cover-320-v1.webp','egypt-nile-cover-504-v1.webp'])ART.add(new URL('assets/world/'+name,ROOT).href);
 for(const name of ['library-lantern','star-journey'])ART.add(new URL('assets/author/'+name+'-v1.svg',ROOT).href);
@@ -15,7 +16,7 @@ ART.add(new URL('assets/author/studio/home-egypt-cat-320x120.webp',ROOT).href);
 async function fresh(url){return fetch(url,{cache:'no-store',credentials:'same-origin'})}
 function isHTML(r){return r.ok&&/text\/html/i.test(r.headers.get('content-type')||'')}
 function isImage(r){return r.ok&&/^image\//i.test(r.headers.get('content-type')||'')}
-async function find(name,key){try{return await (await caches.open(name)).match(key)}catch(e){return undefined}}
+async function find(name,key){try{return await caches.match(key,{cacheName:name})}catch(e){return undefined}}
 async function save(name,key,r){try{await (await caches.open(name)).put(key,r.clone())}catch(e){/* Quota failure must never prevent opening a valid response. */}}
 async function sameRelease(r){return isHTML(r)&&(await r.clone().text()).includes('<footer>Книга сказок · версия '+REV+'</footer>')}
 // Versioned UI image URLs are immutable; reuse valid copies from older shells.
@@ -55,8 +56,9 @@ self.addEventListener('fetch',event=>{
  }
  // An older open page may still ask for a versioned core file after an update.
  const previous=url.searchParams.get('v');
- if(previous&&/^\d+\.\d+\.\d+$/.test(previous)&&url.search==='?v='+previous&&LEGACY_CORE.includes(url.origin+url.pathname)&&compareRevision(previous.split('.').map(Number),REV.split('.').map(Number))<0){
-  event.respondWith((async()=>{const cached=await find('skazki-shell-'+previous,url.href);return cached||await fresh(url.href)})());return;
+ if(previous&&/^\d+\.\d+\.\d+$/.test(previous)&&url.search==='?v='+previous&&VERSIONED_CORE.includes(url.origin+url.pathname)&&compareRevision(previous.split('.').map(Number),REV.split('.').map(Number))<0){
+  // GitHub Pages serves the current file for the same path with an older query.
+  event.respondWith((async()=>await find('skazki-shell-'+previous,url.href)||new Response(null,{status:410,headers:{'Cache-Control':'no-store'}}))());return;
  }
  if(LEGACY_CORE.includes(url.href)){
   // Old cached HTML uses bare URLs; retain its offline fallback during migration.

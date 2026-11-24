@@ -11,7 +11,7 @@ module.exports=async function verifyWatercolorDrawing(browser,url){
       await page.locator('#homeNewStory').click();
       await page.locator('#storyBody').fill('Белочка нарисовала сову над рекой.');
       await page.locator('#drawStory').click();
-      assert.ok(await page.locator('#drawingCanvas').isVisible(),'real canvas should be visible');
+      await page.locator('#drawingCanvas').waitFor({state:'visible',timeout:5000});
       const measure=await page.evaluate(()=>{
         const box=id=>{const element=$(id),rect=element.getBoundingClientRect();return {
           id,x:rect.x,y:rect.y,width:rect.width,height:rect.height,

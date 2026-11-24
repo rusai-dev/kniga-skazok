@@ -5,6 +5,7 @@
 function storyStudio(form, from, host) {
   let state = from || { sheets: [], originals: [] };
   let current = null;
+  let opening = 0;
   const body = form.querySelector('#storyBody');
 
   function write(next, save = host.save) {
@@ -31,7 +32,9 @@ function storyStudio(form, from, host) {
     return body.selectionStart;
   }
 
-  function open(sheet = state.sheets.find(item => item.slot === undefined)) {
+  async function open(sheet = state.sheets.find(item => item.slot === undefined)) {
+    const request = ++opening;
+    if (!await host.prepare() || request !== opening) return;
     if (sheet?.slot !== undefined && sheet.base !== previewKey(sheet.slot)) {
       // A removed or replaced illustration must never receive an old edit.
       sheet = { ...sheet, slot: undefined, base: undefined };
