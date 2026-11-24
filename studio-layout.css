@@ -1683,6 +1683,55 @@ body[data-home-screen="home"]{
   #modal.drawing-focus .studio-view-tools #drawingExpand::after {content:"⛶";font-size:19px}
 }
 
+@media (max-width: 700px) {
+  #modal.drawing-focus #standaloneDrawing .studio-toolset {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  #modal.drawing-focus #standaloneDrawing .art-mode-picker {
+    margin-bottom: 4px;
+  }
+  #modal.drawing-focus #standaloneDrawing .art-mode-picker button {
+    min-height: 44px;
+    padding: 4px;
+  }
+  #modal.drawing-focus #standaloneDrawing .art-mode-picker :is(button > span, small),
+  #modal.drawing-focus #standaloneDrawing .gallery-capacity:not(.gallery-capacity-full),
+  #modal.drawing-focus #standaloneDrawing .studio-tools .friend-tool {
+    display: none;
+  }
+  #modal.drawing-focus:not(.canvas-full) #standaloneDrawing .studio-tools {
+    max-height: min(28vh, 210px);
+    overflow: auto;
+  }
+  #modal.drawing-focus:not(.canvas-full) #standaloneDrawing .drawing-colors {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 360px) and (max-height: 700px) {
+  #modal.drawing-focus:not(.canvas-full) #standaloneDrawing .studio-tools {
+    max-height: 108px;
+  }
+  #modal.drawing-focus:not(.canvas-full) #standaloneDrawing .studio-toolset {
+    order: -1;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  #modal.drawing-focus:not(.canvas-full) #standaloneDrawing .studio-toolset button {
+    padding-inline: 3px;
+    white-space: normal;
+  }
+  #modal.drawing-focus:not(.canvas-full) #standaloneDrawing :is(#studioQuickBrush, #studioPro) {
+    grid-column: span 2;
+  }
+}
+
 #libraryHome[data-own-shelf=true] .hero {
   background:radial-gradient(ellipse at 0 0,#39757a,transparent 70%),linear-gradient(120deg,#243a68,#49336f);
   border-color:#fff6e8;outline-color:#c1a9e1;
