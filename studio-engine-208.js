@@ -566,7 +566,8 @@ function projectPng(canvas){
   return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('pixels')),'image/png'));
 }
 
-const projectEncoded=new WeakMap();
+const projectEncoded=new WeakMap(),referenceStencils=new WeakMap();
+function invalidateLayer(source){projectEncoded.delete(source);referenceStencils.delete(source)}
 function encodedLayer(source){
   if(projectEncoded.has(source))return projectEncoded.get(source);
   const pending=projectPng(source).catch(error=>{
@@ -630,6 +631,24 @@ function projectRenderer(target,background){
   };
 }
 
+function visibleProjectLayers(layers,groups=[]){
+  if(!groups.some(group=>group.visible===false))return layers;
+  const hidden=new Set(groups.filter(group=>group.visible===false).map(group=>group.id));
+  return layers.map(layer=>hidden.has(layer.groupId)?{...layer,visible:false}:layer);
+}
+
+function referenceStencil(canvas){
+  if(referenceStencils.has(canvas))return referenceStencils.get(canvas);
+  const source=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  const barrier=new Uint8Array(canvas.width*canvas.height);
+  for(let i=0;i<barrier.length;i++){
+    const p=i*4;
+    barrier[i]=source[p+3]>=32&&.213*source[p]+.715*source[p+1]+.072*source[p+2]<170?1:0;
+  }
+  referenceStencils.set(canvas,barrier);
+  return barrier;
+}
+
 function projectSelection(canvas,view,showStatus){
   const overlay=document.createElement('canvas');
   overlay.setAttribute('aria-hidden','true');overlay.hidden=true;
@@ -676,7 +695,7 @@ function projectSelection(canvas,view,showStatus){
 
   function start(event,point){
     if(!mode||gesture)return false;
-    gesture={id:event.pointerId,mode,points:[point]};
+    gesture={id:event.pointerId,kind:event.pointerType,mode,points:[point]};
     try{canvas.setPointerCapture(event.pointerId)}catch(error){}
     paint();return true;
   }
@@ -725,8 +744,9 @@ function projectSelection(canvas,view,showStatus){
     return prior?Uint8Array.from(stencil,(outside,i)=>outside||prior[i]):stencil;
   }
 
-  return {start,move,finish,paint,barrier,setMode,get active(){return !!shape},get tracking(){return !!gesture},clipPath,
+  return {start,move,finish,paint,barrier,setMode,get active(){return !!shape},get tracking(){return !!gesture},get pointerKind(){return gesture?.kind},clipPath,
     area(){return inverted?{x:0,y:0,width:canvas.width,height:canvas.height}:selectionArea},
+    cancelGesture(){if(gesture)finish({type:'pointercancel',pointerId:gesture.id});},
     invert(){if(shape){inverted=!inverted;stencil=null;showStatus(inverted?'Выделение инвертировано.':'Прямое выделение.');}},
     clear(){mode=gesture=shape=stencil=inversePath=null;inverted=false;paint();showStatus('Выделение снято.');}};
 }
@@ -871,7 +891,7 @@ async function loadProjectLayers(saved){
     const canvas=await backstore(layer.hash),mask=layer.maskHash?await backstore(layer.maskHash):null;
     layers.push({id:layer.id,name:layer.name||'Слой',visible:layer.visible!==false,locked:layer.locked===true,
       opacity:layer.opacity??1,blend:layer.blend||'source-over',alphaLock:layer.alphaLock===true,clipping:layer.clipping===true,
-      mask,maskEnabled:layer.maskEnabled!==false,maskInverted:layer.maskInverted===true,canvas});
+      mask,maskEnabled:layer.maskEnabled!==false,maskInverted:layer.maskInverted===true,groupId:layer.groupId??null,canvas});
   }
   return layers;
 }
@@ -931,7 +951,7 @@ async function projectPreview(saved){
   const canvas=newLayerCanvas(detail.width,detail.height),context=canvas.getContext('2d',{alpha:false});
   try{
     if(!context)throw Error('profile');
-    projectRenderer(context,detail.background||'#ffffff')(layers);
+    projectRenderer(context,detail.background||'#ffffff')(visibleProjectLayers(layers,detail.groups));
     return {src:drawingJPEG(canvas),documentId:detail.documentId,revision:detail.revision,title:detail.title};
   }finally{canvas.width=canvas.height=0;for(const layer of layers){layer.canvas.width=0;if(layer.mask)layer.mask.width=0}}
 }
@@ -1205,18 +1225,22 @@ let picked=false,color=palette[1][0],inkAlpha=255,width=brushWidths()[1],pointer
 const paper=profile?.background||'#fffdf7';
 const art=form.storyArt,storage=openedProject?null:drawingStorage(DRAWING_DRAFT,DRAWING_OUTLINE,art,drawingFingerprint);
 let project=openedProject?.detail,projectWrite=null,projectGeneration=0;
-let projectTimer,projectDeadline=0,projectStroke;
+let projectTimer,projectDeadline=0,projectStroke,stroke,pendingTouchTool;
 const projectUndoLimit=128,projectUndoBytes=48*1024*1024;
 let layers=openedProject?.layers,activeLayerId=project?.activeLayerId||layers?.[0].id;
 let activeTarget=project?.activeTarget||'layer';
+let groups=project?.groups?.map(group=>({...group}))||[],referenceLayerId=project?.referenceLayerId??null;
 let repaintBounds;
 const activeLayer=()=>layers.find(layer=>layer.id===activeLayerId);
+const groupOf=layer=>groups.find(group=>group.id===layer.groupId);
 const onMask=()=>activeTarget==='mask';
 const alphaLocked=()=>!!layers&&!onMask()&&activeLayer().alphaLock;
 if(layers)selectLayer(activeLayerId,activeTarget);
 let layerPanel,selectionPanel,selection,transformPreview,filterPanel;
 function editableLayer(){
-  if(!layers||activeLayer().visible&&!activeLayer().locked)return true;
+  if(!layers)return true;
+  const layer=activeLayer(),group=groupOf(layer);
+  if(layer.visible&&!layer.locked&&group?.visible!==false&&!group?.locked)return true;
   $('drawingStatus').textContent='Выбери видимый и разблокированный слой.';
   return false;
 }
@@ -1227,8 +1251,9 @@ function replaceableLayer(){
   $('drawingStatus').textContent='Выбери слой без альфа-замка, чтобы очистить его или открыть раскраску.';
   return false;
 }
-const renderLayers=project?projectRenderer(composite,profile.background):null;
-function renderProject(){if(renderLayers){renderLayers(layers);repaintBounds=null}}
+const drawLayers=project?projectRenderer(composite,profile.background):null;
+function renderLayers(candidate,area){drawLayers(visibleProjectLayers(candidate,groups),area)}
+function renderProject(){if(drawLayers){renderLayers(layers);repaintBounds=null}}
 function renderStroke(){
   if(!repaintBounds)return;
   const [x,y,right,bottom]=repaintBounds;repaintBounds=null;
@@ -1250,7 +1275,7 @@ function updateLayers(action){
   endStroke();
   const frame=capture();
   try{action()}catch(error){
-    layers=frame.layers;selectLayer(frame.activeLayerId,frame.activeTarget);
+    layers=frame.layers;groups=frame.groups;referenceLayerId=frame.referenceLayerId;selectLayer(frame.activeLayerId,frame.activeTarget);
     $('drawingStatus').textContent='Не удалось выделить память для слоя. Текущий рисунок сохранён в мастерской.';
     return;
   }
@@ -1264,6 +1289,27 @@ function updateLayers(action){
 const maskCount=()=>layers.filter(layer=>layer.mask).length;
 function layerCapacity(extraMasks=0){return projectLayerCapacity(canvas.width,canvas.height,maskCount()+extraMasks)}
 
+function layerDestination(index,offset){
+  const layer=layers[index],neighbor=layers[index+offset];
+  if(!neighbor)return -1;
+  if(layer.groupId)return neighbor.groupId===layer.groupId?index+offset:-1;
+  if(!neighbor.groupId)return index+offset;
+  let target=index+offset;
+  while(layers[target+offset]?.groupId===neighbor.groupId)target+=offset;
+  return target;
+}
+function removeLayer(index){
+  const [removed]=layers.splice(index,1);
+  if(referenceLayerId===removed.id)referenceLayerId=null;
+  if(removed.groupId&&!layers.some(layer=>layer.groupId===removed.groupId))groups=groups.filter(group=>group.id!==removed.groupId);
+  selectLayer(layers[Math.max(0,index-1)].id);
+}
+function projectRowButton(row,text,key,action){
+  const control=document.createElement('button');
+  control.type='button';control.textContent=text;control.dataset.layerAction=key;control.onclick=action;row.append(control);
+  return control;
+}
+
 function showLayerRows(){
   const rows=$('projectLayerRows'),previous=document.activeElement?.dataset.layerAction;
   rows.replaceChildren();
@@ -1271,20 +1317,53 @@ function showLayerRows(){
   $('projectUndoLimit').textContent='Отмена · '+undo.length+' действий, до '+projectUndoLimit+' в пределах 48 МБ';
   $('addProjectLayer').disabled=layers.length>=layerCapacity();
   for(let index=layers.length-1;index>=0;index--){
-    const layer=layers[index],row=document.createElement('li');
-    const button=(text,key,action)=>{
-      const control=document.createElement('button');
-      control.type='button';control.textContent=text;control.dataset.layerAction=layer.id+':'+key;
-      control.onclick=action;row.append(control);return control;
-    };
+    const layer=layers[index],group=groupOf(layer),row=document.createElement('li');
+    const button=(text,key,action)=>projectRowButton(row,text,layer.id+':'+key,action);
+    if(group&&layers[index+1]?.groupId!==group.id){
+      const header=document.createElement('li'),name=document.createElement('strong');
+      name.textContent=group.name;header.append(name);header.style.background='var(--soft)';rows.append(header);
+      const control=(text,key,action)=>projectRowButton(header,text,group.id+':'+key,action);
+      control(group.visible?'Скрыть группу':'Показать группу','visibility',()=>updateLayers(()=>{group.visible=!group.visible}));
+      control(group.locked?'Разблокировать группу':'Заблокировать группу','lock',()=>updateLayers(()=>{group.locked=!group.locked}));
+      control('Имя группы','name',()=>{
+        const next=prompt('Название группы',group.name)?.trim().slice(0,80);
+        if(next&&next!==group.name)updateLayers(()=>{group.name=next});
+      });
+      control('Разгруппировать','ungroup',()=>updateLayers(()=>{
+        for(const member of layers)if(member.groupId===group.id)member.groupId=null;
+        groups=groups.filter(entry=>entry.id!==group.id);
+      }));
+    }
     const select=button(layer.name,'select',()=>{if(layer.id!==activeLayerId)updateLayers(()=>selectLayer(layer.id))});
     select.setAttribute('aria-pressed',String(layer.id===activeLayerId));
     button(layer.visible?'Скрыть':'Показать','visible',()=>updateLayers(()=>{layer.visible=!layer.visible}));
     button(layer.locked?'Разблокировать':'Заблокировать','lock',()=>updateLayers(()=>{layer.locked=!layer.locked}));
     if(layer.id===activeLayerId){
-      const move=(offset)=>updateLayers(()=>{layers.splice(index,1);layers.splice(index+offset,0,layer)});
-      button('Выше','up',()=>move(1)).disabled=index===layers.length-1;
-      button('Ниже','down',()=>move(-1)).disabled=index===0;
+      const move=(offset)=>updateLayers(()=>{
+        const destination=layerDestination(index,offset);
+        if(destination>=0){layers.splice(index,1);layers.splice(destination,0,layer)}
+      });
+      button('Выше','up',()=>move(1)).disabled=layerDestination(index,1)<0;
+      button('Ниже','down',()=>move(-1)).disabled=layerDestination(index,-1)<0;
+      const lower=layers[index-1];
+      if(lower&&!group&&!lower.groupId)button('Сгруппировать с нижним','group',()=>updateLayers(()=>{
+        const id=projectIdentity();groups.push({id,name:'Группа '+(groups.length+1),visible:true,locked:false});
+        lower.groupId=layer.groupId=id;
+      }));
+      const mergeable=lower&&(lower.groupId??null)===(layer.groupId??null)&&group?.visible!==false&&!group?.locked&&
+        [lower,layer].every(entry=>entry.visible&&!entry.locked&&!entry.mask&&!entry.clipping&&entry.blend==='source-over');
+      if(mergeable)button('Объединить с нижним','merge',()=>{
+        if(!confirm('Объединить два слоя? Это можно отменить.'))return;
+        updateLayers(()=>{
+          const bitmap=newLayerCanvas(canvas.width,canvas.height),drawing=bitmap.getContext('2d');
+          if(!drawing)throw Error('profile');
+          drawing.globalAlpha=lower.opacity;drawing.drawImage(lower.canvas,0,0);
+          drawing.globalAlpha=layer.opacity;drawing.drawImage(layer.canvas,0,0);drawing.globalAlpha=1;
+          lower.canvas=bitmap;lower.opacity=1;lower.alphaLock=false;
+          if(referenceLayerId===lower.id)referenceLayerId=null;
+          removeLayer(index);
+        });
+      });
       button('Переименовать','name',()=>{
         const name=prompt('Название слоя',layer.name)?.trim().slice(0,80);
         if(name&&name!==layer.name)updateLayers(()=>{layer.name=name});
@@ -1298,7 +1377,7 @@ function showLayerRows(){
         layers.splice(index+1,0,duplicate);selectLayer(duplicate.id);
       })).disabled=layers.length>=layerCapacity(layer.mask?1:0);
       button('Удалить','remove',()=>{
-        if(confirm('Удалить слой «'+layer.name+'»?'))updateLayers(()=>{layers.splice(index,1);selectLayer(layers[Math.max(0,index-1)].id)});
+        if(confirm('Удалить слой «'+layer.name+'»?'))updateLayers(()=>removeLayer(index));
       }).disabled=layers.length===1;
       const opacity=document.createElement('input'),opacityLabel=document.createElement('label');
       opacity.type='range';opacity.min=0;opacity.max=100;opacity.value=String(Math.round(layer.opacity*100));
@@ -1309,6 +1388,7 @@ function showLayerRows(){
       blend.value=layer.blend;blend.dataset.layerAction=layer.id+':blend';blendLabel.textContent='Режим смешивания';blendLabel.append(blend);
       blend.onchange=()=>updateLayers(()=>{layer.blend=blend.value});row.append(blendLabel);
       button('Альфа-замок','alpha',()=>updateLayers(()=>{layer.alphaLock=!layer.alphaLock})).setAttribute('aria-pressed',String(!!layer.alphaLock));
+      button('Референс для заливки','reference',()=>updateLayers(()=>{referenceLayerId=referenceLayerId===layer.id?null:layer.id})).setAttribute('aria-pressed',String(referenceLayerId===layer.id));
       const clipping=button('Обтравка','clipping',()=>updateLayers(()=>{layer.clipping=!layer.clipping}));
       clipping.setAttribute('aria-pressed',String(!!layer.clipping));clipping.disabled=index===0&&!layer.clipping;
       if(layer.mask){
@@ -1410,7 +1490,7 @@ function setupSelectionPanel(){
     ctx.save();
     if(selection.active)ctx.clip(selection.clipPath(),'evenodd');
     operation();ctx.restore();
-    projectEncoded.delete(ctx.canvas);dirty=true;changed();
+    invalidateLayer(ctx.canvas);dirty=true;changed();
   }
   copy.onclick=copySelection;
   cut.onclick=()=>{
@@ -1458,7 +1538,7 @@ function setupSelectionPanel(){
   };
   apply.onclick=()=>{
     if(!transformPreview||apply.disabled||transformPreview.source!==ctx.canvas)return;
-    remember();projectEncoded.delete(ctx.canvas);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(transformPreview.result,0,0);
+    remember();invalidateLayer(ctx.canvas);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(transformPreview.result,0,0);
     selection.clear();dismiss();dirty=true;changed();
   };
   $('cancelProjectTransform').onclick=()=>{endPreview();start.focus()};
@@ -1583,7 +1663,7 @@ function setupProjectFilters(){
   cancel.onclick=close;
   apply.onclick=()=>{
     if(!result||result.source!==ctx.canvas||result.generation!==projectGeneration)return;
-    remember();projectEncoded.delete(ctx.canvas);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(result.canvas,0,0);
+    remember();invalidateLayer(ctx.canvas);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(result.canvas,0,0);
     close();$('studioMore').open=false;dirty=true;changed();
   };
 }
@@ -1663,7 +1743,7 @@ source.width=0;source.height=0;
 }
 catalogSelect.onchange=catalogSearch.oninput=()=>{catalogPage=0;renderColorings()};catalogMore.onclick=()=>{catalogPage++;renderColorings();sceneGallery.scrollIntoView({block:'nearest'})};$('coloringPrev').onclick=()=>{catalogPage--;renderColorings();sceneGallery.scrollIntoView({block:'nearest'})};$('coloringSurprise').onclick=()=>{const list=matches();if(!list.length)return;const unseen=list.filter(x=>!prefs.recent.includes(x[1]));const pool=unseen.length?unseen:list.filter(x=>x[1]!==prefs.recent[0]);const item=(pool.length?pool:list)[Math.floor(Math.random()*(pool.length||list.length))];if(generate(item[1],item[2],true)){prefs.recent=[item[1],...prefs.recent.filter(x=>x!==item[1])].slice(0,24);savePrefs();picked=false;fillMode=true;eraser=false;effect='solid';toolSync();extra(null)}};
 $('premiumColoring').onclick=()=>loadPremiumColoring();for(const b of panel.querySelectorAll('[data-hero]'))b.onclick=()=>{if(generate('forest',b.dataset.hero,true))extra(null)};
-function clearPaper(){if(layers){projectEncoded.delete(ctx.canvas);ctx.clearRect(0,0,canvas.width,canvas.height);return}ctx.fillStyle=paper;ctx.fillRect(0,0,canvas.width,canvas.height)}
+function clearPaper(){if(layers){invalidateLayer(ctx.canvas);ctx.clearRect(0,0,canvas.width,canvas.height);return}ctx.fillStyle=paper;ctx.fillRect(0,0,canvas.width,canvas.height)}
 let unreadableSource=false,sourceLoad=0;
 function showUnreadableDrawing(){
 const recovery=art?'Новый рисунок можно скачать как PNG.':'Новый рисунок можно сохранить в галерею или скачать как PNG.';
@@ -1673,12 +1753,13 @@ async function projectInput(meta,outline){
   const frameLayers=layers||[{id:meta.layers[0].id,name:'Слой 1',canvas}];
   const active=activeLayerId||frameLayers[0].id;
   const target=activeTarget;
+  const capturedGroups=groups.map(group=>({...group})),reference=referenceLayerId;
   const captured=await Promise.all(frameLayers.map(async({canvas:source,mask,...fields})=>{
     const [blob,maskBlob]=await Promise.all([layers?encodedLayer(source):projectPng(source),mask?encodedLayer(mask):null]);
     return {...fields,blob,maskBlob};
   }));
   return {schemaVersion:1,documentId:meta.documentId,title:meta.title,width:canvas.width,height:canvas.height,outline,background:profile?.background,
-    activeLayerId:active,activeTarget:target,layers:captured};
+    activeLayerId:active,activeTarget:target,layers:captured,groups:capturedGroups,referenceLayerId:reference};
 }
 function onProjectCanvas(){return $('drawingCanvas')===canvas&&$('modal').hasAttribute('open')}
 function scheduleProject(){
@@ -1733,8 +1814,8 @@ $('drawingSaveProject').onclick=async()=>{
 };
 function sync(){
  form.dataset.drawingDirty=!stored&&(project?!restoring:dirty)?'yes':'no';
- $('drawingUndo').disabled=restoring||!undo.length;
- $('drawingRedo').disabled=restoring||!redo.length;
+ $('drawingUndo').disabled=restoring||pointer!==null||!undo.length;
+ $('drawingRedo').disabled=restoring||pointer!==null||!redo.length;
  $('drawingSave').disabled=restoring||(project?unreadableSource:!dirty||!!art&&unreadableSource);
  $('drawingFullSave').disabled=$('drawingSave').disabled;
  $('drawingRescue').disabled=restoring||!dirty;
@@ -1752,9 +1833,21 @@ function endStroke(){
   const id=pointer;pointer=null;last=null;
   if(id===null)return;
   try{canvas.releasePointerCapture(id)}catch(e){}
-  if(projectStroke){delete projectStroke.tiles;projectStroke=null;trimUndo()}
+  if(projectStroke){delete projectStroke.tiles;projectStroke=null}
+  if(stroke){undo.push(stroke.frame);redo=[];trimUndo();stroke=null;sync()}
   if(!dirty||stored)return;
   if(project)scheduleProject();else persist();
+}
+function abandonTouchStroke(){
+  if(stroke?.kind!=='touch')return;
+  const {frame,source,encoded,confirmed,generation}=stroke,id=pointer;
+  pointer=last=stroke=projectStroke=null;
+  try{canvas.releasePointerCapture(id)}catch(error){}
+  if(previewFrame){cancelAnimationFrame(previewFrame);previewFrame=0}
+  for(const {target,x,y,pixels} of frame.patches)target.putImageData(pixels,x,y);
+  if(encoded)projectEncoded.set(source,encoded);
+  dirty=frame.dirty;stored=confirmed;projectGeneration=generation;renderProject();sync();
+  if(project&&dirty&&!stored)scheduleProject();
 }
 form.flushDrawingDraft=()=>{if(restoring)return;endStroke();if(project)flushProject();else if(dirty&&!stored)persist()};
 function changed(){projectGeneration++;stored=false;renderProject();sync();if(project)scheduleProject();else persist()}
@@ -1784,16 +1877,63 @@ pan.onclick=()=>{if(pointer===null)panMode(!modal.classList.contains('canvas-pan
 let drag=null;view.addEventListener('pointerdown',e=>{if(!modal.classList.contains('canvas-pan')||drag||e.button>0)return;e.preventDefault();drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:view.scrollLeft,top:view.scrollTop};try{view.setPointerCapture(e.pointerId)}catch(err){}});
 view.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId){view.scrollLeft=drag.left+drag.x-e.clientX;view.scrollTop=drag.top+drag.y-e.clientY}});
 for(const event of ['pointerup','pointercancel','lostpointercapture'])view.addEventListener(event,e=>{if(drag&&drag.id===e.pointerId)drag=null});
+
+const touches=new Map();
+let pinching=false,gestureOrigin;
+function contact(event){return {x:event.clientX,y:event.clientY}}
+function touchCenter(){
+  const [a,b]=touches.values();
+  return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,distance:Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))};
+}
+function captureTouch(id){try{view.setPointerCapture(id)}catch(error){}}
+function stopTouch(event){event.preventDefault();event.stopPropagation()}
+view.addEventListener('pointerdown',event=>{
+  if(event.pointerType!=='touch'||event.target!==canvas||modal.classList.contains('canvas-pan'))return;
+  if(stroke&&stroke.kind!=='touch'||selection?.pointerKind==='pen'){stopTouch(event);return}
+  if(restoring||!pro.hidden||layerPanel&&!layerPanel.hidden||selectionPanel&&!selectionPanel.hidden||filterPanel&&!filterPanel.hidden)return;
+  touches.set(event.pointerId,contact(event));
+  if(touches.size<2&&!pinching)return;
+  stopTouch(event);
+  if(!pinching){
+    pinching=true;abandonTouchStroke();selection?.cancelGesture();
+    pendingTouchTool=null;
+    for(const id of touches.keys())captureTouch(id);
+    const center=touchCenter(),bounds=canvas.getBoundingClientRect();
+    gestureOrigin={...center,scale:Number(view.dataset.scale)||1,dx:(center.x-bounds.left)/bounds.width,dy:(center.y-bounds.top)/bounds.height};
+  }else captureTouch(event.pointerId);
+},{capture:true});
+view.addEventListener('pointermove',event=>{
+  if(!touches.has(event.pointerId))return;
+  touches.set(event.pointerId,contact(event));
+  if(!pinching)return;
+  stopTouch(event);
+  if(touches.size!==2||!gestureOrigin)return;
+  const center=touchCenter(),origin=gestureOrigin;
+  const scale=Math.max(1,Math.min(8,origin.scale*center.distance/origin.distance));
+  zoom=zoomLevels.findIndex(level=>level>=scale);if(zoom<0)zoom=zoomLevels.length-1;
+  view.dataset.scale=scale;modal.classList.toggle('canvas-detail',scale>1);
+  detail.setAttribute('aria-pressed',String(scale>1));detail.setAttribute('aria-label',scale>1?'Весь лист':'Увеличить лист');
+  detail.textContent=Math.round(scale*100)+'%';zoomOut.disabled=scale===1;zoomIn.disabled=zoom===zoomLevels.length-1;
+  drawingFitHandler?.();
+  const box=canvas.getBoundingClientRect();
+  view.scrollLeft+=box.left+origin.dx*box.width-center.x;view.scrollTop+=box.top+origin.dy*box.height-center.y;
+},{capture:true});
+for(const type of ['pointerup','pointercancel','lostpointercapture'])view.addEventListener(type,event=>{
+  if(type==='lostpointercapture'&&pinching&&event.target!==view)return;
+  if(!touches.delete(event.pointerId)||!pinching)return;
+  stopTouch(event);gestureOrigin=null;
+  if(!touches.size)pinching=false;
+},{capture:true});
 expand.onclick=()=>enlarge(expand.getAttribute('aria-pressed')!=='true');$('drawingFullSave').onclick=()=>$('drawingSave').click();
 $('drawingFullColor').oninput=()=>{const c=$('drawingFullColor').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;eraser=false;fillMode=false;rememberColor(c);toolSync()}};
-function capture(){return {patches:[],bytes:0,dirty,outlineKey,layers:layers?.map(layer=>({...layer})),activeLayerId,activeTarget}}
+function capture(){return {patches:[],bytes:0,dirty,outlineKey,layers:layers?.map(layer=>({...layer})),groups:groups.map(group=>({...group})),referenceLayerId,activeLayerId,activeTarget}}
 function capturePatch(frame,target,x,y,width,height){
   const pixels=target.getImageData(x,y,width,height);
   frame.patches.push({target,x,y,pixels});frame.bytes+=pixels.data.byteLength;
 }
 function restoreDrawing(frame){
- if(frame.layers){layers=frame.layers;selectLayer(frame.activeLayerId,frame.activeTarget);}
- for(const {target,x,y,pixels} of frame.patches){projectEncoded.delete(target.canvas);target.putImageData(pixels,x,y);}
+ if(frame.layers){layers=frame.layers;groups=frame.groups;referenceLayerId=frame.referenceLayerId;selectLayer(frame.activeLayerId,frame.activeTarget);}
+ for(const {target,x,y,pixels} of frame.patches){invalidateLayer(target.canvas);target.putImageData(pixels,x,y);}
  if(frame.outlineKey!==outlineKey)setOutline(frame.outlineKey);
  dirty=frame.dirty;changed();
  if(layerPanel&&!layerPanel.hidden)showLayerRows();
@@ -1836,7 +1976,7 @@ function line(to,pressure=1){
   const w=eraser?width:Math.max(1,width*pressure),kind=eraser||mask?'solid':effect;
   // Stamps and every current brush stay within twice the brush width of the path.
   captureStrokePatch(to,2*w+4);
-  if(layers)projectEncoded.delete(ctx.canvas);
+  if(layers)invalidateLayer(ctx.canvas);
   const dx=to.x-last.x,dy=to.y-last.y,len=Math.hypot(dx,dy);
   const drawOpacity=mask?opacity:opacity*inkAlpha/255;
   if(stampEffects.has(kind)){
@@ -1859,12 +1999,8 @@ function appendStrokePoint(event,bounds,ending=false){
   line(next,pressure);
   lastPressure=pressure;
 }
-canvas.addEventListener('pointerdown',e=>{
-  if(!pro.hidden||layerPanel&&!layerPanel.hidden||selectionPanel&&!selectionPanel.hidden||filterPanel&&!filterPanel.hidden||modal.classList.contains('canvas-pan')||restoring||e.button>0)return;
-  if(pointer!==null){if(!e.isPrimary)return;endStroke()}
-  e.preventDefault();
-  const p=point(e),x=Math.min(canvas.width-1,Math.floor(p.x)),y=Math.min(canvas.height-1,Math.floor(p.y));
-  if(selection&&(selection.tracking||selection.start(e,p)))return;
+function applyPointTool(p){
+  const x=Math.min(canvas.width-1,Math.floor(p.x)),y=Math.min(canvas.height-1,Math.floor(p.y));
   if(picked){
     const v=composite.getImageData(x,y,1,1).data;
     color='#'+Array.from(v.slice(0,3)).map(channelHex).join('');inkAlpha=layers?v[3]:255;precise?.record(color,inkAlpha);
@@ -1874,15 +2010,30 @@ canvas.addEventListener('pointerdown',e=>{
   if(fillMode){
     const image=ctx.getImageData(0,0,canvas.width,canvas.height);
     const rgba=onMask()?(activeLayer().maskInverted?[0,0,0,0]:[255,255,255,255]):colorChannels(color).concat(inkAlpha);
-    const outline=onMask()||layers&&activeLayerId!==layers[0].id?null:outlineBarrier;
+    const reference=!onMask()&&referenceLayerId&&referenceLayerId!==activeLayerId?layers.find(layer=>layer.id===referenceLayerId):null;
+    const outline=reference?referenceStencil(reference.canvas):onMask()||layers&&activeLayerId!==layers[0].id?null:outlineBarrier;
     const barrier=selection?.barrier(outline)||outline;
     if(artFill(image.data,canvas.width,canvas.height,x,y,rgba,barrier,alphaLocked())){
-      remember();if(layers)projectEncoded.delete(ctx.canvas);ctx.putImageData(image,0,0);protectOutline();dirty=true;changed();
+      remember();if(layers)invalidateLayer(ctx.canvas);ctx.putImageData(image,0,0);protectOutline();dirty=true;changed();
     }
+  }
+}
+canvas.addEventListener('pointerdown',e=>{
+  if(!pro.hidden||layerPanel&&!layerPanel.hidden||selectionPanel&&!selectionPanel.hidden||filterPanel&&!filterPanel.hidden||modal.classList.contains('canvas-pan')||restoring||e.button>0)return;
+  if(pointer!==null){if(!e.isPrimary)return;endStroke()}
+  e.preventDefault();
+  const p=point(e);
+  if(selection&&(selection.tracking||selection.start(e,p)))return;
+  if(picked||fillMode){
+    if(e.pointerType==='touch'){pendingTouchTool=e.pointerId;try{canvas.setPointerCapture(e.pointerId)}catch(error){}}
+    else applyPointTool(p);
     return;
   }
-  const frame=remember(!layers);
+  if(!editableLayer()||eraser&&alphaLocked())return;
+  const frame=capture();
+  if(!layers)capturePatch(frame,ctx,0,0,canvas.width,canvas.height);
   if(layers){projectStroke=frame;frame.tiles=new Set();}
+  stroke={frame,kind:e.pointerType,source:ctx.canvas,encoded:projectEncoded.get(ctx.canvas),confirmed:stored,generation:projectGeneration};
   distance=0;pointer=e.pointerId;last=p;try{canvas.setPointerCapture(pointer)}catch(err){}
   lastPressure=penWidth(e);line(last,lastPressure);protectOutline();dirty=true;projectGeneration++;stored=false;sync();
 });
@@ -1901,6 +2052,11 @@ canvas.addEventListener('pointermove',event=>{
 let previewFrame=0;
 function finish(event){
   if(selection?.tracking){selection.finish(event,point(event));return}
+  if(pendingTouchTool===event.pointerId){
+    pendingTouchTool=null;
+    if(event.type==='pointerup')applyPointTool(point(event));
+    return;
+  }
   if(pointer!==event.pointerId)return;
   if(event.type==='pointerup'){
     appendStrokePoint(event,canvas.getBoundingClientRect(),true);
@@ -1928,7 +2084,7 @@ function drawTemplate(target,key,hero=null,outline=true){
   }
   return known;
 }
-function generate(place,hero,outline){if(restoring||pointer!==null||!replaceableLayer())return false;if(dirty&&!confirm('Начать новую картинку? Старую можно вернуть кнопкой отмены.'))return false;remember();if(layers)projectEncoded.delete(ctx.canvas);setOutline(drawTemplate(ctx,place,hero,outline)?place:null);dirty=true;changed();return true}
+function generate(place,hero,outline){if(restoring||pointer!==null||!replaceableLayer())return false;if(dirty&&!confirm('Начать новую картинку? Старую можно вернуть кнопкой отмены.'))return false;remember();if(layers)invalidateLayer(ctx.canvas);setOutline(drawTemplate(ctx,place,hero,outline)?place:null);dirty=true;changed();return true}
 $('artGenerate').onclick=()=>{if(generate($('artPlace').value,$('artHero').value,$('artMode').value==='outline'))extra(null)};
 $('drawingClear').onclick=()=>{if(restoring||!dirty||!replaceableLayer())return;endStroke();if(!confirm(storage?.current()!==false?'Начать рисунок заново?':'Очистить только этот лист? Другой сохранённый рисунок останется. Можно сначала скачать PNG.'))return;remember();setOutline(null);clearPaper();dirty=false;changed()};
 $('drawingCancel').onclick=async()=>{if(restoring)return;endStroke();if(project){if(await flushProject()&&onProjectCanvas())(openedProject.onReturn||artProjects)();return}if(dirty){persist();if(!stored){toast('Не сохранено. Повтори или скачай PNG.');return}}extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing')closeModal();else form.returnToWords?.(1)};
