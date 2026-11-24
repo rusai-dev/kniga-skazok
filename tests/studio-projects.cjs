@@ -33,7 +33,7 @@ const png = page => page.locator('#drawingCanvas').evaluate(canvas => canvas.toD
 
 const storedCounts = page => page.evaluate(async () => {
   const db = await new Promise((resolve, reject) => {
-    const request = indexedDB.open('skazki-drawing-projects-v1', 1);
+    const request = indexedDB.open('skazki-drawing-projects-v1');
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });

@@ -591,6 +591,41 @@ function newLayerCanvas(width,height){
   return canvas;
 }
 
+function projectRenderer(target,background){
+  const {width,height}=target.canvas;
+  let scratch;
+  function source(layers,layer,index){
+    if(!(layer.mask&&layer.maskEnabled)&&!(layer.clipping&&index>0))return layer.canvas;
+    scratch ||= newLayerCanvas(width,height).getContext('2d');
+    scratch.clearRect(0,0,width,height);
+    scratch.save();scratch.drawImage(layer.canvas,0,0);
+    function applyMask(item){
+      if(!item.mask||!item.maskEnabled)return;
+      scratch.globalCompositeOperation=item.maskInverted?'destination-out':'destination-in';
+      scratch.drawImage(item.mask,0,0);
+    }
+    applyMask(layer);
+    while(layer.clipping&&index>0){
+      layer=layers[--index];
+      if(!layer.visible){scratch.clearRect(0,0,width,height);break}
+      scratch.globalCompositeOperation='destination-in';scratch.drawImage(layer.canvas,0,0);
+      applyMask(layer);
+    }
+    scratch.restore();return scratch.canvas;
+  }
+  return layers=>{
+    target.save();
+    if(background===null)target.clearRect(0,0,width,height);
+    else{target.fillStyle=background||'#fffdf7';target.fillRect(0,0,width,height)}
+    for(const [index,layer] of layers.entries()){
+      if(!layer.visible)continue;
+      target.globalAlpha=layer.opacity;target.globalCompositeOperation=layer.blend;
+      target.drawImage(source(layers,layer,index),0,0);
+    }
+    target.restore();
+  };
+}
+
 function projectLayerCapacity(width,height,masks=0){
   for(let count=12;count>0;count--)if(projectProfile(width,height,count,masks))return count;
   return 0;
@@ -659,6 +694,101 @@ async function prepareProjectArchive(store,file){
 
 function supportsProject(detail){
   return detail&&Array.isArray(detail.layers)&&projectProfile(detail.width,detail.height,detail.layers.length,detail.layers.filter(layer=>layer?.maskHash).length);
+}
+
+async function storyProjectPreview(store,documentId){
+  const saved=await store.read(documentId);
+  if(!saved||!supportsProject(saved.detail))throw Error('project');
+  const {detail}=saved,layers=await loadProjectLayers(saved);
+  const canvas=newLayerCanvas(detail.width,detail.height),context=canvas.getContext('2d',{alpha:false});
+  try{
+    if(!context)throw Error('profile');
+    projectRenderer(context,detail.background||'#ffffff')(layers);
+    return {src:drawingJPEG(canvas),documentId,revision:detail.revision,title:detail.title};
+  }finally{canvas.width=canvas.height=0;for(const layer of layers){layer.canvas.width=0;if(layer.mask)layer.mask.width=0}}
+}
+
+async function showStoryProjects(form,root){
+  if(root.querySelector('#storyProjectPicker'))return;
+  const pane=document.createElement('section'),art=form.storyArt;
+  pane.id='storyProjectPicker';
+  pane.innerHTML='<p id="storyProjectStatus" role="status">Открываем проекты…</p><label class="field" id="storyProjectChoice" hidden>Проект рисунка<select id="storyProjectSelect"></select></label><button type="button" id="storyProjectPreviewButton" hidden>Посмотреть проект</button><div id="storyProjectPreview" hidden><img alt="Предпросмотр иллюстрации"><button type="button" id="attachStoryProject">Вставить в сказку</button><button type="button" id="cancelStoryProject">Отмена</button></div>';
+  root.append(pane);
+  const status=$('storyProjectStatus'),choice=$('storyProjectSelect'),show=$('storyProjectPreviewButton'),preview=$('storyProjectPreview');
+  const insert=$('attachStoryProject'),cancel=$('cancelStoryProject'),body=form.querySelector('#storyBody');
+  const visible=()=>pane.isConnected&&!$('writerArtShelf').hidden&&$('modal').hasAttribute('open');
+  let selection,attempt=0,busy=false;
+  const reset=()=>{attempt++;selection=null;preview.hidden=true;show.disabled=false};
+  choice.onchange=()=>{reset();status.textContent='Выбери проект для иллюстрации.'};
+  cancel.onclick=()=>{reset();status.textContent='Выбери проект для иллюстрации.';show.focus()};
+  try{
+    const store=await studioProjectStore();
+    const projects=await store.list();
+    await Promise.allSettled(art.projectReceipts().map(receipt=>store.finishStoryLink(receipt)));
+    if(!visible())return;
+    status.textContent=projects.length?'Выбери проект для иллюстрации.':'Сохранённые проекты появятся здесь.';
+    if(!projects.length)return;
+    $('storyProjectChoice').hidden=show.hidden=false;
+    for(const {documentId,title} of projects)choice.add(new Option(title,documentId));
+    show.onclick=async()=>{
+      reset();const request=attempt,text=body.value,offset=body.selectionStart;
+      show.disabled=true;status.textContent='Открываем выбранную редакцию…';
+      try{
+        const data=await storyProjectPreview(store,choice.value);
+        if(!visible()||request!==attempt)return;
+        selection={...data,text,offset};preview.querySelector('img').src=data.src;
+        status.textContent='«'+data.title+'»';preview.hidden=false;insert.focus();
+      }catch(error){if(visible()&&request===attempt)status.textContent='Не удалось открыть выбранный проект.'}
+      finally{if(request===attempt)show.disabled=false}
+    };
+    insert.onclick=async()=>{
+      if(busy||!selection||!visible())return;
+      const selected=selection,scope=art.projectScope(),text=body.value;
+      const same=receipt=>receipt.documentId===selected.documentId&&receipt.revision===selected.revision;
+      if(art.projectReceipts().some(same)){status.textContent='Эта редакция уже в сказке.';return}
+      const offset=text===selected.text?selected.offset:body.selectionStart;
+      if(text!==selected.text&&!confirm('Текст изменился. Вставить рисунок рядом с текущим положением курсора?'))return;
+      let receipt,lease,attached=false;
+      busy=true;choice.disabled=insert.disabled=cancel.disabled=show.disabled=true;
+      try{
+        const entry=await store.beginStoryLink(scope,selected.documentId,selected.revision);
+        ({lease}=entry);
+        const {id,documentId,revision}=entry;receipt={id,scope,documentId,revision};
+        if(!visible())return;
+        if(body.value!==text||art.projectScope()!==scope){status.textContent='Текст изменился. Проверь место и повтори.';return}
+        attached=art.attachProject(receipt,selected.src,offset);
+        if(!attached){status.textContent='Не удалось вставить рисунок. Проверь, есть ли свободное место, и повтори.';return}
+        // The receipt was saved with the text. A failed final write is repaired on reopen.
+        await store.finishStoryLink(receipt).catch(()=>{});
+        if(visible()){$('writerArtShelf').hidden=true;$('writerGallery').setAttribute('aria-expanded','false');form.returnToWords(1);toast('Рисунок добавлен в сказку.')}
+      }catch(error){if(visible())status.textContent=error.message==='link-busy'?'В другой вкладке идёт вставка. Подожди и повтори.':'Вставка не сохранилась. Попробуй ещё раз.'}
+      finally{
+        if(receipt&&!attached)await store.releaseStoryLink(receipt,lease).catch(()=>{});
+        busy=false;choice.disabled=insert.disabled=cancel.disabled=show.disabled=false;
+      }
+    };
+  }catch(error){if(visible())status.textContent='Локальные проекты сейчас недоступны.'}
+}
+
+async function openStoryProject(form,receipt,returnWriter){
+  const visible=()=>form.isConnected&&$('modal').hasAttribute('open');
+  try{
+    const store=await studioProjectStore();
+    await store.finishStoryLink(receipt).catch(()=>{});
+    const saved=await store.read(receipt.documentId);
+    if(!saved||!supportsProject(saved.detail))throw Error('project');
+    const layers=await loadProjectLayers(saved);
+    if(!visible())return;
+    form.flushStoryDraft?.();
+    if(form.dataset.saveFailed==='yes'){toast('Сначала сохрани текст сказки.');return}
+    const body=form.querySelector('#storyBody'),text=body.value,top=body.scrollTop;
+    const selection=[body.selectionStart,body.selectionEnd,body.selectionDirection];
+    renderArtRoom({store,detail:saved.detail,layers,onReturn:()=>{
+      returnWriter();
+      const writer=$('storyBody');
+      if(writer?.value===text){writer.setSelectionRange(...selection);writer.scrollTop=top}
+    }});
+  }catch(error){if(visible())toast('Не удалось открыть слои. Иллюстрация осталась в сказке.')}
 }
 
 function setupProjectImport(store,status,visible){
@@ -794,7 +924,7 @@ let project=openedProject?.detail,projectWrite=null,projectGeneration=0;
 let projectTimer,projectDeadline=0,projectStroke;
 const projectUndoLimit=128,projectUndoBytes=48*1024*1024;
 let layers=openedProject?.layers,activeLayerId=project?.activeLayerId||layers?.[0].id;
-let activeTarget=project?.activeTarget||'layer',layerBuffer;
+let activeTarget=project?.activeTarget||'layer';
 const activeLayer=()=>layers.find(layer=>layer.id===activeLayerId);
 const onMask=()=>activeTarget==='mask';
 const alphaLocked=()=>!!layers&&!onMask()&&activeLayer().alphaLock;
@@ -811,41 +941,8 @@ function replaceableLayer(){
   $('drawingStatus').textContent='Выбери слой без альфа-замка, чтобы очистить его или открыть раскраску.';
   return false;
 }
-function renderProject(){
-  if(!layers)return;
-  composite.save();
-  if(transparent)composite.clearRect(0,0,canvas.width,canvas.height);
-  else{composite.fillStyle=paper;composite.fillRect(0,0,canvas.width,canvas.height)}
-  for(let index=0;index<layers.length;index++){
-    const layer=layers[index];
-    if(!layer.visible)continue;
-    composite.globalAlpha=layer.opacity;
-    composite.globalCompositeOperation=layer.blend;
-    composite.drawImage(layerSource(layer,index),0,0);
-  }
-  composite.restore();
-}
-
-function layerSource(layer,index){
-  if(!(layer.mask&&layer.maskEnabled)&&!(layer.clipping&&index>0))return layer.canvas;
-  layerBuffer ||= newLayerCanvas(canvas.width,canvas.height);
-  const buffer=layerBuffer.getContext('2d');
-  buffer.clearRect(0,0,canvas.width,canvas.height);
-  buffer.save();buffer.drawImage(layer.canvas,0,0);
-  function applyMask(target){
-    if(!target.mask||!target.maskEnabled)return;
-    buffer.globalCompositeOperation=target.maskInverted?'destination-out':'destination-in';
-    buffer.drawImage(target.mask,0,0);
-  }
-  applyMask(layer);
-  while(layer.clipping&&index>0){
-    layer=layers[--index];
-    if(!layer.visible){buffer.clearRect(0,0,canvas.width,canvas.height);break}
-    buffer.globalCompositeOperation='destination-in';buffer.drawImage(layer.canvas,0,0);
-    applyMask(layer);
-  }
-  buffer.restore();return layerBuffer;
-}
+const renderLayers=project?projectRenderer(composite,profile.background):null;
+function renderProject(){if(renderLayers)renderLayers(layers)}
 
 function selectLayer(id,target='layer'){
   activeLayerId=id;
@@ -1298,8 +1395,8 @@ function drawTemplate(target,key,hero=null,outline=true){
 function generate(place,hero,outline){if(restoring||pointer!==null||!replaceableLayer())return false;if(dirty&&!confirm('Начать новую картинку? Старую можно вернуть кнопкой отмены.'))return false;remember();if(layers)projectEncoded.delete(ctx.canvas);setOutline(drawTemplate(ctx,place,hero,outline)?place:null);dirty=true;changed();return true}
 $('artGenerate').onclick=()=>{if(generate($('artPlace').value,$('artHero').value,$('artMode').value==='outline'))extra(null)};
 $('drawingClear').onclick=()=>{if(restoring||!dirty||!replaceableLayer())return;endStroke();if(!confirm(storage?.current()!==false?'Начать рисунок заново?':'Очистить только этот лист? Другой сохранённый рисунок останется. Можно сначала скачать PNG.'))return;remember();setOutline(null);clearPaper();dirty=false;changed()};
-$('drawingCancel').onclick=async()=>{if(restoring)return;endStroke();if(project){if(await flushProject()&&onProjectCanvas())artProjects();return}if(dirty){persist();if(!stored){toast('Не сохранено. Повтори или скачай PNG.');return}}extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing')closeModal();else form.returnToWords?.(1)};
-$('drawingSave').onclick=async()=>{if($('drawingSave').disabled)return;endStroke();if(project){if(await flushProject()&&onProjectCanvas())artProjects();return}try{if(!insertPicture(drawingJPEG(canvas),art&&canvas.toDataURL()))return;dirty=false;undo=[];redo=[];setOutline(null);clearPaper();if(!art)persist();extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing'){artGallery()}else{form.returnToWords?.(1);toast('Рисунок добавлен в сказку.')}}catch(e){toast('Повтори сохранение или скачай PNG.')}};
+$('drawingCancel').onclick=async()=>{if(restoring)return;endStroke();if(project){if(await flushProject()&&onProjectCanvas())(openedProject.onReturn||artProjects)();return}if(dirty){persist();if(!stored){toast('Не сохранено. Повтори или скачай PNG.');return}}extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing')closeModal();else form.returnToWords?.(1)};
+$('drawingSave').onclick=async()=>{if($('drawingSave').disabled)return;endStroke();if(project){if(await flushProject()&&onProjectCanvas())(openedProject.onReturn||artProjects)();return}try{if(!insertPicture(drawingJPEG(canvas),art&&canvas.toDataURL()))return;dirty=false;undo=[];redo=[];setOutline(null);clearPaper();if(!art)persist();extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing'){artGallery()}else{form.returnToWords?.(1);toast('Рисунок добавлен в сказку.')}}catch(e){toast('Повтори сохранение или скачай PNG.')}};
 $('drawingRescue').onclick=()=>{if(restoring||!dirty)return;if(project){exportProjectImage('image/png');return}endStroke();try{const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='moi-risunok.png';document.body.append(a);a.click();a.remove()}catch(e){toast('Не удалось скачать рисунок.')}};
 form.openDrawing=()=>{form.classList.remove('keyboard-writing','keyboard-title');panel.hidden=false;focusDrawing(true);setZoom(0);if(art){$('drawingSave').textContent=$('drawingFullSave').textContent=art.editing?'Готово':'Вставить в сказку'}};
 form.loadDrawing=(src,outline)=>{
@@ -1322,7 +1419,7 @@ dirty=stored=true;restoring=false;sync();$('drawingStatus').textContent='Про�
 image.onerror=failed;
 image.src=src
 };
-if(project){$('drawingSave').textContent=$('drawingFullSave').textContent='Сохранить проект';setOutline(project.outline);dirty=stored=true;renderProject();sync();$('drawingStatus').textContent='Продолжай свой сохранённый рисунок.';setupLayerPanel();}
+if(project){if(openedProject.onReturn){form.dataset.storyLink='yes';$('drawingCancel').textContent='К сказке';$('close').onclick=()=>$('drawingCancel').click()}$('drawingSave').textContent=$('drawingFullSave').textContent='Сохранить проект';setOutline(project.outline);dirty=stored=true;renderProject();sync();$('drawingStatus').textContent='Продолжай свой сохранённый рисунок.';setupLayerPanel();}
 else if(!art){const item=storage.load();form.loadDrawing(item.src,item.outline)}
 if(form.id==='standaloneDrawing')focusDrawing(true);else if(!art)$('drawingFullSave').textContent='Вставить в сказку';
 }

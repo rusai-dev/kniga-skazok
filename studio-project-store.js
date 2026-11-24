@@ -8,9 +8,10 @@ function createStudioProjectStore(database, digest, identity) {
   function open() {
     if (!connection) {
       connection = new Promise((resolve, reject) => {
-        const request = database.open(dbName, 1);
+        const request = database.open(dbName, 2);
         request.onupgradeneeded = () => {
-          for (const name of tables) request.result.createObjectStore(name);
+          const db = request.result;
+          for (const name of [...tables, 'storyLinks']) if (!db.objectStoreNames.contains(name)) db.createObjectStore(name);
         };
         request.onsuccess = () => {
           const db = request.result;
@@ -35,6 +36,7 @@ function createStudioProjectStore(database, digest, identity) {
   }
 
   const validId = value => typeof value === 'string' && value.length > 0 && value.length <= 180;
+  const validScope = value => typeof value === 'string' && value.length > 0 && value.length <= 640;
   const isHash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
   const blends = ['source-over', 'multiply', 'screen', 'overlay', 'darken', 'lighten', 'soft-light'];
   const layerMetadata = layer => ({name: layer.name || 'Слой', visible: layer.visible !== false,
@@ -138,7 +140,7 @@ function createStudioProjectStore(database, digest, identity) {
     });
   }
 
-  async function read(documentId, includeHistory = false) {
+  async function read(documentId, includeHistory = false, revisionId = null) {
     const result = await transact(tables, 'readonly', (tx, done, abort) => {
       const document = tx.objectStore('documents').get(documentId);
       document.onsuccess = () => {
@@ -178,7 +180,7 @@ function createStudioProjectStore(database, digest, identity) {
             done({detail: chain[0], revisions: chain.reverse(), pixels});
           };
         }
-        load(head.revision);
+        load(revisionId || head.revision);
       };
     });
     if (result) {
@@ -241,5 +243,55 @@ function createStudioProjectStore(database, digest, identity) {
     });
   }
 
-  return {list, read, commit, validateArchive, restore};
+  function beginStoryLink(scope, documentId, revision) {
+    if (!validScope(scope) || ![documentId, revision].every(validId)) return Promise.reject(Error('link'));
+    const key = JSON.stringify([scope, documentId, revision]);
+    return transact(['revisions', 'storyLinks'], 'readwrite', (tx, done, abort) => {
+      const source = tx.objectStore('revisions').get(revision);
+      source.onsuccess = () => {
+        if (source.result?.documentId !== documentId) return abort('revision');
+        const journal = tx.objectStore('storyLinks');
+        const read = journal.get(key);
+        read.onsuccess = () => {
+          const existing = read.result;
+          const now = Date.now();
+          if (existing?.phase === 'pending' && existing.leaseUntil > now) return abort('link-busy');
+          const prior = existing?.phase === 'pending' ? existing : {id: identity(), scope, documentId, revision, phase: 'pending', createdAt: now};
+          const entry = {...prior, lease: identity(), leaseUntil: now+10000};
+          journal.put(entry, key);
+          done(entry);
+        };
+      };
+    });
+  }
+
+  function finishStoryLink(receipt) {
+    const {id, scope, documentId, revision} = receipt || {};
+    if (!validScope(scope) || ![id, documentId, revision].every(validId)) return Promise.reject(Error('link'));
+    return transact(['storyLinks'], 'readwrite', (tx, done) => {
+      const key = JSON.stringify([scope, documentId, revision]);
+      const journal = tx.objectStore('storyLinks'), read = journal.get(key);
+      read.onsuccess = () => {
+        const entry = read.result;
+        if (entry?.id !== id) { done(false); return; }
+        if (entry.phase === 'pending') journal.put({...entry, phase: 'committed', leaseUntil: 0}, key);
+        done(true);
+      };
+    });
+  }
+
+  function releaseStoryLink(receipt, lease) {
+    const {id, scope, documentId, revision} = receipt;
+    return transact(['storyLinks'], 'readwrite', (tx, done) => {
+      const key = JSON.stringify([scope, documentId, revision]);
+      const journal = tx.objectStore('storyLinks'), read = journal.get(key);
+      read.onsuccess = () => {
+        const entry = read.result;
+        if (entry?.id === id && entry.lease === lease && entry.phase === 'pending') journal.put({...entry, leaseUntil: 0}, key);
+        done(true);
+      };
+    });
+  }
+
+  return {list, read, commit, validateArchive, restore, beginStoryLink, finishStoryLink, releaseStoryLink};
 }

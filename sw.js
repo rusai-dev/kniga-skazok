@@ -2,19 +2,19 @@
 'use strict';
 const REV='1.5.207',ART_CACHE='skazki-book-art-v1';
 // BEGIN GENERATED SHELL INTEGRITY
-const SHELL_FINGERPRINT='7c292ad7ba76850603cd581c';
+const SHELL_FINGERPRINT='c6cfe329e0643b53d14983a4';
 const SHELL_SHA256={
-  "index.html": "2400ba7227ade67face3b2c347eefc555cfa3379be649bc4e60a5734666ceacf",
+  "index.html": "b4fbcd9f00d2ce0b95157eed68a365cc400b8ceaf160afe597ae0c96ef37483f",
   "classic-art-153.js?v=1.5.207": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
   "classic-art-155.js?v=1.5.207": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8",
   "andersen-art-156.js?v=1.5.207": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b",
   "learning-art-1536.css?v=1.5.207": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7",
   "world-scenes-194.js?v=1.5.207": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4",
-  "studio-drawings.js?v=1.5.207": "56b17984e191a188b390229dfdff2ce48ae5dae3c28906ea0103cf8f2339b052",
+  "studio-drawings.js?v=1.5.207": "05111d4188b328e1cd2c7cf5465b4ff5da111618cc04d88c590ef71c9bae536f",
   "studio-layout.css?v=1.5.207": "acddc9e0a1decaa03d53be13a52db8932fc4088840cd3208e518c1d86039daeb",
   "studio-friends.js?v=1.5.207": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858",
-  "studio-engine-208.js?v=1.5.207": "f85c1b5229038cc826039fca6edb76ca17736fa7b4e9a3ba01cca084d3189ea1",
-  "studio-project-store.js?v=1.5.207": "964a9a05155ac0c548b5f5c7bedaa40106ab29dd146f043c7ed1f53f5ca28a64",
+  "studio-engine-208.js?v=1.5.207": "ff9cf9fda308f8f11f1754a7e9e944edd3f9d5b782daf293d94d5f11262ef55d",
+  "studio-project-store.js?v=1.5.207": "1e2af0529e67646ec9211da72e96ae7eb6e8abb8651e4b77a9baab929ab69eaa",
   "assets/ui/home-sprite-1548.webp": "1e974ad768ec11b50d63b52675b99621b6d28667e22f06bbcb318bcb687a3ed8",
   "assets/ui/learning-sprite-1536.webp": "e4b8ec07f3417b50023021aa542de958db0a4df397864b5687da50584e9208fd",
   "assets/ui/writer-squirrel-144-v1.webp": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee",

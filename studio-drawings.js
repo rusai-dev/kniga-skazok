@@ -73,6 +73,9 @@ function storyStudio(form, from, host) {
       root.lastElementChild.prepend(preview);
     });
     addButton(root, 'Новый рисунок', () => open({ id: host.id() }));
+    addButton(root, 'Проекты рисунков', async () => {
+      if (await loadDrawingEngine() && root.isConnected) showStoryProjects(form, root);
+    });
     const legacy = host.legacy();
     if (legacy) addButton(root, 'Копировать незаконченный рисунок', () => open({ id: host.id(), src: legacy }));
   }
@@ -114,7 +117,8 @@ function storyStudio(form, from, host) {
       src,
       previewKey: drawingFingerprint(preview),
       previous: prior?.src || host.preview(slot) || undefined,
-      previousPreview: host.preview(slot) || undefined
+      previousPreview: host.preview(slot) || undefined,
+      previousProject: prior?.project
     };
     const next = { originals, sheets: state.sheets.filter(sheet => sheet.id !== current.id) };
     const saved = write(next, () => current.slot === undefined ? host.insert(preview, false, anchor.offset) : host.replace(slot, preview));
@@ -142,18 +146,31 @@ function storyStudio(form, from, host) {
     Array.from(tray.children).forEach(card => {
       const slot = Number(card.querySelector('[data-picture]').dataset.picture);
       const prior = state.originals[slot];
+      if (prior?.project && prior.previewKey === previewKey(slot)) {
+        addButton(card, 'Открыть слои', async () => {
+          if (await loadDrawingEngine() && card.isConnected) openStoryProject(form, prior.project, host.returnWriter);
+        });
+      }
       if (!prior?.previous || !prior.previousPreview || prior.previewKey !== previewKey(slot)) return;
       addButton(card, 'Вернуть прежний рисунок', () => {
         const originals = state.originals.slice();
         originals[slot] = {
           id: prior.id, revision: host.id(), src: prior.previous,
           previewKey: drawingFingerprint(prior.previousPreview),
-          previous: prior.src, previousPreview: host.preview(slot)
+          previous: prior.src, previousPreview: host.preview(slot), project: prior.previousProject, previousProject: prior.project
         };
         write({ ...state, originals }, () => host.replace(slot, prior.previousPreview));
         host.paint();
       }).className = 'cover-choice';
     });
+  }
+
+  function attachProject(receipt, src, offset) {
+    const slot = host.free();
+    if (slot >= 5) return false;
+    const originals = state.originals.slice();
+    originals[slot] = {id: receipt.id, revision: receipt.revision, src, previewKey: drawingFingerprint(src), project: receipt};
+    return write({ ...state, originals }, () => host.insert(src, false, offset));
   }
 
   function result(bookId) {
@@ -184,6 +201,9 @@ function storyStudio(form, from, host) {
   tools.lastElementChild.id = 'studioBackFull';
 
   return {
+    projectScope: host.scope,
+    projectReceipts: () => state.originals.flatMap((item, i) => item?.project && item.previewKey === previewKey(i) ? [item.project] : []),
+    attachProject,
     get data() {
       const caret = [body.selectionStart, body.selectionEnd, body.scrollTop];
       return state.sheets.length || state.originals.some(Boolean) || caret.some(Boolean) ? { ...state, caret, direction: body.selectionDirection } : undefined;
@@ -203,6 +223,7 @@ function validStoryStudio(value) {
   const image = src => typeof src === 'string' && src.length <= 3000000 &&
     /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(src);
   const record = item => item && typeof item.id === 'string' && item.id.length <= 180 && image(item.src);
+  const link = p => p === undefined || p && [p.id,p.documentId,p.revision,p.scope].every(x => typeof x === 'string' && x.length > 0 && x.length <= 640);
   return value && (value.caret === undefined || Array.isArray(value.caret) &&
     value.caret.length === 3 && value.caret.every(n => Number.isFinite(n) && n >= 0)) &&
     (value.direction === undefined || ['none', 'forward', 'backward'].includes(value.direction)) &&
@@ -211,7 +232,7 @@ function validStoryStudio(value) {
       Number.isInteger(sheet.slot) && sheet.slot >= 0 && sheet.slot < 5)) &&
     new Set(value.sheets.map(sheet => sheet.id)).size === value.sheets.length &&
     Array.isArray(value.originals) && value.originals.length <= 5 &&
-    value.originals.every(item => item === null || record(item) && typeof item.revision === 'string' &&
+    value.originals.every(item => item === null || record(item) && typeof item.revision === 'string' && link(item.project) && link(item.previousProject) &&
       (item.previous === undefined || image(item.previous)) &&
       (item.previousPreview === undefined || image(item.previousPreview)));
 }
