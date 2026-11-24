@@ -2072,27 +2072,53 @@ function changed(){projectGeneration++;stored=false;renderProject();sync();if(pr
 function lesson(){const item=drawingLesson($('lessonSubject').value,lessonStep);$('lessonPicture').innerHTML=item.svg;$('lessonInstruction').textContent=item.instruction;$('lessonPrev').disabled=lessonStep===0;$('lessonNext').disabled=lessonStep===item.total-1;$('lessonNext').textContent=lessonStep===item.total-1?'Урок завершён':'Следующий шаг';$('lessonPicture').setAttribute('aria-label','Образец: шаг '+(lessonStep+1)+' из '+item.total)}
 $('lessonSubject').onchange=()=>{lessonStep=0;lesson()};$('lessonPrev').onclick=()=>{lessonStep=Math.max(0,lessonStep-1);lesson()};$('lessonNext').onclick=()=>{const total=drawingLesson($('lessonSubject').value,lessonStep).total;lessonStep=Math.min(total-1,lessonStep+1);lesson()};
 const expand=$('drawingExpand'),view=$('studioViewport'),detail=$('drawingDetail'),pan=$('drawingPan'),modal=$('modal');
-const zoomLevels=[1,1.4,1.8,2.2],zoomOut=$('drawingZoomOut'),zoomIn=$('drawingZoomIn');let zoom=0;
+const zoomLevels=project?[0,1,2,4,8]:[1,1.4,1.8,2.2],zoomOut=$('drawingZoomOut'),zoomIn=$('drawingZoomIn');
+let zoom=0;
 function panMode(on){modal.classList.toggle('canvas-pan',on);pan.setAttribute('aria-pressed',String(on));pan.setAttribute('aria-label',on?'Вернуться к рисованию':'Двигать лист')}
-function setZoom(level){
+function displayZoom(scale,native){
+ const zoomed=native||scale>1;
+ if(native)view.dataset.nativeZoom='yes';else delete view.dataset.nativeZoom;
+ view.dataset.scale=scale;modal.classList.toggle('canvas-detail',zoomed);
+ detail.setAttribute('aria-pressed',String(zoomed));
+ detail.setAttribute('aria-label',zoomed?'Весь лист':project?'Показать в масштабе 100%':'Увеличить лист');
+ detail.textContent=project&&!native?'Весь лист':Math.round(scale*100)+'%';
+ zoomOut.disabled=!zoomed;zoomIn.disabled=scale>=zoomLevels[zoomLevels.length-1];
+ if(!zoomed)panMode(false);
+ drawingFitHandler?.();
+}
+function moveZoom(scale,native){
  const before=canvas.getBoundingClientRect(),frame=view.getBoundingClientRect();
  const x=(frame.left+view.clientWidth/2-before.left)/(before.width||1),y=(frame.top+view.clientHeight/2-before.top)/(before.height||1);
- zoom=Math.max(0,Math.min(zoomLevels.length-1,level));
- view.dataset.scale=zoomLevels[zoom];modal.classList.toggle('canvas-detail',zoom>0);
- detail.setAttribute('aria-pressed',String(zoom>0));detail.setAttribute('aria-label',zoom?'Весь лист':'Увеличить лист');
- detail.textContent=Math.round(zoomLevels[zoom]*100)+'%';zoomOut.disabled=!zoom;zoomIn.disabled=zoom===zoomLevels.length-1;
- if(!zoom)panMode(false);
- drawingFitHandler?.();
+ displayZoom(scale,native);
  const after=canvas.getBoundingClientRect();
- view.scrollLeft=zoom?view.scrollLeft+after.left+after.width*x-frame.left-view.clientWidth/2:0;
- view.scrollTop=zoom?view.scrollTop+after.top+after.height*y-frame.top-view.clientHeight/2:0;
+ const zoomed=native||scale>1;
+ view.scrollLeft=zoomed?view.scrollLeft+after.left+after.width*x-frame.left-view.clientWidth/2:0;
+ view.scrollTop=zoomed?view.scrollTop+after.top+after.height*y-frame.top-view.clientHeight/2:0;
 }
-function enlarge(on){endStroke();if(!pro.hidden)showPro(false);const before=canvas.getBoundingClientRect().width;modal.classList.toggle('canvas-full',on);expand.setAttribute('aria-pressed',String(on));expand.textContent=on?'↙ Уменьшить':'⛶ На весь экран';setZoom(zoom);if(on&&!zoom&&canvas.getBoundingClientRect().width<before*1.12)setZoom(1);expand.focus({preventScroll:true})}
-detail.onclick=()=>{if(pointer===null)setZoom(zoom?0:1)};
-zoomOut.onclick=()=>{if(pointer===null)setZoom(zoom-1)};
-zoomIn.onclick=()=>{if(pointer===null)setZoom(zoom+1)};
+function setZoom(level){
+ zoom=Math.max(0,Math.min(zoomLevels.length-1,level));
+ moveZoom(zoomLevels[zoom]||1,!!project&&zoom>0);
+}
+function stepZoom(direction){
+ if(pointer!==null||pinching)return;
+ if(!project){setZoom(zoom+direction);return}
+ if(!view.dataset.nativeZoom){if(direction>0)setZoom(1);return}
+ const scale=Number(view.dataset.scale);
+ const level=direction>0?zoomLevels.findIndex(value=>value>scale):zoomLevels.filter(value=>value<scale).length-1;
+ if(level>=0)setZoom(level);
+}
+function enlarge(on){endStroke();if(!pro.hidden)showPro(false);const before=canvas.getBoundingClientRect().width;modal.classList.toggle('canvas-full',on);expand.setAttribute('aria-pressed',String(on));expand.textContent=on?'↙ Уменьшить':'⛶ На весь экран';if(view.dataset.nativeZoom)moveZoom(Number(view.dataset.scale),true);else setZoom(zoom);if(!project&&on&&!zoom&&canvas.getBoundingClientRect().width<before*1.12)setZoom(1);expand.focus({preventScroll:true})}
+detail.onclick=()=>{if(pointer===null&&!pinching)setZoom((project?view.dataset.nativeZoom:zoom)?0:1)};
+zoomOut.onclick=()=>stepZoom(-1);
+zoomIn.onclick=()=>stepZoom(1);
 pan.onclick=()=>{if(pointer===null)panMode(!modal.classList.contains('canvas-pan'))};
-let drag=null;view.addEventListener('pointerdown',e=>{if(!modal.classList.contains('canvas-pan')||drag||e.button>0)return;e.preventDefault();drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:view.scrollLeft,top:view.scrollTop};try{view.setPointerCapture(e.pointerId)}catch(err){}});
+let drag=null,spacePan=false;
+view.addEventListener('pointerdown',e=>{
+  if(!(modal.classList.contains('canvas-pan')||spacePan&&e.pointerType==='mouse')||drag||pointer!==null||e.button>0)return;
+  e.preventDefault();e.stopPropagation();
+  drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:view.scrollLeft,top:view.scrollTop};
+  try{view.setPointerCapture(e.pointerId)}catch(error){}
+},{capture:true});
 view.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId){view.scrollLeft=drag.left+drag.x-e.clientX;view.scrollTop=drag.top+drag.y-e.clientY}});
 for(const event of ['pointerup','pointercancel','lostpointercapture'])view.addEventListener(event,e=>{if(drag&&drag.id===e.pointerId)drag=null});
 
@@ -2117,7 +2143,8 @@ view.addEventListener('pointerdown',event=>{
     pendingTouchTool=null;
     for(const id of touches.keys())captureTouch(id);
     const center=touchCenter(),bounds=canvas.getBoundingClientRect();
-    gestureOrigin={...center,scale:Number(view.dataset.scale)||1,dx:(center.x-bounds.left)/bounds.width,dy:(center.y-bounds.top)/bounds.height};
+    const scale=project&&!view.dataset.nativeZoom?bounds.width/canvas.width:Number(view.dataset.scale)||1;
+    gestureOrigin={...center,scale,dx:(center.x-bounds.left)/bounds.width,dy:(center.y-bounds.top)/bounds.height};
   }else captureTouch(event.pointerId);
 },{capture:true});
 view.addEventListener('pointermove',event=>{
@@ -2127,12 +2154,10 @@ view.addEventListener('pointermove',event=>{
   stopTouch(event);
   if(touches.size!==2||!gestureOrigin)return;
   const center=touchCenter(),origin=gestureOrigin;
-  const scale=Math.max(1,Math.min(8,origin.scale*center.distance/origin.distance));
-  zoom=zoomLevels.findIndex(level=>level>=scale);if(zoom<0)zoom=zoomLevels.length-1;
-  view.dataset.scale=scale;modal.classList.toggle('canvas-detail',scale>1);
-  detail.setAttribute('aria-pressed',String(scale>1));detail.setAttribute('aria-label',scale>1?'Весь лист':'Увеличить лист');
-  detail.textContent=Math.round(scale*100)+'%';zoomOut.disabled=scale===1;zoomIn.disabled=zoom===zoomLevels.length-1;
-  drawingFitHandler?.();
+  const minimum=project?Math.min(.25,origin.scale):1;
+  const scale=Math.max(minimum,Math.min(8,origin.scale*center.distance/origin.distance));
+  if(!project){zoom=zoomLevels.findIndex(level=>level>=scale);if(zoom<0)zoom=zoomLevels.length-1}
+  displayZoom(scale,!!project);
   const box=canvas.getBoundingClientRect();
   view.scrollLeft+=box.left+origin.dx*box.width-center.x;view.scrollTop+=box.top+origin.dy*box.height-center.y;
 },{capture:true});
@@ -2274,6 +2299,7 @@ canvas.addEventListener('pointerdown',e=>{
   if(!pro.hidden||layerPanel&&!layerPanel.hidden||selectionPanel&&!selectionPanel.hidden||filterPanel&&!filterPanel.hidden||modal.classList.contains('canvas-pan')||restoring||e.button>0)return;
   if(pointer!==null){if(!e.isPrimary)return;endStroke()}
   e.preventDefault();
+  if(e.pointerType==='mouse')canvas.focus({preventScroll:true});
   const p=point(e);
   if(selection&&(selection.tracking||selection.start(e,p)))return;
   if(picked||fillMode){
@@ -2331,6 +2357,39 @@ function finish(event){
 for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,finish);
 $('drawingUndo').onclick=()=>exchangeHistory(undo,redo);
 $('drawingRedo').onclick=()=>exchangeHistory(redo,undo);
+canvas.tabIndex=0;
+canvas.addEventListener('blur',()=>{spacePan=false});
+canvas.addEventListener('keyup',event=>{if(event.code==='Space')spacePan=false});
+const shortcutTools={KeyB:'brush',KeyE:'eraser',KeyI:'pick'};
+for(const [code,tool] of Object.entries(shortcutTools)){
+  for(const button of panel.querySelectorAll('[data-tool="'+tool+'"]'))button.setAttribute('aria-keyshortcuts',code.slice(-1));
+}
+$('drawingUndo').setAttribute('aria-keyshortcuts','Control+Z Meta+Z');
+$('drawingRedo').setAttribute('aria-keyshortcuts','Control+Shift+Z Meta+Shift+Z');
+const keyHelp=document.createElement('small');
+keyHelp.textContent='B — кисть, E — ластик, I — пипетка. + и − меняют масштаб. Ctrl или ⌘ + Z отменяет действие. Добавь Shift для повтора. Пробел и перетаскивание двигают увеличенный лист.';
+$('studioMore').append(keyHelp);
+panel.addEventListener('keydown',event=>{
+  if(event.defaultPrevented||event.isComposing||event.altKey||restoring||!modal.classList.contains('drawing-focus'))return;
+  if(event.key==='Escape'&&!pro.hidden){event.preventDefault();showPro(false);return}
+  if(event.target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"])'))return;
+  if(pointer!==null||pinching||selection?.tracking)return;
+  const modified=event.ctrlKey||event.metaKey;
+  if(event.code==='KeyZ'&&modified){
+    event.preventDefault();$(event.shiftKey?'drawingRedo':'drawingUndo').click();return;
+  }
+  if(modified)return;
+  if(event.code==='Space'&&event.target===canvas){event.preventDefault();spacePan=true;return}
+  const tool=shortcutTools[event.code];
+  if(tool){event.preventDefault();panel.querySelector('[data-tool="'+tool+'"]').click();return}
+  if(event.key==='+'||event.key==='='||event.key==='-'){
+    event.preventDefault();(event.key==='-'?zoomOut:zoomIn).click();return;
+  }
+  if(event.key==='Escape'){
+    if(selection?.active){event.preventDefault();selection.clear()}
+    else if(modal.classList.contains('canvas-full')){event.preventDefault();enlarge(false)}
+  }
+});
 function loadPremiumColoring(){if(restoring||pointer!==null||!replaceableLayer())return;if(dirty&&!confirm('Начать новую раскраску? Старую можно вернуть кнопкой отмены.'))return;restoring=true;sync();const img=new Image();img.onload=()=>{if($('drawingCanvas')!==canvas)return;remember();setOutline(null);clearPaper();const f=studioFitImage(canvas.width,canvas.height,img.naturalWidth||img.width,img.naturalHeight||img.height);ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(img,f.x,f.y,f.w,f.h);ctx.restore();dirty=true;restoring=false;picked=false;eraser=false;fillMode=true;effect='solid';toolSync();changed();extra(null)};img.onerror=()=>{restoring=false;sync();toast('Не удалось открыть раскраску. Попробуй с интернетом или выбери другую.')};img.src=premiumArt.coloring}
 function drawTemplate(target,key,hero=null,outline=true){
   if(!hero&&!ORIGINAL_COLORING_IDS.includes(key))return false;
@@ -2376,5 +2435,5 @@ image.src=src
 };
 if(project){if(openedProject.onReturn){form.dataset.storyLink='yes';$('drawingCancel').textContent='К сказке';$('close').onclick=()=>$('drawingCancel').click()}$('drawingSave').textContent=$('drawingFullSave').textContent='Сохранить проект';setOutline(project.outline);dirty=stored=true;renderProject();sync();$('drawingStatus').textContent='Продолжай свой сохранённый рисунок.';setupLayerPanel();setupSelectionPanel();setupProjectFilters();}
 else if(!art){const item=storage.load();form.loadDrawing(item.src,item.outline)}
-if(form.id==='standaloneDrawing')focusDrawing(true);else if(!art)$('drawingFullSave').textContent='Вставить в сказку';
+if(form.id==='standaloneDrawing'){focusDrawing(true);if(project)setZoom(0)}else if(!art)$('drawingFullSave').textContent='Вставить в сказку';
 }

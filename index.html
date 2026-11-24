@@ -308,7 +308,7 @@ if(!on){const pro=$('studioProPane');if(pro){pro.hidden=true;$('studioPro').setA
 if(!modal.classList.contains('drawing-focus'))drawingReturn={title:$('modalTitle').textContent,scroll:modal.scrollTop};
 modal.classList.add('drawing-focus');$('modalTitle').textContent='Моя рисовальная мастерская';modal.scrollTop=0;
 const sheet=$('studioViewport'),canvas=$('drawingCanvas');
-const fit=()=>{if(!sheet.isConnected)return;const result=studioFit(sheet.clientWidth-4,sheet.clientHeight-4,canvas.width/canvas.height);if(result){const scale=Number(sheet.dataset.scale)||1;canvas.style.width=Math.floor(result.width*scale)+'px';canvas.style.height=Math.floor(result.height*scale)+'px';canvas.repaintSelection?.()}};
+const fit=()=>{if(!sheet.isConnected)return;const result=studioFit(sheet.clientWidth-4,sheet.clientHeight-4,canvas.width/canvas.height);if(result){const scale=Number(sheet.dataset.scale)||1,base=sheet.dataset.nativeZoom?canvas:result;canvas.style.width=Math.floor(base.width*scale)+'px';canvas.style.height=Math.floor(base.height*scale)+'px';canvas.repaintSelection?.()}};
 drawingFitHandler=fit;window.addEventListener('resize',fit);if(typeof ResizeObserver==='function'){drawingFitObserver=new ResizeObserver(fit);drawingFitObserver.observe(sheet)}fit();
 }
 

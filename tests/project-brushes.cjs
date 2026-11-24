@@ -88,6 +88,37 @@ module.exports = async function verifyProjectBrushes(browser, url) {
     assert.equal(await material.inputValue(),'marker');
     assert.equal(await page.locator('#materialOpacity').inputValue(),'40');
     assert.equal(await canvas.evaluate(sheet=>sheet.toDataURL()),original,'preset editing never modifies project pixels');
+
+    const footprints = {};
+    for (const kind of ['solid','grain-pencil','charcoal','pastel','dry','ink','calligraphy','marker','water','gouache','airbrush']) {
+      await material.selectOption(kind);
+      await set('Size',36);
+      await set('Opacity',100);
+      if (['dry','ink','calligraphy','marker'].includes(kind)) await set('Angle',0);
+      await page.locator('#studioProClose').click();
+      await stroke([[100,320],[150,320],[200,320],[250,320],[300,320]]);
+      footprints[kind] = await canvas.evaluate(sheet => {
+        const {data} = sheet.getContext('2d').getImageData(120,290,160,60);
+        let covered=0,peak=0,sum=0,top=60,bottom=0;
+        for(let i=3;i<data.length;i+=4){
+          const alpha=data[i];
+          if(!alpha)continue;
+          const row=Math.floor(i/(160*4));
+          covered++;sum+=alpha;peak=Math.max(peak,alpha);
+          top=Math.min(top,row);bottom=Math.max(bottom,row);
+        }
+        return {covered,peak,sum,height:bottom-top+1};
+      });
+      await page.locator('#drawingUndo').click();
+      assert.equal(await canvas.evaluate(sheet=>sheet.toDataURL()),original,`${kind} is one reversible stroke`);
+      await tools.click();
+    }
+    assert.ok(Object.values(footprints).every(ink=>ink.covered>0 && ink.peak>0));
+    assert.equal(new Set(Object.values(footprints).map(ink=>JSON.stringify(ink))).size,11);
+    assert.ok(footprints.calligraphy.height<footprints.ink.height && footprints.ink.height<footprints.solid.height);
+    assert.ok(footprints.charcoal.covered>footprints['grain-pencil'].covered);
+    assert.ok(footprints.water.peak<footprints.gouache.peak);
+    assert.ok(footprints.airbrush.height>footprints.solid.height && footprints.airbrush.sum<footprints.solid.sum);
   } finally {
     await page.close();
   }
