@@ -214,7 +214,7 @@ function drawingStorage(legacyKey, outlineKey, story, fingerprint) {
   return {
     current: () => !!story || same(),
     load() {
-      if (!raw) return {};
+      if (raw === null) return {};
       let outline = null;
       try {
         const meta = JSON.parse(localStorage.getItem(outlineKey) || 'null');

@@ -93,6 +93,7 @@ const server=http.createServer((req,res)=>{
  await require("./shelf-watercolor.cjs")(browser,url);
  await require("./writer-watercolor.cjs")(browser,url);
  await require("./drawing-watercolor.cjs")(browser,url);
+ await require("./drawing-recovery.cjs")(browser,url);
  await require("./family-cloud-routing.cjs")(browser,url);
  await require("./family-peer-fallback.cjs")(browser,url);
  await require("./family-disconnect.cjs")(browser,url);

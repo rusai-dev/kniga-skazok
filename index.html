@@ -859,9 +859,15 @@ source.width=0;source.height=0;
 catalogSelect.onchange=catalogSearch.oninput=()=>{catalogPage=0;renderColorings()};catalogMore.onclick=()=>{catalogPage++;renderColorings();sceneGallery.scrollIntoView({block:'nearest'})};$('coloringPrev').onclick=()=>{catalogPage--;renderColorings();sceneGallery.scrollIntoView({block:'nearest'})};$('coloringSurprise').onclick=()=>{const list=matches();if(!list.length)return;const unseen=list.filter(x=>!prefs.recent.includes(x[1]));const pool=unseen.length?unseen:list.filter(x=>x[1]!==prefs.recent[0]);const item=(pool.length?pool:list)[Math.floor(Math.random()*(pool.length||list.length))];if(generate(item[1],item[2],true)){prefs.recent=[item[1],...prefs.recent.filter(x=>x!==item[1])].slice(0,24);savePrefs();picked=false;fillMode=true;eraser=false;effect='solid';toolSync();extra(null)}};
 $('premiumColoring').onclick=()=>loadPremiumColoring();for(const b of panel.querySelectorAll('[data-hero]'))b.onclick=()=>{if(generate('forest',b.dataset.hero,true))extra(null)};
 function clearPaper(){ctx.fillStyle=paper;ctx.fillRect(0,0,canvas.width,canvas.height)}
-function sync(){form.dataset.drawingDirty=dirty&&!stored?'yes':'no';$('drawingUndo').disabled=restoring||!undo.length;$('drawingRedo').disabled=restoring||!redo.length;$('drawingSave').disabled=restoring||!dirty;$('drawingFullSave').disabled=$('drawingSave').disabled;$('drawingRescue').disabled=restoring||!dirty}
+let unreadableSource=false,sourceLoad=0;
+function showUnreadableDrawing(){
+const recovery=art?'Новый рисунок можно скачать как PNG.':'Новый рисунок можно сохранить в галерею или скачать как PNG.';
+$('drawingStatus').textContent='Рисунок не открылся. Старый черновик сохранён без изменений. '+recovery;
+}
+function sync(){form.dataset.drawingDirty=dirty&&!stored?'yes':'no';$('drawingUndo').disabled=restoring||!undo.length;$('drawingRedo').disabled=restoring||!redo.length;$('drawingSave').disabled=restoring||!dirty||!!art&&unreadableSource;$('drawingFullSave').disabled=$('drawingSave').disabled;$('drawingRescue').disabled=restoring||!dirty}
 function persist(){
 if(restoring||dirty&&stored)return;
+if(unreadableSource){showUnreadableDrawing();return}
 try{stored=storage.store(dirty?(art?canvas.toDataURL():drawingJPEG(canvas)):null,outlineKey)}
 catch(e){stored=false}
 $('drawingStatus').textContent=stored?'Черновик рисунка сохранён на этом устройстве.':'Не сохранено. Повтори или скачай PNG.';sync()
@@ -913,16 +919,27 @@ function generate(place,hero,outline){if(restoring||pointer!==null)return false;
 $('artGenerate').onclick=()=>{if(generate($('artPlace').value,$('artHero').value,$('artMode').value==='outline'))extra(null)};
 $('drawingClear').onclick=()=>{if(restoring||!dirty)return;endStroke();if(!confirm(storage.current()?'Начать рисунок заново?':'Очистить только этот лист? Другой сохранённый рисунок останется. Можно сначала скачать PNG.'))return;remember();setOutline(null);clearPaper();dirty=false;changed()};
 $('drawingCancel').onclick=()=>{if(restoring)return;endStroke();if(dirty){persist();if(!stored){toast('Не сохранено. Повтори или скачай PNG.');return}}extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing')closeModal();else form.returnToWords?.(1)};
-$('drawingSave').onclick=()=>{if(restoring||!dirty)return;endStroke();try{if(!insertPicture(drawingJPEG(canvas),art&&canvas.toDataURL()))return;dirty=false;undo=[];redo=[];setOutline(null);clearPaper();if(!art)persist();extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing'){artGallery()}else{form.returnToWords?.(1);toast('Рисунок добавлен в сказку.')}}catch(e){toast('Повтори сохранение или скачай PNG.')}};
+$('drawingSave').onclick=()=>{if($('drawingSave').disabled)return;endStroke();try{if(!insertPicture(drawingJPEG(canvas),art&&canvas.toDataURL()))return;dirty=false;undo=[];redo=[];setOutline(null);clearPaper();if(!art)persist();extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing'){artGallery()}else{form.returnToWords?.(1);toast('Рисунок добавлен в сказку.')}}catch(e){toast('Повтори сохранение или скачай PNG.')}};
 $('drawingRescue').onclick=()=>{if(restoring||!dirty)return;endStroke();try{const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='moi-risunok.png';document.body.append(a);a.click();a.remove()}catch(e){toast('Не удалось скачать рисунок.')}};
 start.onclick=()=>{form.classList.remove('keyboard-writing','keyboard-title');panel.hidden=false;focusDrawing(true);setZoom(0);if(art){$('drawingSave').textContent=$('drawingFullSave').textContent=art.editing?'Готово':'Вставить в сказку'}};
 form.loadDrawing=(src,outline)=>{
-setOutline(null);clearPaper();undo=[];redo=[];dirty=restoring=!!src;stored=false;sync();
-$('drawingStatus').textContent=src?'Открываем рисунок…':'Выбери цвет и рисуй.';
-if(!src)return;
+const load=++sourceLoad,hasSource=src!==null&&src!==undefined;
+const isCurrent=()=>load===sourceLoad&&$('drawingCanvas')===canvas&&modal.hasAttribute('open');
+setOutline(null);clearPaper();undo=[];redo=[];dirty=unreadableSource=stored=false;restoring=hasSource;sync();
+$('drawingStatus').textContent=hasSource?'Открываем рисунок…':'Выбери цвет и рисуй.';
+if(!hasSource)return;
+function failed(){if(!isCurrent())return;restoring=false;unreadableSource=true;sync();showUnreadableDrawing()}
+if(!/^data:image\/(?:jpeg|png);base64,/.test(src)){failed();return}
 const image=new Image();
-image.onload=()=>{if($('drawingCanvas')!==canvas)return;const f=studioFitImage(canvas.width,canvas.height,image.width,image.height);ctx.drawImage(image,f.x,f.y,f.w,f.h);setOutline(outline);protectOutline();restoring=false;stored=true;sync();$('drawingStatus').textContent='Продолжай свой сохранённый рисунок.'};
-image.onerror=()=>{restoring=dirty=false;sync();$('drawingStatus').textContent='Рисунок не открылся.'};
+image.onload=()=>{
+if(!isCurrent())return;
+try{
+const f=studioFitImage(canvas.width,canvas.height,image.naturalWidth,image.naturalHeight);
+ctx.drawImage(image,f.x,f.y,f.w,f.h);setOutline(outline);protectOutline();
+}catch(e){setOutline(null);clearPaper();failed();return}
+dirty=stored=true;restoring=false;sync();$('drawingStatus').textContent='Продолжай свой сохранённый рисунок.';
+};
+image.onerror=failed;
 image.src=src
 };
 if(!art){const item=storage.load();form.loadDrawing(item.src,item.outline)}
