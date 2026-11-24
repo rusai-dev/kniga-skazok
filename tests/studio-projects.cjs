@@ -143,6 +143,20 @@ module.exports = async function verifyStudioProjects(browser, url) {
       await restored.locator('#projectShelfStatus').filter({hasText: 'Не удалось проверить архив'}).waitFor();
       assert.deepEqual(await storedCounts(restored), [0, 0, 0]);
 
+      const undecodable = structuredClone(archive), badAsset = undecodable.assets[0];
+      const complete = Buffer.from(badAsset.data.split(',')[1], 'base64');
+      const truncated = Buffer.concat([complete.subarray(0, 33), complete.subarray(-12)]);
+      const badHash = createHash('sha256').update(truncated).digest('hex'), replacedHash = badAsset.hash;
+      badAsset.hash = badHash;
+      badAsset.data = 'data:image/png;base64,' + truncated.toString('base64');
+      for (const revision of undecodable.revisions) {
+        if (revision.originalHash === replacedHash) revision.originalHash = badHash;
+        for (const layer of revision.layers) if (layer.hash === replacedHash) layer.hash = badHash;
+      }
+      await upload(Buffer.from(JSON.stringify(undecodable)));
+      await restored.locator('#projectShelfStatus').filter({hasText: 'Не удалось проверить архив'}).waitFor();
+      assert.deepEqual(await storedCounts(restored), [0, 0, 0], 'matching hashes cannot make a malformed PNG importable');
+
       await upload(file);
       await ready.click();
       await restored.locator('#projectShelf button').first().waitFor();
@@ -172,6 +186,22 @@ module.exports = async function verifyStudioProjects(browser, url) {
     assert.ok((await projects(story)).some(item => item.title === 'Проект к сказке'));
     assert.equal(await story.evaluate(() => localStorage.getItem(KEY)), savedManuscript);
     assert.equal(await legacy(story), priorDraft);
+
+    const beforeHistory = await projects(first);
+    await first.getByRole('button', {name: 'История «'+created.title+'»', exact: true}).click();
+    const sourceRevision = first.getByRole('button', {name: 'Исходная редакция', exact: true});
+    await sourceRevision.click();
+    await first.locator('#projectRevisionPreview').waitFor();
+    assert.deepEqual(await projects(first), beforeHistory);
+    await first.locator('#cancelProjectRevision').click();
+    assert.deepEqual(await projects(first), beforeHistory);
+    await sourceRevision.click();
+    await first.locator('#copyProjectRevision').click();
+    await first.locator('#projectShelf').waitFor();
+    const added = (await projects(first)).find(item => !beforeHistory.some(previous=>previous.documentId===item.documentId));
+    const baseRevision = await first.evaluate(async id => (await (await studioProjectStore()).read(id)).detail.layers[0].hash, added.documentId);
+    assert.equal(baseRevision, created.originalHash);
+    assert.ok((await projects(first)).some(item => item.documentId === retried.documentId && item.revision === retried.revision));
   } finally {
     await context.close();
   }

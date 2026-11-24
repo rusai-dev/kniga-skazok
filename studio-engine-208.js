@@ -736,14 +736,117 @@ function projectLayerCapacity(width,height,masks=0){
   return 0;
 }
 
+const channelHex=value=>Math.round(value).toString(16).padStart(2,'0');
+const colorChannels=hex=>[1,3,5].map(offset=>parseInt(hex.slice(offset,offset+2),16));
+function colorHSV(hex,fallbackHue){
+  const [r,g,b]=colorChannels(hex).map(value=>value/255);
+  const v=Math.max(r,g,b),delta=v-Math.min(r,g,b);
+  if(!delta)return [fallbackHue,0,v];
+  const angle=v===r?(g-b)/delta:v===g?(b-r)/delta+2:(r-g)/delta+4;
+  return [(angle*60+360)%360, v?delta/v:0, v];
+}
+function colorFromHSV(h,s,v){
+  const channel=n=>{
+    const k=(n+h/60)%6;
+    return channelHex(255*v*(1-s*Math.max(0,Math.min(k,4-k,1))));
+  };
+  return '#'+channel(5)+channel(3)+channel(1);
+}
+
+function preciseColorPanel(host,choose){
+  const root=document.createElement('details');
+  root.innerHTML=`<summary>Точный цвет sRGB</summary><label class="field">HEX RGBA<input id="preciseHex" type="text" maxlength="9" autocapitalize="off" spellcheck="false"></label>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px">${['Красный','Зелёный','Синий','Альфа'].map((label,i)=>'<label class="field">'+label+'<input id="preciseChannel'+i+'" type="number" min="0" max="255" step="1"></label>').join('')}</div>
+    <div id="preciseHue" role="slider" tabindex="0" aria-label="Оттенок" aria-valuemin="0" aria-valuemax="359" style="position:relative;touch-action:none;width:94px;height:94px;margin:6px auto;border-radius:50%;background:conic-gradient(red,#ff0,#0f0,#0ff,#00f,#f0f,red)"><span aria-hidden="true" style="position:absolute;inset:16px;border-radius:50%;background:#fff"></span><i style="position:absolute;width:12px;height:12px;pointer-events:none;border:2px solid #243c4b;border-radius:50%;background:#fff;transform:translate(-50%,-50%)"></i></div>
+    <div id="preciseSV" aria-hidden="true" style="position:relative;touch-action:none;height:68px;border-radius:10px"><i style="position:absolute;width:12px;height:12px;pointer-events:none;border:2px solid white;box-shadow:0 0 0 1px #243c4b;border-radius:50%;transform:translate(-50%,-50%)"></i></div>
+    <label class="field">Насыщенность<input id="preciseSaturation" type="range" min="0" max="100" step="1"></label><label class="field">Яркость<input id="preciseValue" type="range" min="0" max="100" step="1"></label>
+    <div id="preciseRecent" role="group" aria-label="История точных цветов"></div>`;
+  host.querySelector('#proPreview').before(root);
+  const hex=$('preciseHex'),channels=[0,1,2,3].map(i=>$('preciseChannel'+i));
+  const hue=$('preciseHue'),plane=$('preciseSV'),saturation=$('preciseSaturation'),value=$('preciseValue'),recent=$('preciseRecent');
+  const historyKey='skazki-precise-colors-v1';
+  let h=0,s=0,v=0,a=255,previousHex,shownHistory='';
+  let history=[];
+  try{const stored=JSON.parse(fget(historyKey)||'[]');if(Array.isArray(stored))history=stored.filter(item=>/^#[a-f0-9]{8}$/i.test(item)).slice(0,24)}catch(error){}
+  function record(c,alpha){
+    const full=c+channelHex(alpha);
+    if(history[0]===full)return;
+    history=[full,...history.filter(item=>item!==full)].slice(0,24);fput(historyKey,JSON.stringify(history));
+  }
+  function refresh(c,alpha){
+    a=alpha;
+    if(c!==previousHex){[h,s,v]=colorHSV(c,h);previousHex=c}
+    if(!root.open)return;
+    hex.value=c+channelHex(a);channels.forEach((input,i)=>{input.value=[...colorChannels(c),a][i]});
+    saturation.value=Math.round(s*100);value.value=Math.round(v*100);
+    const degrees=Math.floor(h)%360,angle=h*Math.PI/180;
+    hue.setAttribute('aria-valuenow',String(degrees));hue.setAttribute('aria-valuetext',degrees+'°');
+    const marker=hue.lastElementChild;
+    marker.style.left=50+41*Math.sin(angle)+'%';marker.style.top=50-41*Math.cos(angle)+'%';
+    plane.style.background='linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,hsl('+h+' 100% 50%))';
+    plane.lastElementChild.style.left=s*100+'%';plane.lastElementChild.style.top=(1-v)*100+'%';
+    const stamp=history.join(' ');
+    if(stamp===shownHistory)return;
+    shownHistory=stamp;recent.replaceChildren();
+    for(const item of history){
+      const button=document.createElement('button');
+      button.type='button';button.className='drawing-color';button.style.setProperty('--swatch',item);
+      button.setAttribute('aria-label','Точный цвет '+item);
+      button.onclick=()=>choose(item.slice(0,7),parseInt(item.slice(7),16),true);recent.append(button);
+    }
+  }
+  function applyHSV(commit){
+    const color=colorFromHSV(h,s,v);previousHex=color;choose(color,a,commit);
+  }
+  function applyHex(color){
+    previousHex=null;choose(color.slice(0,7),color.length===9?parseInt(color.slice(7),16):255,true);
+  }
+  hex.onchange=()=>{
+    const text=hex.value.trim().toLowerCase();
+    if(/^#[a-f0-9]{6}([a-f0-9]{2})?$/.test(text))applyHex(text);
+    else refresh(previousHex,a);
+  };
+  for(const input of channels)input.onchange=()=>{
+    if(channels.every(field=>field.checkValidity()&&Number.isInteger(field.valueAsNumber)))applyHex('#'+channels.map(field=>channelHex(field.valueAsNumber)).join(''));
+    else refresh(previousHex,a);
+  };
+  saturation.oninput=value.oninput=()=>{s=Number(saturation.value)/100;v=Number(value.value)/100;applyHSV(false)};
+  saturation.onchange=value.onchange=()=>applyHSV(true);
+  function pick(node,update){
+    let pointer;
+    node.onpointerdown=event=>{
+      if(pointer!==undefined||event.button>0)return;
+      pointer=event.pointerId;node.setPointerCapture(pointer);event.preventDefault();update(event);applyHSV(false);
+    };
+    node.onpointermove=event=>{if(event.pointerId===pointer){update(event);applyHSV(false)}};
+    node.onpointerup=event=>{if(event.pointerId===pointer){pointer=undefined;update(event);applyHSV(true)}};
+    node.onpointercancel=node.onlostpointercapture=()=>{pointer=undefined};
+  }
+  pick(hue,event=>{const r=hue.getBoundingClientRect();h=(Math.atan2(event.clientY-r.top-r.height/2,event.clientX-r.left-r.width/2)*180/Math.PI+450)%360});
+  const clamp=number=>Math.max(0,Math.min(1,number));
+  pick(plane,event=>{const r=plane.getBoundingClientRect();s=clamp((event.clientX-r.left)/r.width);v=1-clamp((event.clientY-r.top)/r.height)});
+  hue.onkeydown=event=>{
+    const delta={ArrowRight:1,ArrowUp:1,ArrowLeft:-1,ArrowDown:-1}[event.key];
+    if(!delta)return;
+    event.preventDefault();h=(h+delta*(event.shiftKey?10:1)+360)%360;applyHSV(true);
+  };
+  root.ontoggle=()=>{if(root.open&&previousHex)refresh(previousHex,a)};
+  return {refresh,record};
+}
+
+async function decodeProjectPng(blob,width,height){
+  const source=await projectDataUrl(blob);
+  const image=await new Promise((resolve,reject)=>{
+    const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('pixels'));img.src=source;
+  });
+  if(image.naturalWidth!==width||image.naturalHeight!==height)throw Error('dimensions');
+  return image;
+}
+
 async function loadProjectLayers(saved){
   const {detail,pixels}=saved;
   async function backstore(hash){
-    const blob=pixels.get(hash),source=await projectDataUrl(blob);
-    const image=await new Promise((resolve,reject)=>{
-      const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('pixels'));img.src=source;
-    });
-    if(image.naturalWidth!==detail.width||image.naturalHeight!==detail.height)throw Error('dimensions');
+    const blob=pixels.get(hash),image=await decodeProjectPng(blob,detail.width,detail.height);
     const canvas=newLayerCanvas(detail.width,detail.height);
     const context=canvas.getContext('2d');
     if(!context)throw Error('profile');
@@ -794,6 +897,10 @@ async function prepareProjectArchive(store,file){
     pixels.set(item.hash,bytes.buffer);
   }
   await store.validateArchive(archive.revisions,pixels);
+  for(const bytes of pixels.values()){
+    const decoded=await decodeProjectPng(new Blob([bytes],{type:'image/png'}),width,height);
+    decoded.removeAttribute('src');
+  }
   return {revisions:archive.revisions,pixels};
 }
 
@@ -803,14 +910,73 @@ function supportsProject(detail){
 
 async function storyProjectPreview(store,documentId){
   const saved=await store.read(documentId);
+  return projectPreview(saved);
+}
+
+async function projectPreview(saved){
   if(!saved||!supportsProject(saved.detail))throw Error('project');
   const {detail}=saved,layers=await loadProjectLayers(saved);
   const canvas=newLayerCanvas(detail.width,detail.height),context=canvas.getContext('2d',{alpha:false});
   try{
     if(!context)throw Error('profile');
     projectRenderer(context,detail.background||'#ffffff')(layers);
-    return {src:drawingJPEG(canvas),documentId,revision:detail.revision,title:detail.title};
+    return {src:drawingJPEG(canvas),documentId:detail.documentId,revision:detail.revision,title:detail.title};
   }finally{canvas.width=canvas.height=0;for(const layer of layers){layer.canvas.width=0;if(layer.mask)layer.mask.width=0}}
+}
+
+function openProjectHistory(store,item){
+  openModal('История проекта',`<p id="projectHistoryStatus" role="status">Открываем редакции…</p><div id="projectHistoryRows" class="actions"></div>
+    <button type="button" id="olderProjectRevisions" hidden>Более ранние редакции</button>
+    <section id="projectRevisionPreview" hidden><img alt="Предпросмотр выбранной редакции" style="display:block;max-width:100%;max-height:35vh"><p id="projectRevisionTitle"></p><div class="actions"><button type="button" id="copyProjectRevision">Копия этой редакции</button><button type="button" id="cancelProjectRevision">Отмена</button></div></section>
+    <button type="button" id="backProjectHistory">К проектам</button>`,'art-projects');
+  const rows=$('projectHistoryRows'),status=$('projectHistoryStatus'),older=$('olderProjectRevisions');
+  const preview=$('projectRevisionPreview'),copy=$('copyProjectRevision'),cancel=$('cancelProjectRevision');
+  const visible=()=>rows.isConnected&&$('modal').hasAttribute('open');
+  let request=0,count=0,selected,olderRevision=null;
+  function closePreview(){request++;selected=null;preview.hidden=true}
+  cancel.onclick=closePreview;
+  $('backProjectHistory').onclick=artProjects;
+  async function entries(){
+    older.disabled=true;
+    try{
+      const page=await store.history(item.documentId,olderRevision);
+      if(!visible())return;
+      for(const entry of page.entries){
+        const button=document.createElement('button');
+        const stamp=new Date(entry.updatedAt).toLocaleString('ru-RU');
+        const label=entry.original?'Исходная редакция':'Редакция '+(++count);
+        button.type='button';button.textContent=label;button.title=stamp;rows.append(button);
+        button.onclick=async()=>{
+          closePreview();const serial=request;
+          status.textContent='Открываем выбранную редакцию…';
+          try{
+            const saved=await store.read(item.documentId,false,entry.revision);
+            const image=await projectPreview(saved);
+            if(!visible()||serial!==request)return;
+            selected=saved;preview.querySelector('img').src=image.src;
+            $('projectRevisionTitle').textContent=label+' · '+stamp;status.textContent='«'+item.title+'»';preview.hidden=false;copy.focus();
+          }catch(error){if(visible()&&serial===request)status.textContent='Не удалось открыть эту редакцию.'}
+        };
+      }
+      olderRevision=page.next;older.hidden=!olderRevision;
+      status.textContent='«'+item.title+'»';
+    }catch(error){if(visible())status.textContent='Не удалось загрузить историю.'}
+    finally{older.disabled=false}
+  }
+  older.onclick=entries;
+  copy.onclick=async()=>{
+    if(!selected||copy.disabled)return;
+    const saved=selected;
+    copy.disabled=cancel.disabled=true;
+    try{
+      const bytes=new Map();
+      for(const [hash,file] of saved.pixels)bytes.set(hash,await file.arrayBuffer());
+      await store.restore([{...saved.detail,parentRevision:null}],bytes);
+      if(visible()){artProjects();toast('Копия редакции добавлена в проекты.')}
+    }catch(error){if(visible())status.textContent='Не удалось сделать копию. Повтори попытку.'}
+    finally{copy.disabled=cancel.disabled=false}
+  };
+  entries();
 }
 
 async function showStoryProjects(form,root){
@@ -989,7 +1155,7 @@ async function artProjects(){
     status.textContent=projects.length?'Открой проект, чтобы продолжить рисунок.':'Здесь появятся рисунки, сохранённые как проекты.';
     for(const item of projects){
       if(typeof item.title!=='string')continue;
-      const row=document.createElement('li'),open=document.createElement('button'),backup=document.createElement('button');
+      const row=document.createElement('li'),open=document.createElement('button'),backup=document.createElement('button'),history=document.createElement('button');
       open.type='button';open.textContent=item.title;
       open.onclick=async()=>{
         open.disabled=true;
@@ -1008,7 +1174,8 @@ async function artProjects(){
         catch(error){if(visible())status.textContent=error.message==='archive-size'?'Полный архив превышает лимит экспорта. Проект остался сохранён.':'Не удалось скачать архив проекта.'}
         finally{backup.disabled=false}
       };
-      row.append(open,backup);list.append(row);
+      history.type='button';history.textContent='История';history.setAttribute('aria-label','История «'+item.title+'»');history.onclick=()=>openProjectHistory(store,item);
+      row.append(open,backup,history);list.append(row);
     }
   }catch(error){if(visible())status.textContent='Не удалось открыть проекты. Попробуй вернуться позже.'}
 }
@@ -1022,7 +1189,7 @@ const composite=canvas.getContext('2d',{alpha:transparent});
 let ctx=composite;
 if(!ctx||!window.drawingStorage){start.disabled=true;return}
 const palette=[["#25272a","Чёрный"],["#344b3d","Лесной"],["#79564a","Коричневый"],["#a97755","Карамель"],["#d6ab82","Песочный"],["#fffdf7","Белый"],["#bd3948","Красный"],["#e76f60","Коралловый"],["#f18eaa","Розовый"],["#f8bfd3","Нежно-розовый"],["#c24e83","Малиновый"],["#8e416f","Ягодный"],["#e48641","Оранжевый"],["#f1bc48","Золотой"],["#f8df71","Лимонный"],["#f9eabb","Сливочный"],["#f1b297","Персиковый"],["#ba7956","Терракота"],["#609a58","Травяной"],["#a5c76f","Салатовый"],["#d1e7a6","Мятный"],["#2d7b6e","Изумрудный"],["#70bfbd","Бирюзовый"],["#2c92a5","Морской"],["#87bee7","Небесный"],["#487ec3","Синий"],["#375378","Тёмно-синий"],["#b1b9ed","Лавандовый"],["#9b83b9","Сиреневый"],["#785098","Фиолетовый"],["#a7b1b5","Серебристый"],["#687480","Серый"],["#f6c2a5","Светлый персик"],["#a94e39","Кирпичный"],["#f8a24b","Мандариновый"],["#c47127","Медовый"],["#fff4b7","Светлый лимон"],["#d3a82b","Горчичный"],["#ff6981","Клубничный"],["#8c253b","Вишнёвый"],["#ffd9e4","Розовая дымка"],["#ce76b7","Орхидея"],["#6f365d","Сливовый"],["#e3ceff","Светлая сирень"],["#5e4497","Черничный"],["#d7eaff","Ледяной голубой"],["#204e83","Сапфировый"],["#3ba7df","Лазурный"],["#a7e4ed","Аквамарин"],["#106d83","Глубокий бирюзовый"],["#bdecd7","Светлая мята"],["#397f47","Тёмная трава"],["#8eaa42","Оливковый"],["#56713c","Хвойный"],["#eaf5c5","Светлый салат"],["#c6b09b","Светлый беж"],["#9c714c","Ореховый"],["#51382b","Шоколадный"],["#e8d3b0","Ванильный"],["#b1a1a5","Тауп"],["#e4e5e3","Светлый серый"],["#494f5b","Графитовый"],["#fef0e9","Фарфоровый"],["#fae2d0","Телесный светлый"],["#dc966f","Телесный тёплый"],["#af6f51","Телесный глубокий"],["#f6edaa","Бледно-золотой"],["#accbe4","Джинсовый"],["#c1acae","Пыльная роза"],["#86aeb0","Морская дымка"],["#b9b7d9","Сумеречный"],["#39475f","Ночной"]];
-let picked=false,color=palette[1][0],width=brushWidths()[1],pointer=null,last=null,dirty=false,undo=[],redo=[],seed=1,fillMode=false,eraser=false,restoring=false,stored=false,lessonStep=0,effect='solid',distance=0,hue=0,opacity=1;
+let picked=false,color=palette[1][0],inkAlpha=255,width=brushWidths()[1],pointer=null,last=null,dirty=false,undo=[],redo=[],seed=1,fillMode=false,eraser=false,restoring=false,stored=false,lessonStep=0,effect='solid',distance=0,hue=0,opacity=1;
 const paper=profile?.background||'#fffdf7';
 const art=form.storyArt,storage=openedProject?null:drawingStorage(DRAWING_DRAFT,DRAWING_OUTLINE,art,drawingFingerprint);
 let project=openedProject?.detail,projectWrite=null,projectGeneration=0;
@@ -1319,24 +1486,25 @@ function selectedSwatches(){
   return sets[selected].map(index=>palette[index]);
 }
 function mixColor(a,b,t){return '#'+[1,3,5].map(i=>Math.round(parseInt(a.slice(i,i+2),16)*(1-t)+parseInt(b.slice(i,i+2),16)*t).toString(16).padStart(2,'0')).join('')}
-function choosePro(c){endStroke();color=c;$('drawingCustom').value=c;picked=eraser=fillMode=false;rememberColor(c);toolSync()}
+let precise;
+function choosePro(c,alpha=255,commit=true){endStroke();color=c;inkAlpha=alpha;$('drawingCustom').value=c;picked=eraser=fillMode=false;if(commit){rememberColor(c);precise?.record(c,alpha)}toolSync()}
 function swatches(host,items){while(host.children.length>items.length)host.lastElementChild.remove();for(let i=0;i<items.length;i++){const [c,name]=items[i];let b=host.children[i];if(!b){b=document.createElement('button');b.type='button';b.className='drawing-color';b.onclick=()=>choosePro(b.dataset.color);host.append(b)}if(b.dataset.color!==c){b.dataset.color=c;b.style.setProperty('--swatch',c)}if(b.getAttribute('aria-label')!==name)b.setAttribute('aria-label',name);const on=String(c===color);if(b.getAttribute('aria-pressed')!==on)b.setAttribute('aria-pressed',on)}}
 let previewKey='';
-function proSync(){if(pro.hidden)return;proColor.value=color;proEffect.value=effect;proWidth.value=width;proOpacity.value=Math.round(opacity*100);$('proWidthValue').textContent=width;$('proOpacityValue').textContent=Math.round(opacity*100)+'%';const mix=mixColor(color,$('proSecond').value,Number($('proRatio').value)/100);$('proMixSample').style.background=mix;$('proMixSample').title=mix;swatches($('proSwatches'),selectedSwatches());swatches($('proShades'),[[-.75,'Очень тёмный'],[-.4,'Темнее'],[-.2,'Тёмный'],[0,'Текущий'],[.25,'Светлее'],[.5,'Светлый'],[.75,'Очень светлый']].map(([v,n])=>[mixColor(color,v<0?'#000000':'#ffffff',Math.abs(v)),n]));const key=[color,effect,width,opacity].join('|');if(key===previewKey)return;previewKey=key;const c=$('proPreview'),g=c.getContext('2d');g.fillStyle='#fffdf7';g.fillRect(0,0,c.width,c.height);if(stampEffects.has(effect)){for(let i=0;i<4;i++)studioStamp(g,30+i*60,32,Math.min(22,width*.73+5),effect,color,opacity)}else for(let i=0;i<16;i++)studioStroke(g,{x:12+i*13,y:32+Math.sin(i*.5)*5},{x:25+i*13,y:32+Math.sin((i+1)*.5)*5},Math.min(width,50),effect,color,i*24,opacity)}
-function showPro(on){endStroke();if(on)extra(null);pro.hidden=!on;$('studioPro').setAttribute('aria-expanded',String(on));if(on)proSync();else $('studioPro').focus({preventScroll:true})}
+function proSync(){if(pro.hidden)return;precise?.refresh(color,inkAlpha);proColor.value=color;proEffect.value=effect;proWidth.value=width;proOpacity.value=Math.round(opacity*100);$('proWidthValue').textContent=width;$('proOpacityValue').textContent=Math.round(opacity*100)+'%';const mix=mixColor(color,$('proSecond').value,Number($('proRatio').value)/100);$('proMixSample').style.background=mix;$('proMixSample').title=mix;swatches($('proSwatches'),selectedSwatches());swatches($('proShades'),[[-.75,'Очень тёмный'],[-.4,'Темнее'],[-.2,'Тёмный'],[0,'Текущий'],[.25,'Светлее'],[.5,'Светлый'],[.75,'Очень светлый']].map(([v,n])=>[mixColor(color,v<0?'#000000':'#ffffff',Math.abs(v)),n]));const drawOpacity=opacity*inkAlpha/255;const key=[color,effect,width,drawOpacity].join('|');if(key===previewKey)return;previewKey=key;const c=$('proPreview'),g=c.getContext('2d');g.fillStyle='#fffdf7';g.fillRect(0,0,c.width,c.height);if(stampEffects.has(effect)){for(let i=0;i<4;i++)studioStamp(g,30+i*60,32,Math.min(22,width*.73+5),effect,color,drawOpacity)}else for(let i=0;i<16;i++)studioStroke(g,{x:12+i*13,y:32+Math.sin(i*.5)*5},{x:25+i*13,y:32+Math.sin((i+1)*.5)*5},Math.min(width,50),effect,color,i*24,drawOpacity)}
+function showPro(on){endStroke();if(on)extra(null);pro.hidden=!on;$('studioPro').setAttribute('aria-expanded',String(on));if(on){if(project&&!precise)precise=preciseColorPanel(pro,choosePro);proSync()}else $('studioPro').focus({preventScroll:true})}
 for(const b of panel.querySelectorAll('[data-effect]')){const o=document.createElement('option');o.value=b.dataset.effect;o.textContent=b.textContent.trim();proEffect.append(o)}
 $('studioPro').onclick=()=>showPro(pro.hidden);$('studioProClose').onclick=()=>showPro(false);paletteSelect.onchange=proSync;proColor.oninput=()=>choosePro(proColor.value);$('proSecond').oninput=$('proRatio').oninput=proSync;$('proMix').onclick=()=>choosePro(mixColor(color,$('proSecond').value,Number($('proRatio').value)/100));proEffect.onchange=()=>{effect=proEffect.value;picked=eraser=fillMode=false;toolSync()};proWidth.oninput=()=>{width=Number(proWidth.value);toolSync()};proOpacity.oninput=()=>{opacity=Number(proOpacity.value)/100;toolSync()};
 const recentColorKey='skazki-recent-colors-v1';let recentColors=[];try{const a=JSON.parse(fget(recentColorKey)||'[]');if(Array.isArray(a))recentColors=a.filter(c=>/^#[0-9a-f]{6}$/i.test(c)).slice(0,4)}catch(e){}
 const recentHost=document.createElement('div');recentHost.id='recentDrawingColors';recentHost.setAttribute('role','group');recentHost.setAttribute('aria-label','Недавние цвета');controls.after(recentHost);
-function showRecent(){recentHost.replaceChildren();if(!recentColors.length)return;const label=document.createElement('small');label.textContent='Недавние';recentHost.append(label);for(const c of recentColors){const b=document.createElement('button');b.type='button';b.className='drawing-color';b.style.setProperty('--swatch',c);b.setAttribute('aria-label','Недавний цвет '+c);b.setAttribute('aria-pressed',String(c===color));b.onclick=()=>{color=c;$('drawingCustom').value=c;picked=false;eraser=false;toolSync();showRecent()};recentHost.append(b)}}
+function showRecent(){recentHost.replaceChildren();if(!recentColors.length)return;const label=document.createElement('small');label.textContent='Недавние';recentHost.append(label);for(const c of recentColors){const b=document.createElement('button');b.type='button';b.className='drawing-color';b.style.setProperty('--swatch',c);b.setAttribute('aria-label','Недавний цвет '+c);b.setAttribute('aria-pressed',String(c===color));b.onclick=()=>{color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;eraser=false;toolSync();showRecent()};recentHost.append(b)}}
 function rememberColor(c){recentColors=[c,...recentColors.filter(x=>x!==c)].slice(0,4);fput(recentColorKey,JSON.stringify(recentColors));showRecent()}
 showRecent();
 $('paletteMore').onclick=()=>{const expanded=$('paletteMore').getAttribute('aria-expanded')!=='true';$('paletteMore').setAttribute('aria-expanded',String(expanded));$('paletteMore').textContent=expanded?'Основные':'Все цвета';controls.classList.toggle('palette-expanded',expanded)};
 for(const [c,label] of palette){
-const b=document.createElement('button');b.type='button';b.className='drawing-color';b.style.setProperty('--swatch',c);b.setAttribute('aria-label',label);b.setAttribute('aria-pressed',String(c===color));b.textContent=' ';b.dataset.color=c;if(!basicColors.has(c))b.dataset.extended='true';b.onclick=()=>{endStroke();color=c;$('drawingCustom').value=c;picked=false;rememberColor(c);if(eraser){eraser=false;fillMode=false}toolSync()};controls.append(b);
+const b=document.createElement('button');b.type='button';b.className='drawing-color';b.style.setProperty('--swatch',c);b.setAttribute('aria-label',label);b.setAttribute('aria-pressed',String(c===color));b.textContent=' ';b.dataset.color=c;if(!basicColors.has(c))b.dataset.extended='true';b.onclick=()=>{endStroke();color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;rememberColor(c);if(eraser){eraser=false;fillMode=false}toolSync()};controls.append(b);
 }
 function toolSync(){$('drawingFullColor').value=color;proSync();for(const b of panel.querySelectorAll('[data-effect]'))b.setAttribute('aria-pressed',String(!picked&&!eraser&&!fillMode&&b.dataset.effect===effect));for(const b of controls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(!eraser&&b.dataset.color===color));for(const b of panel.querySelectorAll('[data-tool]'))b.setAttribute('aria-pressed',String(b.dataset.tool===(picked?'pick':eraser?'eraser':fillMode?'fill':'brush')));for(const b of panel.querySelectorAll('[data-width]'))b.setAttribute('aria-pressed',String(Number(b.dataset.width)===width))}
-for(const b of panel.querySelectorAll('[data-tool]'))b.onclick=()=>{endStroke();picked=b.dataset.tool==='pick';eraser=b.dataset.tool==='eraser';fillMode=b.dataset.tool==='fill';toolSync()};for(const b of panel.querySelectorAll('[data-width]'))b.onclick=()=>{endStroke();width=Number(b.dataset.width);toolSync()};$('drawingCustom').oninput=()=>{const c=$('drawingCustom').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;picked=false;eraser=false;rememberColor(c);toolSync()}};for(const b of panel.querySelectorAll('[data-effect]')){b.onclick=()=>{effect=b.dataset.effect;picked=false;eraser=false;fillMode=false;toolSync();extra(null)}};toolSync();
+for(const b of panel.querySelectorAll('[data-tool]'))b.onclick=()=>{endStroke();picked=b.dataset.tool==='pick';eraser=b.dataset.tool==='eraser';fillMode=b.dataset.tool==='fill';toolSync()};for(const b of panel.querySelectorAll('[data-width]'))b.onclick=()=>{endStroke();width=Number(b.dataset.width);toolSync()};$('drawingCustom').oninput=()=>{const c=$('drawingCustom').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;inkAlpha=255;picked=false;eraser=false;rememberColor(c);toolSync()}};for(const b of panel.querySelectorAll('[data-effect]')){b.onclick=()=>{effect=b.dataset.effect;picked=false;eraser=false;fillMode=false;toolSync();extra(null)}};toolSync();
 function effectPreviews(show){
 for(const b of panel.querySelectorAll('[data-effect]')){
 const existing=b.querySelector('canvas');
@@ -1480,7 +1648,7 @@ let drag=null;view.addEventListener('pointerdown',e=>{if(!modal.classList.contai
 view.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId){view.scrollLeft=drag.left+drag.x-e.clientX;view.scrollTop=drag.top+drag.y-e.clientY}});
 for(const event of ['pointerup','pointercancel','lostpointercapture'])view.addEventListener(event,e=>{if(drag&&drag.id===e.pointerId)drag=null});
 expand.onclick=()=>enlarge(expand.getAttribute('aria-pressed')!=='true');$('drawingFullSave').onclick=()=>$('drawingSave').click();
-$('drawingFullColor').oninput=()=>{const c=$('drawingFullColor').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;$('drawingCustom').value=c;picked=false;eraser=false;fillMode=false;rememberColor(c);toolSync()}};
+$('drawingFullColor').oninput=()=>{const c=$('drawingFullColor').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;eraser=false;fillMode=false;rememberColor(c);toolSync()}};
 function capture(){return {patches:[],bytes:0,dirty,outlineKey,layers:layers?.map(layer=>({...layer})),activeLayerId,activeTarget}}
 function capturePatch(frame,target,x,y,width,height){
   const pixels=target.getImageData(x,y,width,height);
@@ -1533,13 +1701,14 @@ function line(to,pressure=1){
   captureStrokePatch(to,2*w+4);
   if(layers)projectEncoded.delete(ctx.canvas);
   const dx=to.x-last.x,dy=to.y-last.y,len=Math.hypot(dx,dy);
+  const drawOpacity=mask?opacity:opacity*inkAlpha/255;
   if(stampEffects.has(kind)){
     const spacing=Math.max(16,w*1.65);
-    if(len===0){studioStamp(ctx,to.x,to.y,Math.max(3,w*.73),kind,color,opacity);distance=0}
-    else{for(let t=spacing-distance;t<=len;t+=spacing)studioStamp(ctx,last.x+dx*t/len,last.y+dy*t/len,Math.max(3,w*.73),kind,color,opacity);distance=(distance+len)%spacing}
+    if(len===0){studioStamp(ctx,to.x,to.y,Math.max(3,w*.73),kind,color,drawOpacity);distance=0}
+    else{for(let t=spacing-distance;t<=len;t+=spacing)studioStamp(ctx,last.x+dx*t/len,last.y+dy*t/len,Math.max(3,w*.73),kind,color,drawOpacity);distance=(distance+len)%spacing}
   }else{
     hue=(hue+Math.max(5,len*2))%360;
-    studioStroke(ctx,last,to,w,kind,mask?'#fff':eraser?paper:color,hue,eraser?1:opacity);
+    studioStroke(ctx,last,to,w,kind,mask?'#fff':eraser?paper:color,hue,eraser?1:drawOpacity);
   }
   if(mode||clipped)ctx.restore();
   last=to;
@@ -1561,13 +1730,13 @@ canvas.addEventListener('pointerdown',e=>{
   if(selection&&(selection.tracking||selection.start(e,p)))return;
   if(picked){
     const v=composite.getImageData(x,y,1,1).data;
-    color='#'+Array.from(v.slice(0,3)).map(n=>n.toString(16).padStart(2,'0')).join('');
+    color='#'+Array.from(v.slice(0,3)).map(channelHex).join('');inkAlpha=layers?v[3]:255;precise?.record(color,inkAlpha);
     $('drawingCustom').value=color;picked=false;eraser=false;fillMode=false;rememberColor(color);toolSync();return;
   }
   if(!editableLayer()||eraser&&alphaLocked())return;
   if(fillMode){
     const image=ctx.getImageData(0,0,canvas.width,canvas.height);
-    const rgba=onMask()?(activeLayer().maskInverted?[0,0,0,0]:[255,255,255,255]):[1,3,5].map(i=>parseInt(color.slice(i,i+2),16)).concat(255);
+    const rgba=onMask()?(activeLayer().maskInverted?[0,0,0,0]:[255,255,255,255]):colorChannels(color).concat(inkAlpha);
     const outline=onMask()||layers&&activeLayerId!==layers[0].id?null:outlineBarrier;
     const barrier=selection?.barrier(outline)||outline;
     if(artFill(image.data,canvas.width,canvas.height,x,y,rgba,barrier,alphaLocked())){

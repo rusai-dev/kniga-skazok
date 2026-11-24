@@ -140,6 +140,29 @@ function createStudioProjectStore(database, digest, identity) {
     });
   }
 
+  function history(documentId, from = null) {
+    return transact(['documents', 'revisions'], 'readonly', (tx, done, abort) => {
+      const source = tx.objectStore('documents').get(documentId), revisions = tx.objectStore('revisions');
+      source.onsuccess = () => {
+        if (!source.result) { done({entries: [], next: null}); return; }
+        const entries = [], visited = new Set();
+        function visit(revision) {
+          if (revision === null || entries.length === 24) { done({entries, next: revision}); return; }
+          if (!validId(revision) || visited.has(revision)) return abort('corrupt');
+          visited.add(revision);
+          const finding = revisions.get(revision);
+          finding.onsuccess = () => {
+            const row = finding.result;
+            if (!row || row.documentId !== documentId || row.revision !== revision || !Number.isFinite(row.updatedAt)) return abort('corrupt');
+            entries.push({revision, updatedAt: row.updatedAt, original: row.parentRevision === null});
+            visit(row.parentRevision);
+          };
+        }
+        visit(from || source.result.revision);
+      };
+    });
+  }
+
   async function read(documentId, includeHistory = false, revisionId = null) {
     const result = await transact(tables, 'readonly', (tx, done, abort) => {
       const document = tx.objectStore('documents').get(documentId);
@@ -293,5 +316,5 @@ function createStudioProjectStore(database, digest, identity) {
     });
   }
 
-  return {list, read, commit, validateArchive, restore, beginStoryLink, finishStoryLink, releaseStoryLink};
+  return {list, history, read, commit, validateArchive, restore, beginStoryLink, finishStoryLink, releaseStoryLink};
 }
