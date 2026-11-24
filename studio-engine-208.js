@@ -896,17 +896,18 @@ async function loadProjectLayers(saved){
   return layers;
 }
 
-async function downloadProjectArchive(store,documentId){
-  const saved=await store.read(documentId,true);
+async function downloadProjectArchive(store,documentId,includeHistory=true){
+  const saved=await store.read(documentId,includeHistory);
   if(!saved)throw Error('project');
   const assets=[];
   for(const [hash,blob] of saved.pixels)assets.push({hash,data:await projectDataUrl(blob)});
-  const body=JSON.stringify({kind:'skazki-drawing-project',schemaVersion:1,revisions:saved.revisions,assets});
+  const revisions=includeHistory?saved.revisions:[{...saved.detail,parentRevision:null}];
+  const body=JSON.stringify({kind:'skazki-drawing-project',schemaVersion:1,revisions,assets});
   if(body.length>40000000)throw Error('archive-size');
   const link=document.createElement('a');
   const url=URL.createObjectURL(new Blob([body],{type:'application/json'}));
   link.href=url;
-  link.download='risunok-'+documentId.replace(/[^a-z0-9_-]/gi,'').slice(0,80)+'.json';
+  link.download='risunok-'+documentId.replace(/[^a-z0-9_-]/gi,'').slice(0,80)+(includeHistory?'':'-tekushchaya-redaktsiya')+'.json';
   document.body.append(link);
   try{link.click()}finally{link.remove();setTimeout(()=>URL.revokeObjectURL(url),500)}
 }
@@ -915,7 +916,7 @@ async function prepareProjectArchive(store,file){
   if(!file||!file.size||file.size>40000000)throw Error('archive-size');
   const archive=JSON.parse(await readText(file));
   if(archive?.kind!=='skazki-drawing-project'||archive.schemaVersion!==1||!archiveKeysSafe(archive)||
-     !Array.isArray(archive.assets)||archive.assets.length>256||!Array.isArray(archive.revisions)||!archive.revisions.length||
+     !Array.isArray(archive.assets)||archive.assets.length>4096||!Array.isArray(archive.revisions)||!archive.revisions.length||
      archive.revisions.some(item=>!supportsProject(item)))throw Error('archive');
   const {width,height}=archive.revisions[0];
   const pixels=new Map();
@@ -1166,7 +1167,7 @@ function setupProjectCreation(store,visible){
 
 async function artProjects(){
   openModal('Проекты рисунков',`<p id="projectShelfStatus" role="status">Открываем проекты…</p><ul id="projectShelf"></ul>
-    <div class="actions"><button type="button" id="newProject" disabled>Новый проект</button><button type="button" id="projectImport" disabled>Открыть архив</button><input type="file" id="projectArchiveFile" accept="application/json,.json" hidden><button type="button" id="projectShelfBack">В мастерскую</button></div>
+    <div class="actions"><button type="button" id="newProject" disabled>Новый проект</button><button type="button" id="projectImport" disabled>Открыть архив</button><input type="file" id="projectArchiveFile" accept="application/json,.json" hidden><button type="button" id="projectShelfBack">В мастерскую</button></div><details id="projectStorage" hidden><summary>Место для проектов</summary><p id="projectStorageStatus" role="status"></p></details>
     <form id="newProjectForm" hidden><label class="field">Название<input id="newProjectTitle" maxlength="120"></label>
     <label class="field">Формат<select id="newProjectSize"><option>1024×1024</option><option>2048×2048</option><option>3072×3072</option><option>4096×4096</option><option value="720×480">Альбом 720×480</option><option value="480×720">Портрет 480×720</option><option value="custom">Свой размер</option></select></label>
     <div class="actions"><label class="field">Ширина<input id="newProjectWidth" type="number" min="1" max="4096" value="1024" required></label><label class="field">Высота<input id="newProjectHeight" type="number" min="1" max="4096" value="1024" required></label></div>
@@ -1184,6 +1185,22 @@ async function artProjects(){
     $('projectImport').disabled=$('newProject').disabled=false;
     setupProjectImport(store,status,visible);
     setupProjectCreation(store,visible);
+    const storage=$('projectStorage'),space=$('projectStorageStatus');
+    storage.hidden=false;
+    storage.ontoggle=async()=>{
+      if(!storage.open||space.dataset.loading)return;
+      space.dataset.loading='yes';space.textContent='Считаем место…';
+      try{
+        const estimate=async()=>navigator.storage?.estimate?await navigator.storage.estimate():null;
+        const [inventory,quota]=await Promise.all([store.inventory(),estimate().catch(()=>null)]);
+        if(!visible())return;
+        const format=bytes=>(bytes/1048576).toLocaleString('ru-RU',{maximumFractionDigits:2})+' МиБ';
+        space.textContent='Проектов '+inventory.documents+', редакций '+inventory.revisions+', растровых файлов '+inventory.images+'. PNG занимают '+format(inventory.bytes)+'.';
+        if(quota?.quota)space.textContent+=' Сайт использует примерно '+format(quota.usage)+' из '+format(quota.quota)+'.';
+        if(inventory.unreadable)space.textContent+=' Не прочитано растровых файлов: '+inventory.unreadable+'.';
+      }catch(error){if(visible())space.textContent='Не удалось оценить место. Сохранённые работы остались в списке.'}
+      finally{delete space.dataset.loading}
+    };
     status.textContent=projects.length?'Открой проект, чтобы продолжить рисунок.':'Здесь появятся рисунки, сохранённые как проекты.';
     for(const item of projects){
       if(typeof item.title!=='string')continue;
@@ -1200,14 +1217,25 @@ async function artProjects(){
         finally{open.disabled=false}
       };
       backup.type='button';backup.textContent='Скачать архив';backup.setAttribute('aria-label','Скачать архив «'+item.title+'»');
+      const snapshot=document.createElement('button');
+      snapshot.type='button';snapshot.textContent='Архив текущей редакции';snapshot.hidden=true;
+      snapshot.onclick=async()=>{
+        snapshot.disabled=true;
+        try{await downloadProjectArchive(store,item.documentId,false)}
+        catch(error){if(visible())status.textContent='Не удалось скачать текущую редакцию. Проект остаётся доступным.'}
+        finally{snapshot.disabled=false}
+      };
       backup.onclick=async()=>{
         backup.disabled=true;
         try{await downloadProjectArchive(store,item.documentId)}
-        catch(error){if(visible())status.textContent=error.message==='archive-size'?'Полный архив превышает лимит экспорта. Проект остался сохранён.':'Не удалось скачать архив проекта.'}
+        catch(error){if(visible()){
+          if(error.message==='archive-size'){snapshot.hidden=false;status.textContent='Полный архив превышает лимит. Можно скачать текущую редакцию и исходный PNG.';snapshot.focus()}
+          else status.textContent='Не удалось скачать архив проекта.';
+        }}
         finally{backup.disabled=false}
       };
       history.type='button';history.textContent='История';history.setAttribute('aria-label','История «'+item.title+'»');history.onclick=()=>openProjectHistory(store,item);
-      row.append(open,backup,history);list.append(row);
+      row.append(open,backup,history,snapshot);list.append(row);
     }
   }catch(error){if(visible())status.textContent='Не удалось открыть проекты. Попробуй вернуться позже.'}
 }

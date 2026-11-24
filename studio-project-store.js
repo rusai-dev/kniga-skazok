@@ -3,6 +3,7 @@
 function createStudioProjectStore(database, digest, identity) {
   const dbName = 'skazki-drawing-projects-v1';
   const tables = ['documents', 'revisions', 'pixels'];
+  const maximumArchiveRevisions = 2048;
   let connection;
 
   function open() {
@@ -166,6 +167,22 @@ function createStudioProjectStore(database, digest, identity) {
     });
   }
 
+  function inventory() {
+    return transact(tables, 'readonly', (tx, done) => {
+      const documents = tx.objectStore('documents').count(), revisions = tx.objectStore('revisions').count();
+      const pixels = tx.objectStore('pixels').openCursor();
+      let bytes = 0, images = 0, unreadable = 0;
+      pixels.onsuccess = () => {
+        const image = pixels.result;
+        if (!image) { done({documents: documents.result, revisions: revisions.result, images, bytes, unreadable}); return; }
+        images++;
+        if (image.value instanceof ArrayBuffer) bytes += image.value.byteLength;
+        else unreadable++;
+        image.continue();
+      };
+    });
+  }
+
   function history(documentId, from = null) {
     return transact(['documents', 'revisions'], 'readonly', (tx, done, abort) => {
       const source = tx.objectStore('documents').get(documentId), revisions = tx.objectStore('revisions');
@@ -200,7 +217,7 @@ function createStudioProjectStore(database, digest, identity) {
         const revisions = tx.objectStore('revisions');
         function load(revisionId) {
           if (!validId(revisionId) || seen.has(revisionId)) return abort('corrupt');
-          if (chain.length >= 128) return abort('archive-size');
+          if (chain.length >= maximumArchiveRevisions) return abort('archive-size');
           seen.add(revisionId);
           const request = revisions.get(revisionId);
           request.onsuccess = () => {
@@ -242,7 +259,7 @@ function createStudioProjectStore(database, digest, identity) {
   }
 
   async function validateArchive(revisions, pixels) {
-    if (!Array.isArray(revisions) || !revisions.length || revisions.length > 128 || !(pixels instanceof Map)) throw Error('archive');
+    if (!Array.isArray(revisions) || !revisions.length || revisions.length > maximumArchiveRevisions || !(pixels instanceof Map)) throw Error('archive');
     const first = revisions[0];
     let parent = null;
     const ids = new Set(), wanted = new Set();
@@ -343,5 +360,5 @@ function createStudioProjectStore(database, digest, identity) {
     });
   }
 
-  return {list, history, read, commit, validateArchive, restore, beginStoryLink, finishStoryLink, releaseStoryLink};
+  return {list, inventory, history, read, commit, validateArchive, restore, beginStoryLink, finishStoryLink, releaseStoryLink};
 }
