@@ -1684,6 +1684,7 @@ body[data-home-screen="home"]{
 }
 
 @media (max-width: 700px) {
+  #modal.drawing-focus .studio-more .studio-modes {flex-wrap:wrap}
   #modal.drawing-focus #standaloneDrawing .studio-toolset {
     min-width: 0;
     max-width: 100%;

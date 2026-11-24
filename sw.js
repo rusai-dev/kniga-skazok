@@ -2,18 +2,19 @@
 'use strict';
 const REV='1.5.207',ART_CACHE='skazki-book-art-v1';
 // BEGIN GENERATED SHELL INTEGRITY
-const SHELL_FINGERPRINT='342fb596268c03afc6ae0f19';
+const SHELL_FINGERPRINT='78e7e75de557b25a4d3ff7c9';
 const SHELL_SHA256={
-  "index.html": "bd0bc05dd5ef1228209deb8b3a9b172c4c96dc7e147ab4e41905ba48edad6b5a",
+  "index.html": "0c32930308e0947e24cd28fb486256dc686d658957ed7a5dcc18a33f54288d7a",
   "classic-art-153.js?v=1.5.207": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
   "classic-art-155.js?v=1.5.207": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8",
   "andersen-art-156.js?v=1.5.207": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b",
   "learning-art-1536.css?v=1.5.207": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7",
   "world-scenes-194.js?v=1.5.207": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4",
   "studio-drawings.js?v=1.5.207": "d5df24459ce1bd64618f2881ffc6221eeccdc949beb30a2b54d70b497b29854c",
-  "studio-layout.css?v=1.5.207": "3dc4ab4d4fa5fcb60b62832b104c4b2a4e8ce51da0cb42295105d1e7cb180065",
+  "studio-layout.css?v=1.5.207": "a28daa56eed6dd46ff1bd667aed387f44cb44dc2cac2da879cf6015ec8b98679",
   "studio-friends.js?v=1.5.207": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858",
-  "studio-engine-208.js?v=1.5.207": "5a639173f6441b0a122eee084a60ad64d378548249c893596c92f83890731e0a",
+  "studio-engine-208.js?v=1.5.207": "6e8c64fda68ffdc318bc46e3acdebd06510c2f7c1c4031197a7122e36b2b1864",
+  "studio-project-store.js?v=1.5.207": "746f4bad604129576a4890c54c5e96182081fb862af8f5c3bf10eaf9f895437e",
   "assets/ui/home-sprite-1548.webp": "1e974ad768ec11b50d63b52675b99621b6d28667e22f06bbcb318bcb687a3ed8",
   "assets/ui/learning-sprite-1536.webp": "e4b8ec07f3417b50023021aa542de958db0a4df397864b5687da50584e9208fd",
   "assets/ui/writer-squirrel-144-v1.webp": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee",
@@ -27,7 +28,7 @@ const READY=new URL('__skazki_shell_verified__',ROOT).href;
 const LEGACY_CORE=['classic-art-153.js','classic-art-155.js','andersen-art-156.js','learning-art-1536.css','world-scenes-194.js'].map(name=>new URL(name,ROOT).href);
 const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1536.webp','assets/ui/writer-squirrel-144-v1.webp','assets/author/studio/home-storybook-banner-560.webp','assets/author/studio/home-egypt-cat-320x120.webp?v=206'].map(name=>new URL(name,ROOT).href);
 for(const asset of ['studio-drawings.js','studio-layout.css','studio-friends.js'])LEGACY_CORE.push(new URL(asset,ROOT).href);
-const VERSIONED_CORE=[...LEGACY_CORE,new URL('studio-engine-208.js',ROOT).href];
+const VERSIONED_CORE=[...LEGACY_CORE,...['studio-engine-208.js','studio-project-store.js'].map(name=>new URL(name,ROOT).href)];
 const CORE=[...VERSIONED_CORE.map(url=>url+'?v='+REV),...UI_SPRITES];
 const RELEASE_URLS=[INDEX,...CORE];
 const ART=new Set(['andersen-pea-bed.webp','andersen-pea-journey.webp','andersen-pea-morning.webp','andersen-pea-rain.webp','classic-cinder-1.jpg','classic-cinder-11.jpg','classic-cinder-3.jpg','classic-cinder-7.jpg','historic-pea-morning.jpg','historic-sunny.jpg','historic-wind1.jpg','historic-wind2.jpg','premium-coloring.png','premium-storybook.webp'].map(name=>new URL('assets/books/'+name,ROOT).href));

@@ -26,7 +26,7 @@ assert.ok(initialBytes<=1000000,'initial source budget exceeded: '+initialBytes)
 console.log('INITIAL SOURCE BYTES',initialBytes);
 const release=JSON.parse(fs.readFileSync(path.join(root,'release.json'),'utf8')).version;
 const workerSource=fs.readFileSync(path.join(root,'sw.js'),'utf8');
-const {fingerprint}=require('../tools/shell-integrity.cjs').shellDefinition(workerSource);
+const {fingerprint,resources:releaseResources}=require('../tools/shell-integrity.cjs').shellDefinition(workerSource);
 const verifiedShell='skazki-shell-'+release+'-'+fingerprint;
 assert.ok(fs.readFileSync(path.join(root,'index.html'),'utf8').includes('<footer>Книга сказок · версия '+release+'</footer>'),'manifest matches HTML');
 assert.ok(fs.readFileSync(path.join(root,'sw.js'),'utf8').includes("const REV='"+release+"'"),'manifest matches worker');
@@ -100,6 +100,7 @@ const server=http.createServer((req,res)=>{
  await require("./drawing-recovery.cjs")(browser,url);
  await require("./drawing-input.cjs")(browser,url);
  await require("./image-import.cjs")(browser,url);
+ await require("./studio-projects.cjs")(browser,url);
  await require("./family-cloud-routing.cjs")(browser,url);
  await require("./family-peer-fallback.cjs")(browser,url);
  await require("./family-disconnect.cjs")(browser,url);
@@ -631,7 +632,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async name=>{const keys=await (await caches.open(name)).keys();return keys.length},verifiedShell),16,'verified cache marker and complete offline release closure');
+   assert.equal(await page.evaluate(async name=>{const keys=await (await caches.open(name)).keys();return keys.length},verifiedShell),releaseResources.length+1,'verified cache marker and complete offline release closure');
    for(const [selector,asset] of [['.home-hero-watercolor',bannerManifest],['.home-feature-art img',catManifest]]){
      const image=await page.locator(selector).evaluate(async (img,name)=>{
        await img.decode();

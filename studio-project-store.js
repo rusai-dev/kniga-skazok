@@ -1,0 +1,210 @@
+'use strict';
+
+function createStudioProjectStore(database, digest, identity) {
+  const dbName = 'skazki-drawing-projects-v1';
+  const tables = ['documents', 'revisions', 'pixels'];
+  let connection;
+
+  function open() {
+    if (!connection) {
+      connection = new Promise((resolve, reject) => {
+        const request = database.open(dbName, 1);
+        request.onupgradeneeded = () => {
+          for (const name of tables) request.result.createObjectStore(name);
+        };
+        request.onsuccess = () => {
+          const db = request.result;
+          db.onversionchange = () => { db.close(); connection = null; };
+          resolve(db);
+        };
+        request.onerror = () => reject(request.error);
+      }).catch(error => { connection = null; throw error; });
+    }
+    return connection;
+  }
+
+  async function transact(names, mode, run) {
+    const db = await open();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(names, mode);
+      let result, failure;
+      tx.oncomplete = () => resolve(result);
+      tx.onabort = () => reject(failure || tx.error || Error('abort'));
+      run(tx, value => { result = value; }, reason => { failure = Error(reason); tx.abort(); });
+    });
+  }
+
+  const validId = value => typeof value === 'string' && value.length > 0 && value.length <= 180;
+  const isHash = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+  const isBlob = value => value instanceof Blob && value.type === 'image/png' && value.size > 0 && value.size <= 16777216;
+  async function pixelHash(bytes) {
+    const result = new Uint8Array(await digest('SHA-256', bytes));
+    return Array.from(result, byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
+  function validateDetail(input) {
+    const {schemaVersion, documentId, title, width, height, layers} = input;
+    return schemaVersion === 1 && validId(documentId) && typeof title === 'string' && title.trim().length > 0 && title.length <= 120 &&
+      Number.isInteger(width) && width > 0 && width <= 4096 && Number.isInteger(height) && height > 0 && height <= 4096 &&
+      Array.isArray(layers) && layers.length > 0 && layers.length <= 12 &&
+      layers.every(layer => layer && validId(layer.id)) && new Set(layers.map(layer => layer.id)).size === layers.length;
+  }
+
+  function addPixels(store, assets) {
+    for (const [hash, bytes] of assets) {
+      const existing = store.getKey(hash);
+      existing.onsuccess = () => { if (existing.result === undefined) store.add(bytes, hash); };
+    }
+  }
+
+  async function commit(input, expectedRevision) {
+    if (!validateDetail(input) || (expectedRevision !== null && !validId(expectedRevision))) throw Error('project');
+    const {documentId, title, width, height} = input;
+    const layers = [];
+    const assets = new Map();
+    for (const layer of input.layers) {
+      if (!isBlob(layer.blob)) throw Error('pixels');
+      const bytes = await layer.blob.arrayBuffer();
+      const hash = await pixelHash(bytes);
+      assets.set(hash, bytes);
+      layers.push({id: layer.id, hash});
+    }
+    const revision = identity();
+    const outline = typeof input.outline === 'string' && input.outline.length <= 80 ? input.outline : null;
+
+    return transact(tables, 'readwrite', (tx, done, abort) => {
+      const documents = tx.objectStore('documents');
+      const pixels = tx.objectStore('pixels');
+      const revisions = tx.objectStore('revisions');
+      const current = documents.get(documentId);
+      current.onsuccess = () => {
+        const head = current.result;
+        if (head && head.schemaVersion !== 1) return abort('schema');
+        if ((head?.revision ?? null) !== expectedRevision) return abort('conflict');
+        const snapshot = {schemaVersion: 1, documentId, title, width, height, layers, outline};
+        const write = () => {
+          const originalHash = head?.originalHash || layers[0].hash;
+          const updated = {...snapshot, revision, originalHash, updatedAt: Date.now()};
+          addPixels(pixels, assets);
+          revisions.add({...updated, parentRevision: expectedRevision}, revision);
+          documents.put({schemaVersion: 1, documentId, title, revision, originalHash, updatedAt: updated.updatedAt}, documentId);
+          done(updated);
+        };
+        if (!head) return write();
+        const prior = revisions.get(head.revision);
+        prior.onsuccess = () => {
+          const saved = prior.result;
+          if (!saved || !validateDetail(saved) || saved.documentId !== documentId || !isHash(saved.originalHash)) return abort('corrupt');
+          const {schemaVersion, documentId: storedId, title, width, height, layers, outline} = saved;
+          if (JSON.stringify({schemaVersion, documentId: storedId, title, width, height, layers, outline}) === JSON.stringify(snapshot)) {
+            done(saved);
+          } else write();
+        };
+      };
+    });
+  }
+
+  function list() {
+    return transact(['documents'], 'readonly', (tx, done) => {
+      const request = tx.objectStore('documents').getAll();
+      request.onsuccess = () => done(request.result.sort((a, b) => b.updatedAt - a.updatedAt));
+    });
+  }
+
+  async function read(documentId, includeHistory = false) {
+    const result = await transact(tables, 'readonly', (tx, done, abort) => {
+      const document = tx.objectStore('documents').get(documentId);
+      document.onsuccess = () => {
+        const head = document.result;
+        if (!head) return done(null);
+        if (head.schemaVersion !== 1) return abort('schema');
+        const chain = [], seen = new Set(), hashes = new Set([head.originalHash]);
+        const revisions = tx.objectStore('revisions');
+        function load(revisionId) {
+          if (!validId(revisionId) || seen.has(revisionId)) return abort('corrupt');
+          if (chain.length >= 128) return abort('archive-size');
+          seen.add(revisionId);
+          const request = revisions.get(revisionId);
+          request.onsuccess = () => {
+            const detail = request.result;
+            if (!detail || !validateDetail(detail) || detail.documentId !== documentId || detail.revision !== revisionId ||
+                !isHash(detail.originalHash) || detail.originalHash !== head.originalHash ||
+                detail.layers.some(layer => !isHash(layer.hash))) return abort('corrupt');
+            chain.push(detail);
+            for (const layer of detail.layers) hashes.add(layer.hash);
+            if (includeHistory && detail.parentRevision !== null) { load(detail.parentRevision); return; }
+            const pixels = new Map(), source = tx.objectStore('pixels');
+            let total = 0;
+            for (const hash of hashes) {
+              const image = source.get(hash);
+              image.onsuccess = () => {
+                const bytes = image.result;
+                if (!(bytes instanceof ArrayBuffer) || !bytes.byteLength || bytes.byteLength > 16777216) return abort('corrupt');
+                total += bytes.byteLength;
+                if (total > 29000000) return abort('archive-size');
+                pixels.set(hash, bytes);
+              };
+            }
+            done({detail: chain[0], revisions: chain.reverse(), pixels});
+          };
+        }
+        load(head.revision);
+      };
+    });
+    if (result) {
+      for (const [hash, bytes] of result.pixels) {
+        if (await pixelHash(bytes) !== hash) throw Error('corrupt');
+        result.pixels.set(hash, new Blob([bytes], {type: 'image/png'}));
+      }
+    }
+    return result;
+  }
+
+  async function validateArchive(revisions, pixels) {
+    if (!Array.isArray(revisions) || !revisions.length || revisions.length > 128 || !(pixels instanceof Map)) throw Error('archive');
+    const first = revisions[0];
+    let parent = null;
+    const ids = new Set(), wanted = new Set();
+    for (const detail of revisions) {
+      if (!detail || !validateDetail(detail) || !validId(detail.revision) || ids.has(detail.revision) || detail.parentRevision !== parent ||
+          detail.documentId !== first.documentId || !isHash(detail.originalHash) || detail.originalHash !== first.originalHash ||
+          !Number.isFinite(detail.updatedAt) || (detail.outline !== null && (typeof detail.outline !== 'string' || detail.outline.length > 80)) ||
+          detail.layers.some(layer => !isHash(layer.hash))) throw Error('archive');
+      ids.add(detail.revision);
+      wanted.add(detail.originalHash);
+      for (const layer of detail.layers) wanted.add(layer.hash);
+      parent = detail.revision;
+    }
+    if (wanted.size !== pixels.size) throw Error('archive');
+    let total = 0;
+    for (const hash of wanted) {
+      const bytes = pixels.get(hash);
+      if (!(bytes instanceof ArrayBuffer) || !bytes.byteLength || bytes.byteLength > 16777216 || await pixelHash(bytes) !== hash) throw Error('archive');
+      total += bytes.byteLength;
+      if (total > 29000000) throw Error('archive-size');
+    }
+  }
+
+  async function restore(revisions, pixels) {
+    await validateArchive(revisions, pixels);
+    const documentId = identity(), title = revisions[revisions.length - 1].title.slice(0, 110) + ' · копия';
+    return transact(tables, 'readwrite', (tx, done) => {
+      addPixels(tx.objectStore('pixels'), pixels);
+      const history = tx.objectStore('revisions');
+      let current, parentRevision = null;
+      for (const snapshot of revisions) {
+        const {width, height, outline, originalHash} = snapshot;
+        const revision = identity(), layers = snapshot.layers.map(({id, hash}) => ({id, hash}));
+        current = {schemaVersion: 1, documentId, title, width, height, layers, outline, originalHash, revision,
+          parentRevision, updatedAt: snapshot.updatedAt};
+        history.add(current, revision);
+        parentRevision = revision;
+      }
+      const head = {schemaVersion: 1, documentId, title, revision: current.revision, originalHash: current.originalHash, updatedAt: Date.now()};
+      tx.objectStore('documents').add(head, documentId);
+      done(head);
+    });
+  }
+
+  return {list, read, commit, validateArchive, restore};
+}
