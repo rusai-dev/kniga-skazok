@@ -364,3 +364,10 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - The approved banner and decoded companion are both visible at iPad, split-view and phone widths. The frame retains the faces in the banner, the complete rotating portrait and the Egyptian cat's ears and muzzle. The greeting announces the decoded companion by name.
 - On a return visit with a stale legacy cat cached, the current shell uses the verified versioned cat and banner online and offline. The existing story and drawing storage checks still apply.
 - Evidence includes the full browser smoke and regression, matching before/after scenes and screenshots of the favorite and the cat crop in Chromium and WebKit. Hardware Safari, Pencil and real family delivery remain pending or blocked.
+
+### 1.5.207 · Personal studio and reading
+
+- When the writer opens and closes the illustrations drawer, the same text and caret are available. Saving a canvas drawing inserts its marker at that position and moves the caret past the marker.
+- The visible zoom controls reach all four scales and retain the canvas bitmap. Brush, palette, undo, redo, PNG rescue and save behavior continue through the original drawing engine.
+- The personal reader opens at the selected chapter or illustration. A previously selected personal cover and the story record survive reading and a reload. The book, chapter syntax and drawing storage formats are unchanged.
+- The before/after browser evidence covers the editor, drawing workspace, personal shelf and book in landscape and portrait tablet sizes. Physical iPad screenshots and Pencil confirmation are pending.

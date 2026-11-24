@@ -1611,3 +1611,116 @@ body[data-home-screen="home"]{
   object-fit:cover;
   object-position:42% 92%;
 }
+
+/* Watercolor surfaces for the personal studio and reader. */
+#modal:has(#storyForm, #standaloneDrawing, .own-reading[data-personal]) .dialog-head {
+  background:linear-gradient(115deg,#233d6b,#453469 65%,#5b3975);
+  color:#fffaf2;
+}
+#modal:has(#storyForm, #standaloneDrawing, .own-reading[data-personal]) .dialog-head h2 {color:#fffaf2}
+#modal:has(#storyForm, #standaloneDrawing, .own-reading[data-personal]) .dialog-head button {
+  background:#fffaf4;color:#492d69;border-color:#e2cfea;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing):not(.writer-focus) {
+  background:linear-gradient(135deg,#fdfbfa,#fffdf7 65%,#f5edf9);
+  border-color:#dcd2e8;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) #storyBody {
+  background:#fff linear-gradient(90deg,#f0e8f1,#fff 14px);
+  padding:clamp(15px,2vw,26px);
+  border-color:#ded4e7;
+  box-shadow:0 3px 9px #5e45771c;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) #storyBody:focus-visible {
+  outline:2px solid #6d3aa8;outline-offset:2px;
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar {
+  background:radial-gradient(ellipse at top right,#dcc9f3,transparent 68%),linear-gradient(145deg,#f8f3ff,#daf1ee);
+}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar #drawStory {
+  background:linear-gradient(130deg,#08717a,#075764);
+}
+#storyForm .writer-artbar:has(#writerArtShelf:not([hidden]))::before {display:none}
+#writerArtShelf {
+  width:100%;min-width:0;
+  padding:6px;border:1px solid #d5c5eb;border-radius:12px;background:#faf6fe;
+}
+#writerGalleryItems {padding:3px;gap:7px}
+#modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) #writerGalleryItems button {
+  width:100%;padding:5px;line-height:1.25;overflow-wrap:anywhere;
+}
+@media(min-width:900px) and (min-height:680px) {
+  #modal:not(.drawing-focus) #storyForm:not(.keyboard-writing) .writer-artbar:not(:has(#writerArtShelf:not([hidden])))::before {
+    height:clamp(108px,18vh,155px);background-size:contain;
+  }
+  #writerGalleryItems {grid-template-columns:minmax(0,1fr);max-height:25dvh}
+}
+
+#modal.drawing-focus .studio-view-tools {
+  display:flex;flex:none;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:4px;
+}
+#modal.drawing-focus .studio-view-tools button {
+  min-width:44px;min-height:44px;padding:4px 8px;
+  border:1px solid #c2addf;border-radius:12px;background:#fffdfb;color:#4c326a;font-weight:750;
+}
+#modal.drawing-focus .studio-view-tools button:disabled {opacity:.45}
+#modal.drawing-focus .studio-view-tools button[aria-pressed=true] {
+  color:#fff;background:#563a7d;border-color:#563a7d;
+}
+#modal.drawing-focus:not(.canvas-detail) #drawingPan {display:none}
+#modal.drawing-focus #drawingDetail {display:inline-block;min-width:56px;font-variant-numeric:tabular-nums}
+#modal.drawing-focus:not(.canvas-full) #studioSheet {
+  background:radial-gradient(ellipse at top left,#cdb9eb,transparent 62%),linear-gradient(130deg,#f5effb,#d5f2ed);
+}
+#modal.drawing-focus:not(.canvas-full) #studioSheet #studioViewport {background:#f5f0f8}
+#modal.drawing-focus:not(.canvas-full) .studio-palette {
+  background:linear-gradient(125deg,#e6d6f5,#e5f7f4);
+}
+#modal.drawing-focus .studio-view-tools button:focus-visible {outline:3px solid #714f9d;outline-offset:2px}
+@media(max-width:520px) {
+  #modal.drawing-focus .studio-view-tools {justify-content:center}
+  #modal.drawing-focus .studio-view-tools #drawingExpand {font-size:0;padding:0}
+  #modal.drawing-focus .studio-view-tools #drawingExpand::after {content:"⛶";font-size:19px}
+}
+
+#libraryHome[data-own-shelf=true] .hero {
+  background:radial-gradient(ellipse at 0 0,#39757a,transparent 70%),linear-gradient(120deg,#243a68,#49336f);
+  border-color:#fff6e8;outline-color:#c1a9e1;
+}
+#libraryHome[data-own-shelf=true] .hero-title {color:#fffaf3}
+#libraryHome[data-own-shelf=true] .hero .tag,
+#libraryHome[data-own-shelf=true] .hero .sub,
+#libraryHome[data-own-shelf=true] #subtitle {color:#f2e6fb}
+#libraryHome[data-own-shelf=true] #heroArt {border-radius:15px;overflow:hidden}
+#libraryHome[data-own-shelf=true] .books {align-items:start}
+#libraryHome[data-own-shelf=true] .own-book .cover {
+  background:linear-gradient(140deg,#e5d5f5,#e1f3ef);
+  padding:8px 9px 8px 14px;
+}
+#libraryHome[data-own-shelf=true] .own-book .custom-cover {
+  border-radius:6px 13px 13px 6px;
+  box-shadow:-3px 0 #fff9,3px 4px #fffdf6,5px 6px #bea9d772,0 6px 12px #4d386333;
+}
+#libraryHome[data-own-shelf=true] .own-book .shelf-cover-art[hidden],
+#libraryHome[data-own-shelf=true] .own-book .cover-picture:has(.shelf-cover-art:not([hidden])) svg {display:none}
+#libraryHome[data-own-shelf=true] .own-book .own-book-actions {flex-wrap:wrap}
+#libraryHome[data-own-shelf=true] .own-book .own-book-actions button {min-width:44px;flex:1 1 auto}
+#libraryHome[data-own-shelf=true] .newpage {
+  min-height:180px;
+  background:radial-gradient(ellipse at 70% 0,#e6d4f8,transparent 68%),linear-gradient(125deg,#fbf8ff,#e5f6f2);
+}
+#libraryHome[data-own-shelf=true] .shelf-new-art {max-height:100px}
+#modal.reading-focus .own-reading[data-personal] {
+  background:linear-gradient(140deg,#e9dbf7,#e5f5f2);border-radius:16px;
+}
+#modal.reading-focus .own-reading[data-personal] .reading-toolbar {flex-wrap:wrap;gap:6px}
+#ownReadContents {
+  flex:1 1 155px;min-width:0;max-width:320px;min-height:44px;
+  border:1px solid #bca4da;border-radius:12px;background:#fffafc;color:#513575;
+  padding:6px 9px;font-weight:650;
+}
+#ownReadContents:focus-visible {outline:3px solid #6d3aa8;outline-offset:2px}
+#modal.reading-focus .own-reading[data-personal] .reading-spread {
+  background:linear-gradient(90deg,#e6dbf4,#f9f2fe 46%,#cfc1e1 50%,#f6eefc 54%,#e5f2ec);
+}
+#modal.reading-focus .own-reading[data-personal] :is(.reading-text,.facing-page) {background:#fffdf7}

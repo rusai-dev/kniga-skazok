@@ -1004,3 +1004,10 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - The continuation label refreshes when the writer closes with Escape and when returning home. Browser smoke verifies the saved Russian draft, the same draft after reload, and the first visit in a fresh profile.
 - The responsive checks cover face placement, 44px targets, contrast, genuine navigation and the original source and cold-home limits, including the largest companion scene. Studio snapshots use matching scenes before and after, a favorite, an Egyptian cat crop and the real continuation action.
 - Physical Safari/iPad, Apple Pencil and authenticated family delivery and revocation remain release gates. The software checks use isolated synthetic profiles.
+
+### 1.5.207 — watercolor writing, drawing and personal reading
+
+- The illustration drawer opens beside the manuscript in the landscape editor. Escape returns to the text, and the regression scenario checks the insertion marker and the caret after a drawing is saved.
+- The drawing workspace provides 100%, 140%, 180% and 220% zoom in normal and expanded modes. Zoom uses the viewport only. Browser checks compare the canvas bitmap before and after zoom and retain the existing pixel, save-failure, undo, redo and reopen checks.
+- Personal shelf cards use the child's chosen cover when present. For other books the existing watercolor is lazy-loaded over the shelf's vector fallback. The personal reader derives contents from the stored chapter headings and inline illustrations. Existing reading bookmarks still use the same scene and text offset.
+- Studio comparison captures the writer drawer, canvas with zoom, shelf, chapter and illustration against the 1.5.206 base. Chromium and WebKit use synthetic profiles at tablet and phone viewport sizes. Physical iPad Safari, Pencil and authenticated family delivery are separate acceptance gates.

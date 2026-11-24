@@ -16,9 +16,24 @@ module.exports=async function verifyWatercolorShelf(browser,url){
   await page.locator('#ownShelfNew').click();
   await page.locator('#storyTitle').fill(title);
   await page.locator('#storyBody').fill('Белочка нашла фиолетовую книгу. В ней было три добрых рисунка.');
+  await page.locator('#writerExtras > summary').click();
+  await page.locator('#storyChapters summary').click();
+  const body=page.locator('#storyBody');
+  for(const [name,text] of [['Тихая река','Через реку вёл деревянный мост.'],['Звёздный сад','В саду горел фонарь.']]){
+    await page.locator('#newChapterTitle').fill(name);
+    await page.locator('#appendChapter').click();
+    await body.fill(await body.inputValue()+text);
+  }
+  await page.locator('#writerExtras > summary').click();
+  await page.locator('#drawStory').click();
+  await page.locator('#drawingCanvas').click({position:{x:45,y:45}});
+  await page.locator('#drawingSave').click();
+  await page.locator('#imageTray [data-cover-pic]').click();
   await page.locator('#publishStory').click();
   const card=page.locator('#libraryHome[data-own-shelf="true"] .own-book').filter({hasText:title}).first();
   await card.waitFor({timeout:15000});
+  assert.match(await card.locator('.cover-picture img').getAttribute('src'),/^data:image\/jpeg/,
+    'the child-selected illustration is still used on the shelf');
   for(const [width,height] of [[1024,768],[768,1024],[390,844]]){
    await page.setViewportSize({width,height});
    await card.scrollIntoViewIfNeeded();
@@ -47,6 +62,15 @@ module.exports=async function verifyWatercolorShelf(browser,url){
   assert.ok(saved?.id,'synthetic book must persist before reading');
   await card.locator('.own-read').click();
   await page.locator('#ownReadText').waitFor();
+  const contents=page.locator('#ownReadContents');
+  assert.deepEqual(await contents.locator('optgroup[label="Главы"] option').allTextContents(),['Тихая река','Звёздный сад']);
+  await contents.selectOption({label:'Тихая река'});
+  assert.match(await page.locator('#ownReadText').textContent(),/^Тихая река/,'contents opens at the chapter heading');
+  await contents.selectOption({label:'Рисунок 1'});
+  await page.locator('#ownReadArt img').waitFor();
+  await page.locator('#ownReadBack').click();
+  await card.locator('.own-read').click();
+  await page.locator('#ownReadArt img').waitFor();
   await page.locator('#ownReadBack').click();
   await page.reload();
   const after=await page.evaluate(name=>{

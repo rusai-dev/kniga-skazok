@@ -46,8 +46,24 @@ module.exports=async function verifyWatercolorWriter(browser,url){
       assert.equal(await page.locator('#writerGallery').isVisible(),true,'gallery remains reachable with virtual keyboard');
       assert.equal(await page.locator('#storyBody').inputValue(),story,'keyboard layout cannot delete manuscript');
       await page.evaluate(()=>writerViewportFit(window.visualViewport));
+      const body=page.locator('#storyBody'),at=story.indexOf('книгу')+'книгу'.length;
+      await body.evaluate((el,pos)=>{el.focus();el.setSelectionRange(pos,pos)},at);
+      await page.locator('#writerGallery').click();
+      const drawer=page.locator('#writerArtShelf');
+      assert.ok(await drawer.isVisible(),'gallery opens inside the illustration panel');
+      assert.equal(await drawer.evaluate(el=>el.parentElement.className),'writer-artbar');
+      await page.keyboard.press('Escape');
+      assert.equal(await drawer.isVisible(),false);
+      assert.equal(await body.evaluate(el=>el.selectionStart),at,'closing the gallery restores the insertion point');
+
       await page.locator('#drawStory').click();
-      assert.equal(await page.locator('#drawingCanvas').isVisible(),true,'real drawing canvas must open from the editor');
+      const canvas=page.locator('#drawingCanvas');
+      assert.ok(await canvas.isVisible(),'real drawing canvas must open from the editor');
+      await canvas.click({position:{x:45,y:45}});
+      await page.locator('#drawingSave').click();
+      const marker='\n[[рисунок:1]]\n';
+      assert.equal(await body.inputValue(),story.slice(0,at)+marker+story.slice(at),'saving the drawing inserts at the remembered caret');
+      assert.equal(await body.evaluate(el=>el.selectionStart),at+marker.length,'the caret follows the inserted drawing');
       assert.deepEqual(errors,[]);
     }finally{await ctx.close()}
     console.log('PASS R03/R04/R15 watercolor editor '+width+'x'+height);

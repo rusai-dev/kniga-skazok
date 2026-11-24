@@ -39,6 +39,26 @@ module.exports=async function verifyWatercolorDrawing(browser,url){
         assert.ok(b.width>=44&&b.height>=44,
           'drawing button '+b.id+' smaller than 44px at '+width+'x'+height+' ('+b.width+'×'+b.height+')');
       }
+      const canvas=page.locator('#drawingCanvas'),zoom=page.locator('#drawingDetail');
+      const pixels=await canvas.evaluate(el=>el.toDataURL());
+      const fitted=(await canvas.boundingBox()).width;
+      assert.equal(await zoom.textContent(),'100%');
+      for(const id of ['drawingZoomIn','drawingZoomOut','drawingDetail']){
+        const box=await page.locator('#'+id).boundingBox();
+        assert.ok(box.width>=44&&box.height>=44,'normal mode zoom controls are touch-sized');
+      }
+      await page.locator('#drawingZoomIn').click();
+      await page.locator('#drawingZoomIn').click();
+      assert.equal(await zoom.textContent(),'180%');
+      assert.ok((await canvas.boundingBox()).width>fitted*1.6,'zoom actually enlarges the sheet');
+      await page.locator('#drawingZoomIn').click();
+      assert.equal(await zoom.textContent(),'220%');
+      assert.ok(await page.locator('#drawingZoomIn').isDisabled());
+      await page.locator('#drawingZoomOut').click();
+      assert.equal(await zoom.textContent(),'180%');
+      await zoom.click();
+      assert.equal(await zoom.textContent(),'100%');
+      assert.equal(await canvas.evaluate(el=>el.toDataURL()),pixels,'zoom cannot change the canvas bitmap');
       await page.locator('#drawingExpand').click();
       assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('canvas-full')),true,
         'real drawing fullscreen remains functional after R15 restyle');

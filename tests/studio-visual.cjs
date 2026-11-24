@@ -59,9 +59,20 @@ async function capture(browser,width,height) {
     await take('empty');
     const paragraph='Сова раскрыла атлас. На краю страницы поблёскивала река, а на другом берегу уже ждал зайчонок.';
     await page.locator('#storyTitle').fill('Атлас серебряной реки');
-    await page.locator('#storyBody').fill((paragraph+'\n\n').repeat(90));
-    await page.locator('#storyBody').evaluate(el=>{el.setSelectionRange(95,95);el.scrollTop=0});
+    const body=page.locator('#storyBody');
+    await body.fill((paragraph+'\n\n').repeat(90));
+    await page.locator('#writerExtras > summary').click();
+    await page.locator('#storyChapters summary').click();
+    await page.locator('#newChapterTitle').fill('Глава у звёздной реки');
+    await click('appendChapter');
+    await body.fill(await body.inputValue()+'В саду за рекой герои нашли свой первый фонарь.');
+    await page.locator('#writerExtras > summary').click();
+    await body.evaluate(el=>{el.setSelectionRange(95,95);el.scrollTop=0;el.closest('dialog').scrollTop=0;document.getElementById('modalBody').scrollTop=0});
     await take('manuscript');
+    await click('writerGallery');
+    await page.locator('#writerArtShelf').scrollIntoViewIfNeeded();
+    await take('writer-gallery');
+    await click('writerGallery');
     record.typedFrameMs=await page.evaluate(async()=>{const body=$('storyBody');body.focus();const t=performance.now();body.setRangeText(' ',95,95,'end');body.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return performance.now()-t});
     await page.evaluate(()=>{$('storyBody').focus();writerViewportFit({width:innerWidth,height:230,offsetTop:0,scale:1})});
     await take('keyboard',{clip:{x:0,y:0,width,height:230}});
@@ -76,6 +87,9 @@ async function capture(browser,width,height) {
     for(let i=0;i<=60;i++) await page.mouse.move(x+i*r.width/220,y+Math.sin(i/10)*14);
     await page.mouse.up();await take('canvas');
     await click('drawingExpand');await take('fullscreen');
+    const detail=page.locator('#drawingDetail');
+    if(await detail.getAttribute('aria-pressed')==='false')await detail.click();
+    await take('zoom');
     await click('studioPro');await take('palette');await click('studioProClose');
     await click('drawingExpand');
     const returnStart=Date.now();await click('drawingSave');await page.locator('#storyBody').waitFor();
@@ -84,8 +98,20 @@ async function capture(browser,width,height) {
     await click('publishFamily');await take('family');await click('cancelFamilyPublish');
     await click('publishStory');
     const card=page.locator('.own-book').filter({hasText:'Атлас серебряной реки'}).first();
-    await card.waitFor();await take('shelf');await card.locator('.own-read').click();
+    await card.waitFor();
+    await page.locator('#toast').waitFor({state:'hidden'});
+    await take('shelf');
+    await card.locator('.own-read').click();
     await page.locator('#ownReadText').waitFor();await take('book');
+    const contents=page.locator('#ownReadContents');
+    const navigation=await contents.count()?contents:page.locator('#ownReadJump');
+    if(await contents.count())await take('book-contents');
+    for(const [label,name,visible] of [['Глава у звёздной реки','chapter','#ownReadText'],['Рисунок 1','book-image','#ownReadArt img']]){
+      const option=navigation.locator('option').filter({hasText:label}).first();
+      await navigation.selectOption(await option.getAttribute('value'));
+      await page.locator(visible).waitFor();
+      await take(name);
+    }
     await click('ownReadBack');await click('home');
     for(const [id,name] of [['readingEntry','reading'],['homeMath','math'],['homeLogic','logic'],['childWorld','world']]){
       await click(id);await take(name);await page.goto(url);
