@@ -85,8 +85,8 @@ module.exports = async function verifyProjectProfiles(browser, url) {
       throw new Error(`${error.message}\n${await page.locator('#modalBody').innerText()}`);
     });
     const archive = await exportFile(page, 'button[aria-label="Скачать архив «Прозрачный квадрат»"]');
-    const [originalRevision, editedRevision] = JSON.parse(archive).revisions;
-    assert.equal(editedRevision.layers.length, 8);
+    const originalRevisions = JSON.parse(archive).revisions;
+    assert.equal(originalRevisions.at(-1).layers.length, 8);
     await page.locator('#projectImport:enabled').waitFor();
     await page.locator('#projectArchiveFile').setInputFiles({name: 'square.json', mimeType: 'application/json', buffer: archive});
     await page.locator('#confirmProjectImport').click();
@@ -116,8 +116,8 @@ module.exports = async function verifyProjectProfiles(browser, url) {
       const restored = await store.read(copy.documentId, true);
       return {root: restored.detail.originalHash, revisions: restored.revisions.map(snapshot => snapshot.layers.map(layer => layer.hash))};
     });
-    assert.deepEqual(kept, {root: originalRevision.originalHash,
-      revisions: [originalRevision, editedRevision].map(revision => revision.layers.map(layer => layer.hash))});
+    assert.deepEqual(kept, {root: originalRevisions[0].originalHash,
+      revisions: originalRevisions.map(revision => revision.layers.map(layer => layer.hash))});
   } finally {
     await page.close();
   }
