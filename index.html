@@ -301,14 +301,14 @@ function drawingFingerprint(src){let h=2166136261;for(let i=0;i<src.length;i++)h
 function savedDrawing(src=fget(DRAWING_DRAFT)){return typeof src==='string'&&src.length<=350000&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(src)?src:null}
 let drawingFitObserver=null,drawingFitHandler=null,drawingReturn=null;
 function stopDrawingFit(){if(drawingFitObserver){drawingFitObserver.disconnect();drawingFitObserver=null}if(drawingFitHandler){window.removeEventListener('resize',drawingFitHandler);drawingFitHandler=null}}
-function studioFit(w,h){if(!(w>0&&h>0))return null;const width=Math.max(1,Math.floor(Math.min(w,h*1.5)));return {width,height:Math.max(1,Math.floor(width/1.5))}}
+function studioFit(w,h,ratio=1.5){if(!(w>0&&h>0))return null;const width=Math.max(1,Math.floor(Math.min(w,h*ratio)));return {width,height:Math.max(1,Math.floor(width/ratio))}}
 function focusDrawing(on){
 const modal=$('modal');stopDrawingFit();
 if(!on){const pro=$('studioProPane');if(pro){pro.hidden=true;$('studioPro').setAttribute('aria-expanded','false')}modal.classList.remove('drawing-focus','canvas-full','canvas-detail','canvas-pan');const expand=$('drawingExpand');if(expand){expand.textContent='⛶ На весь экран';expand.setAttribute('aria-pressed','false')}if(drawingReturn&&activeDialog==='editor'){$('modalTitle').textContent=drawingReturn.title;modal.scrollTop=drawingReturn.scroll}drawingReturn=null;return}
 if(!modal.classList.contains('drawing-focus'))drawingReturn={title:$('modalTitle').textContent,scroll:modal.scrollTop};
 modal.classList.add('drawing-focus');$('modalTitle').textContent='Моя рисовальная мастерская';modal.scrollTop=0;
 const sheet=$('studioViewport'),canvas=$('drawingCanvas');
-const fit=()=>{if(!sheet.isConnected)return;const result=studioFit(sheet.clientWidth-4,sheet.clientHeight-4);if(result){const scale=Number(sheet.dataset.scale)||1;canvas.style.width=Math.floor(result.width*scale)+'px';canvas.style.height=Math.floor(result.height*scale)+'px'}};
+const fit=()=>{if(!sheet.isConnected)return;const result=studioFit(sheet.clientWidth-4,sheet.clientHeight-4,canvas.width/canvas.height);if(result){const scale=Number(sheet.dataset.scale)||1;canvas.style.width=Math.floor(result.width*scale)+'px';canvas.style.height=Math.floor(result.height*scale)+'px'}};
 drawingFitHandler=fit;window.addEventListener('resize',fit);if(typeof ResizeObserver==='function'){drawingFitObserver=new ResizeObserver(fit);drawingFitObserver.observe(sheet)}fit();
 }
 

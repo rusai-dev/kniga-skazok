@@ -48,9 +48,10 @@ function createStudioProjectStore(database, digest, identity) {
   }
 
   function validateDetail(input, writing = false) {
-    const {schemaVersion, documentId, title, width, height, layers, activeLayerId, activeTarget} = input;
+    const {schemaVersion, documentId, title, width, height, layers, activeLayerId, activeTarget, background} = input;
     return schemaVersion === 1 && validId(documentId) && typeof title === 'string' && title.trim().length > 0 && title.length <= 120 &&
       Number.isInteger(width) && width > 0 && width <= 4096 && Number.isInteger(height) && height > 0 && height <= 4096 &&
+      (background == null || typeof background === 'string' && /^#[a-f0-9]{6}$/i.test(background)) &&
       Array.isArray(layers) && layers.length > 0 && layers.length <= 12 &&
       layers.every(layer => layer && validId(layer.id) && (layer.name === undefined || typeof layer.name === 'string' && layer.name.length <= 80) &&
         (layer.visible === undefined || typeof layer.visible === 'boolean') && (layer.locked === undefined || typeof layer.locked === 'boolean') &&
@@ -90,6 +91,7 @@ function createStudioProjectStore(database, digest, identity) {
     }
     const revision = identity();
     const outline = typeof input.outline === 'string' && input.outline.length <= 80 ? input.outline : null;
+    const background = input.background === undefined ? '#fffdf7' : input.background;
 
     return transact(tables, 'readwrite', (tx, done, abort) => {
       const documents = tx.objectStore('documents');
@@ -101,7 +103,7 @@ function createStudioProjectStore(database, digest, identity) {
         if (head && head.schemaVersion !== 1) return abort('schema');
         if ((head?.revision ?? null) !== expectedRevision) return abort('conflict');
         const activeLayerId = input.activeLayerId || layers[0].id;
-        const snapshot = {schemaVersion: 1, documentId, title, width, height, layers, outline, activeLayerId, activeTarget: input.activeTarget || 'layer'};
+        const snapshot = {schemaVersion: 1, documentId, title, width, height, layers, outline, background, activeLayerId, activeTarget: input.activeTarget || 'layer'};
         const write = () => {
           const originalHash = head?.originalHash || layers[0].hash;
           const updated = {...snapshot, revision, originalHash, updatedAt: Date.now()};
@@ -115,9 +117,11 @@ function createStudioProjectStore(database, digest, identity) {
         prior.onsuccess = () => {
           const saved = prior.result;
           if (!saved || !validateDetail(saved) || saved.documentId !== documentId || !isHash(saved.originalHash)) return abort('corrupt');
-          const {schemaVersion, documentId: storedId, title, width, height, layers, outline} = saved;
-          const previous = {schemaVersion, documentId: storedId, title, width, height,
+          if (saved.width !== width || saved.height !== height) return abort('dimensions');
+          const {schemaVersion, documentId: storedId, title, layers, outline} = saved;
+          const previous = {schemaVersion, documentId: storedId, title, width: saved.width, height: saved.height,
             layers: layers.map(layer => ({id: layer.id, hash: layer.hash, ...layerMetadata(layer)})), outline,
+            background: saved.background === undefined ? '#fffdf7' : saved.background,
             activeLayerId: saved.activeLayerId || layers[0].id, activeTarget: saved.activeTarget || 'layer'};
           if (JSON.stringify(previous) === JSON.stringify(snapshot)) {
             done(saved);
@@ -193,7 +197,8 @@ function createStudioProjectStore(database, digest, identity) {
     const ids = new Set(), wanted = new Set();
     for (const detail of revisions) {
       if (!detail || !validateDetail(detail) || !validId(detail.revision) || ids.has(detail.revision) || detail.parentRevision !== parent ||
-          detail.documentId !== first.documentId || !isHash(detail.originalHash) || detail.originalHash !== first.originalHash ||
+          detail.documentId !== first.documentId || detail.width !== first.width || detail.height !== first.height ||
+          !isHash(detail.originalHash) || detail.originalHash !== first.originalHash ||
           !Number.isFinite(detail.updatedAt) || (detail.outline !== null && (typeof detail.outline !== 'string' || detail.outline.length > 80)) ||
           detail.layers.some(layer => !isHash(layer.hash))) throw Error('archive');
       ids.add(detail.revision);
@@ -223,8 +228,9 @@ function createStudioProjectStore(database, digest, identity) {
       let current, parentRevision = null;
       for (const snapshot of revisions) {
         const {width, height, outline, originalHash} = snapshot;
+        const background = snapshot.background === undefined ? '#fffdf7' : snapshot.background;
         const revision = identity(), layers = snapshot.layers.map(layer => ({id: layer.id, hash: layer.hash, ...layerMetadata(layer)}));
-        current = {schemaVersion: 1, documentId, title, width, height, layers, outline, originalHash, revision,
+        current = {schemaVersion: 1, documentId, title, width, height, layers, outline, background, originalHash, revision,
           parentRevision, updatedAt: snapshot.updatedAt, activeLayerId: snapshot.activeLayerId || layers[0].id, activeTarget: snapshot.activeTarget || 'layer'};
         history.add(current, revision);
         parentRevision = revision;
