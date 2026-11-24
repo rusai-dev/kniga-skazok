@@ -1465,6 +1465,7 @@ const onMask=()=>activeTarget==='mask';
 const alphaLocked=()=>!!layers&&!onMask()&&activeLayer().alphaLock;
 if(layers)selectLayer(activeLayerId,activeTarget);
 let layerPanel,selectionPanel,selection,transformPreview,filterPanel;
+let draggedLayer,markedDrop;
 function editableLayer(){
   if(!layers)return true;
   const layer=activeLayer(),group=groupOf(layer);
@@ -1537,6 +1538,49 @@ function layerDestination(index,offset){
   while(layers[target+offset]?.groupId===neighbor.groupId)target+=offset;
   return target;
 }
+function layerDropOrder(target,above){
+  const moved=layers.find(layer=>layer.id===draggedLayer);
+  if(!moved||moved===target||moved.groupId&&moved.groupId!==target.groupId)return null;
+  const ordered=layers.filter(layer=>layer!==moved);
+  let position=ordered.indexOf(target);
+  if(position<0)return null;
+  if(!moved.groupId&&target.groupId){
+    const direction=above?1:-1;
+    while(ordered[position+direction]?.groupId===target.groupId)position+=direction;
+  }
+  ordered.splice(position+(above?1:0),0,moved);
+  return ordered.some((layer,index)=>layer!==layers[index])?ordered:null;
+}
+function markLayerDrop(row,above){
+  if(markedDrop)markedDrop.style.boxShadow='';
+  markedDrop=row;
+  if(row)row.style.boxShadow='inset 0 '+(above?'3px':'-3px')+' 0 var(--green)';
+}
+function bindLayerDrag(handle,row,layer){
+  handle.draggable=true;handle.title='Перетащи, чтобы изменить порядок слоёв';
+  handle.ondragstart=event=>{
+    if(!event.dataTransfer)return;
+    draggedLayer=layer.id;
+    event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain','layer');
+  };
+  handle.ondragend=()=>{draggedLayer=null;markLayerDrop(null)};
+  const upperHalf=event=>{const bounds=row.getBoundingClientRect();return event.clientY<bounds.top+bounds.height/2};
+  row.ondragover=event=>{
+    if(!draggedLayer)return;
+    event.preventDefault();
+    const above=upperHalf(event),allowed=!!layerDropOrder(layer,above);
+    if(event.dataTransfer)event.dataTransfer.dropEffect=allowed?'move':'none';
+    markLayerDrop(allowed?row:null,above);
+  };
+  row.ondragleave=event=>{if(markedDrop===row&&!row.contains(event.relatedTarget))markLayerDrop(null)};
+  row.ondrop=event=>{
+    if(!draggedLayer)return;
+    event.preventDefault();
+    const order=layerDropOrder(layer,upperHalf(event));
+    draggedLayer=null;markLayerDrop(null);
+    if(order)updateLayers(()=>{layers=order});
+  };
+}
 function removeLayer(index){
   const [removed]=layers.splice(index,1);
   if(referenceLayerId===removed.id)referenceLayerId=null;
@@ -1575,6 +1619,7 @@ function showLayerRows(){
     }
     const select=button(layer.name,'select',()=>{if(layer.id!==activeLayerId)updateLayers(()=>selectLayer(layer.id))});
     select.setAttribute('aria-pressed',String(layer.id===activeLayerId));
+    bindLayerDrag(select,row,layer);
     button(layer.visible?'Скрыть':'Показать','visible',()=>updateLayers(()=>{layer.visible=!layer.visible}));
     button(layer.locked?'Разблокировать':'Заблокировать','lock',()=>updateLayers(()=>{layer.locked=!layer.locked}));
     if(layer.id===activeLayerId){
@@ -1676,8 +1721,8 @@ function setupSelectionPanel(){
   const status=$('drawingStatus');
   status.style.blockSize='2.6em';status.style.overflow='auto';
   selection=projectSelection(canvas,view,text=>{status.textContent=text});
-  canvas.repaintSelection=selection.paint;
-  view.addEventListener('scroll',selection.paint,{passive:true});
+  canvas.repaintSelection=()=>{keepProjectViewCenter();selection.paint()};
+  view.addEventListener('scroll',()=>{rememberProjectViewCenter();selection.paint()},{passive:true});
   selectionPanel=document.createElement('section');
   selectionPanel.className='project-layer-panel';selectionPanel.hidden=true;selectionPanel.setAttribute('aria-label','Выделение');
   selectionPanel.innerHTML=`<div class="actions"><button type="button" data-select="rectangle">Прямоугольник</button><button type="button" data-select="lasso">Лассо</button><button type="button" id="invertProjectSelection">Инвертировать</button><button type="button" id="clearProjectSelection">Снять выделение</button><button type="button" id="copyProjectSelection">Копировать</button><button type="button" id="cutProjectSelection">Вырезать</button><button type="button" id="pasteProjectSelection">Вставить</button><button type="button" id="startProjectTransform">Трансформация</button><button type="button" id="closeProjectSelection">Готово</button></div>
@@ -2095,7 +2140,29 @@ function lesson(){const item=drawingLesson($('lessonSubject').value,lessonStep);
 $('lessonSubject').onchange=()=>{lessonStep=0;lesson()};$('lessonPrev').onclick=()=>{lessonStep=Math.max(0,lessonStep-1);lesson()};$('lessonNext').onclick=()=>{const total=drawingLesson($('lessonSubject').value,lessonStep).total;lessonStep=Math.min(total-1,lessonStep+1);lesson()};
 const expand=$('drawingExpand'),view=$('studioViewport'),detail=$('drawingDetail'),pan=$('drawingPan'),modal=$('modal');
 const zoomLevels=project?[0,1,2,4,8]:[1,1.4,1.8,2.2],zoomOut=$('drawingZoomOut'),zoomIn=$('drawingZoomIn');
-let zoom=0;
+let zoom=0,projectViewCenter;
+function viewCenter(){
+  const frame=view.getBoundingClientRect(),box=canvas.getBoundingClientRect();
+  const width=view.clientWidth,height=view.clientHeight;
+  return {width,height,x:(frame.left+view.clientLeft+width/2-box.left)/(box.width||1),
+    y:(frame.top+view.clientTop+height/2-box.top)/(box.height||1)};
+}
+function centerView(anchor){
+  const frame=view.getBoundingClientRect(),box=canvas.getBoundingClientRect();
+  view.scrollLeft+=box.left+anchor.x*box.width-frame.left-view.clientLeft-view.clientWidth/2;
+  view.scrollTop+=box.top+anchor.y*box.height-frame.top-view.clientTop-view.clientHeight/2;
+}
+function projectViewportResized(){
+  return projectViewCenter&&(projectViewCenter.width!==view.clientWidth||projectViewCenter.height!==view.clientHeight);
+}
+function rememberProjectViewCenter(){
+  if(!projectViewportResized())projectViewCenter=viewCenter();
+}
+function keepProjectViewCenter(){
+  if(!projectViewportResized()&&projectViewCenter)return;
+  if(projectViewCenter&&view.dataset.nativeZoom&&!pinching)centerView(projectViewCenter);
+  projectViewCenter=viewCenter();
+}
 function panMode(on){modal.classList.toggle('canvas-pan',on);pan.setAttribute('aria-pressed',String(on));pan.setAttribute('aria-label',on?'Вернуться к рисованию':'Двигать лист')}
 function displayZoom(scale,native){
  const zoomed=native||scale>1;
@@ -2108,14 +2175,11 @@ function displayZoom(scale,native){
  if(!zoomed)panMode(false);
  drawingFitHandler?.();
 }
-function moveZoom(scale,native){
- const before=canvas.getBoundingClientRect(),frame=view.getBoundingClientRect();
- const x=(frame.left+view.clientWidth/2-before.left)/(before.width||1),y=(frame.top+view.clientHeight/2-before.top)/(before.height||1);
+function moveZoom(scale,native,anchor=viewCenter()){
  displayZoom(scale,native);
- const after=canvas.getBoundingClientRect();
- const zoomed=native||scale>1;
- view.scrollLeft=zoomed?view.scrollLeft+after.left+after.width*x-frame.left-view.clientWidth/2:0;
- view.scrollTop=zoomed?view.scrollTop+after.top+after.height*y-frame.top-view.clientHeight/2:0;
+ if(native||scale>1)centerView(anchor);
+ else view.scrollLeft=view.scrollTop=0;
+ if(project)projectViewCenter=viewCenter();
 }
 function setZoom(level){
  zoom=Math.max(0,Math.min(zoomLevels.length-1,level));
@@ -2129,7 +2193,7 @@ function stepZoom(direction){
  const level=direction>0?zoomLevels.findIndex(value=>value>scale):zoomLevels.filter(value=>value<scale).length-1;
  if(level>=0)setZoom(level);
 }
-function enlarge(on){endStroke();if(!pro.hidden)showPro(false);const before=canvas.getBoundingClientRect().width;modal.classList.toggle('canvas-full',on);expand.setAttribute('aria-pressed',String(on));expand.textContent=on?'↙ Уменьшить':'⛶ На весь экран';if(view.dataset.nativeZoom)moveZoom(Number(view.dataset.scale),true);else setZoom(zoom);if(!project&&on&&!zoom&&canvas.getBoundingClientRect().width<before*1.12)setZoom(1);expand.focus({preventScroll:true})}
+function enlarge(on){endStroke();if(!pro.hidden)showPro(false);const before=canvas.getBoundingClientRect().width,anchor=viewCenter();modal.classList.toggle('canvas-full',on);expand.setAttribute('aria-pressed',String(on));expand.textContent=on?'↙ Уменьшить':'⛶ На весь экран';if(view.dataset.nativeZoom)moveZoom(Number(view.dataset.scale),true,anchor);else setZoom(zoom);if(!project&&on&&!zoom&&canvas.getBoundingClientRect().width<before*1.12)setZoom(1);expand.focus({preventScroll:true})}
 detail.onclick=()=>{if(pointer===null&&!pinching)setZoom((project?view.dataset.nativeZoom:zoom)?0:1)};
 zoomOut.onclick=()=>stepZoom(-1);
 zoomIn.onclick=()=>stepZoom(1);
@@ -2182,6 +2246,7 @@ view.addEventListener('pointermove',event=>{
   displayZoom(scale,!!project);
   const box=canvas.getBoundingClientRect();
   view.scrollLeft+=box.left+origin.dx*box.width-center.x;view.scrollTop+=box.top+origin.dy*box.height-center.y;
+  if(project)projectViewCenter=viewCenter();
 },{capture:true});
 for(const type of ['pointerup','pointercancel','lostpointercapture'])view.addEventListener(type,event=>{
   if(type==='lostpointercapture'&&pinching&&event.target!==view)return;

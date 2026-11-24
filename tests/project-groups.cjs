@@ -39,6 +39,23 @@ module.exports = async function verifyProjectGroups(browser, url) {
 
     await layers();
     await button('Сгруппировать с нижним').click();
+    const layer2 = button('Слой 2');
+    const over = async (source,target,above) => rows.evaluate((list,{source,target,above}) => {
+      const buttons=Array.from(list.querySelectorAll('[data-layer-action$=":select"]'));
+      const from=buttons.find(button=>button.textContent===source),to=buttons.find(button=>button.textContent===target).closest('li');
+      const transfer=new DataTransfer(),bounds=to.getBoundingClientRect();
+      from.dispatchEvent(new DragEvent('dragstart',{bubbles:true,cancelable:true,dataTransfer:transfer}));
+      const event={bubbles:true,cancelable:true,clientY:bounds.top+bounds.height*(above ? 0.25 : 0.75),dataTransfer:transfer};
+      to.dispatchEvent(new DragEvent('dragover',event));
+      to.dispatchEvent(new DragEvent('drop',event));
+    },{source,target,above});
+    const order = () => rows.locator('[data-layer-action$=":select"]').allTextContents();
+    assert.equal(await layer2.getAttribute('draggable'),'true');
+    await over('Слой 2','Слой 1',false);
+    assert.deepEqual(await order(),['Слой 1','Слой 2']);
+    assert.equal(await png(), two);
+    await over('Слой 2','Слой 1',true);
+    assert.deepEqual(await order(),['Слой 2','Слой 1']);
     await button('Скрыть группу').click();
     assert.equal(await png(), blank);
     await button('Показать группу').click();
@@ -87,5 +104,5 @@ module.exports = async function verifyProjectGroups(browser, url) {
   } finally {
     await page.close();
   }
-  console.log('PASS LY01/LY02 groups, visibility, lock, merge undo and reference barrier across distinct layer data');
+  console.log('PASS LY01/LY02 drag order, groups, visibility, lock, merge undo and reference barrier across distinct layer data');
 };

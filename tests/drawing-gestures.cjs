@@ -98,7 +98,20 @@ module.exports = async function verifyDrawingGestures(browser, url) {
           assert.deepEqual(await canvas.evaluate(sheet => [sheet.style.width,sheet.style.height]), [`${720*factor}px`,`${480*factor}px`]);
           if (factor<8) await canvas.press('=');
         }
+        const center = () => {
+          const viewport=$('studioViewport'), frame=viewport.getBoundingClientRect(), sheet=$('drawingCanvas'), box=sheet.getBoundingClientRect();
+          return [(frame.left+viewport.clientLeft+viewport.clientWidth/2-box.left)*sheet.width/box.width,
+            (frame.top+viewport.clientTop+viewport.clientHeight/2-box.top)*sheet.height/box.height];
+        };
+        await viewport.evaluate(async view => {
+          view.scrollLeft=1850;view.scrollTop=1300;
+          await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        });
+        const anchored=await page.evaluate(center);
         await page.setViewportSize({width: 1024, height: 768});
+        await page.evaluate(() => new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+        const rotated=await page.evaluate(center);
+        assert.ok(anchored.every((value,i)=>Math.abs(value-rotated[i])<=2), 'rotation preserves the document point at the viewport center');
         assert.deepEqual(await canvas.evaluate(sheet => [sheet.width,sheet.height,sheet.style.width]), [720,480,'5760px']);
         assert.equal(await pixels(), painted, 'zoom and rotation do not resample the document');
         await detail.click();
