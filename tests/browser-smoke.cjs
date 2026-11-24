@@ -1295,7 +1295,8 @@ const server=http.createServer((req,res)=>{
  const drawingView=page.locator('#drawingCanvas'),expand=page.locator('#drawingExpand');
  const drawSnapshot=()=>drawingView.evaluate(c=>({pixels:c.toDataURL(),width:c.width,height:c.height}));
  const blankDrawing=await drawSnapshot(),normalBox=await drawingView.boundingBox();
- assert.equal(await expand.evaluate(e=>e.parentElement.id),'studioSheet','size control belongs to the drawing sheet');
+ assert.equal(await expand.evaluate(e=>e.closest('.studio-sheet')?.id),'studioSheet','size control belongs to the drawing sheet');
+ assert.equal(await expand.evaluate(e=>e.closest('[role=group]')?.getAttribute('aria-label')),'Масштаб листа','size controls form an accessible group');
  assert.ok((await expand.boundingBox()).height>=44,'large touch target');
 
  await expand.click();await page.waitForFunction(()=>document.getElementById('modal').classList.contains('canvas-full'));
