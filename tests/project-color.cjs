@@ -43,10 +43,52 @@ module.exports = async function verifyProjectColor(browser, url) {
     await page.locator('#drawingPanel [data-tool="pick"]').first().click();
     await canvas.click({position: {x: 145, y: 130}});
     await tools.click();
-    assert.equal(await value.inputValue(), '#'+pixel.map(channel=>channel.toString(16).padStart(2,'0')).join(''));
+    const sampled = '#'+pixel.map(channel=>channel.toString(16).padStart(2,'0')).join('');
+    assert.equal(await value.inputValue(), sampled);
     assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('skazki-precise-colors-v1')).includes('#2266aa80')));
+
+    const setExact = async color => { await value.fill(color); await value.press('Tab'); };
+    await setExact('#000000ff');
+    await page.evaluate(() => {
+      $('proSecond').value='#ffffff';$('proRatio').value='50';
+      $('proRatio').dispatchEvent(new Event('input', {bubbles:true}));
+    });
+    const preview = page.locator('#proMixSample');
+    assert.equal(await preview.getAttribute('title'), '#808080');
+    await page.locator('#preciseMixSpace').selectOption('linear');
+    assert.equal(await preview.getAttribute('title'), '#bcbcbc');
+    assert.equal(await value.inputValue(), '#000000ff', 'comparison previews leave the brush color alone');
+    await page.locator('#proMix').click();
+    assert.equal(await value.inputValue(), '#bcbcbcff');
+
+    const source = page.locator('#precisePickSource'), alpha = page.locator('#precisePickAlpha');
+    await source.selectOption('layer');
+    await page.locator('#studioProClose').click();
+    await page.locator('#studioMore summary').click();
+    await page.locator('#openProjectLayers').click();
+    await page.locator('#addProjectLayer').click();
+    await page.locator('#closeProjectLayers').click();
+    await page.locator('#studioMore summary').click();
+    const pick = page.locator('#drawingPanel [data-tool="pick"]').first();
+    const eyedrop = async () => { await pick.click(); await canvas.click({position:{x:145,y:130}}); };
+    await eyedrop();
+    assert.equal(await pick.getAttribute('aria-pressed'), 'true');
+    await page.locator('#drawingStatus').filter({hasText:'прозрачен'}).waitFor();
+    await tools.click();
+    assert.equal(await value.inputValue(), '#bcbcbcff', 'a transparent pixel preserves the chosen color');
+    await source.selectOption('composite');
+    await alpha.uncheck();
+    await page.locator('#studioProClose').click();
+    await eyedrop();
+    await tools.click();
+    assert.equal(await value.inputValue(), sampled.slice(0,7)+'ff');
+    await alpha.check();
+    await page.locator('#studioProClose').click();
+    await eyedrop();
+    await tools.click();
+    assert.equal(await value.inputValue(), sampled);
   } finally {
     await page.close();
   }
-  console.log('PASS CL01/CL02 canonical sRGB RGBA, hue, alpha stroke, project eyedropper and color history');
+  console.log('PASS CL01–CL03 canonical sRGB RGBA, alpha stroke, project eyedropper, color history and both mixing spaces');
 };

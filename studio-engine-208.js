@@ -977,6 +977,9 @@ function preciseColorPanel(host,choose){
     <div id="preciseHue" role="slider" tabindex="0" aria-label="Оттенок" aria-valuemin="0" aria-valuemax="359" style="position:relative;touch-action:none;width:94px;height:94px;margin:6px auto;border-radius:50%;background:conic-gradient(red,#ff0,#0f0,#0ff,#00f,#f0f,red)"><span aria-hidden="true" style="position:absolute;inset:16px;border-radius:50%;background:#fff"></span><i style="position:absolute;width:12px;height:12px;pointer-events:none;border:2px solid #243c4b;border-radius:50%;background:#fff;transform:translate(-50%,-50%)"></i></div>
     <div id="preciseSV" aria-hidden="true" style="position:relative;touch-action:none;height:68px;border-radius:10px"><i style="position:absolute;width:12px;height:12px;pointer-events:none;border:2px solid white;box-shadow:0 0 0 1px #243c4b;border-radius:50%;transform:translate(-50%,-50%)"></i></div>
     <label class="field">Насыщенность<input id="preciseSaturation" type="range" min="0" max="100" step="1"></label><label class="field">Яркость<input id="preciseValue" type="range" min="0" max="100" step="1"></label>
+    <label class="field">Источник пипетки<select id="precisePickSource"><option value="composite">Видимый рисунок</option><option value="layer">Активный слой</option></select></label>
+    <label><input id="precisePickAlpha" type="checkbox" checked> Брать прозрачность образца</label>
+    <label class="field">Смешивание цветов<select id="preciseMixSpace"><option value="srgb">Каналы sRGB</option><option value="linear">Линейный свет sRGB</option></select></label>
     <div id="preciseRecent" role="group" aria-label="История точных цветов"></div>`;
   host.querySelector('#proPreview').before(root);
   const hex=$('preciseHex'),channels=[0,1,2,3].map(i=>$('preciseChannel'+i));
@@ -1047,7 +1050,7 @@ function preciseColorPanel(host,choose){
     if(!delta)return;
     event.preventDefault();h=(h+delta*(event.shiftKey?10:1)+360)%360;applyHSV(true);
   };
-  return {refresh,record};
+  return {refresh,record,get sampleLayer(){return $('precisePickSource').value==='layer'},get sampleAlpha(){return $('precisePickAlpha').checked}};
 }
 
 async function decodeProjectPng(blob,width,height){
@@ -1993,15 +1996,25 @@ function selectedSwatches(){
   if(selected.startsWith('reference-'))return referenceColorFamilies[Number(selected.slice(10))].swatches;
   return sets[selected].map(index=>palette[index]);
 }
-function mixColor(a,b,t){return '#'+[1,3,5].map(i=>Math.round(parseInt(a.slice(i,i+2),16)*(1-t)+parseInt(b.slice(i,i+2),16)*t).toString(16).padStart(2,'0')).join('')}
+function mixColor(a,b,t,linear=false){
+  const decode=value=>value<=.04045?value/12.92:((value+.055)/1.055)**2.4;
+  const encode=value=>value<=.0031308?value*12.92:1.055*value**(1/2.4)-.055;
+  const second=colorChannels(b);
+  return '#'+colorChannels(a).map((first,i)=>{
+    const next=second[i];
+    if(!linear)return channelHex(first*(1-t)+next*t);
+    return channelHex(255*encode(decode(first/255)*(1-t)+decode(next/255)*t));
+  }).join('');
+}
+function mixedColor(){return mixColor(color,$('proSecond').value,Number($('proRatio').value)/100,$('preciseMixSpace')?.value==='linear')}
 let precise;
 function choosePro(c,alpha=255,commit=true){endStroke();color=c;inkAlpha=alpha;$('drawingCustom').value=c;picked=eraser=fillMode=false;brushMode('brush');if(commit){rememberColor(c);precise?.record(c,alpha)}toolSync()}
 function swatches(host,items){while(host.children.length>items.length)host.lastElementChild.remove();for(let i=0;i<items.length;i++){const [c,name]=items[i];let b=host.children[i];if(!b){b=document.createElement('button');b.type='button';b.className='drawing-color';b.onclick=()=>choosePro(b.dataset.color);host.append(b)}if(b.dataset.color!==c){b.dataset.color=c;b.style.setProperty('--swatch',c)}if(b.getAttribute('aria-label')!==name)b.setAttribute('aria-label',name);const on=String(c===color);if(b.getAttribute('aria-pressed')!==on)b.setAttribute('aria-pressed',on)}}
 let previewKey='';
-function proSync(){if(pro.hidden)return;precise?.refresh(color,inkAlpha);brushControls?.refresh(workingMaterial||defaultMaterial('solid'));proWidth.disabled=proOpacity.disabled=$('proPressure').disabled=!!workingMaterial;proColor.value=color;proEffect.value=effect;proWidth.value=width;proOpacity.value=Math.round(opacity*100);$('proWidthValue').textContent=width;$('proOpacityValue').textContent=Math.round(opacity*100)+'%';const mix=mixColor(color,$('proSecond').value,Number($('proRatio').value)/100);$('proMixSample').style.background=mix;$('proMixSample').title=mix;swatches($('proSwatches'),selectedSwatches());swatches($('proShades'),[[-.75,'Очень тёмный'],[-.4,'Темнее'],[-.2,'Тёмный'],[0,'Текущий'],[.25,'Светлее'],[.5,'Светлый'],[.75,'Очень светлый']].map(([v,n])=>[mixColor(color,v<0?'#000000':'#ffffff',Math.abs(v)),n]));const drawOpacity=opacity*inkAlpha/255;const key=[color,effect,width,drawOpacity,JSON.stringify(workingMaterial)].join('|');if(key===previewKey)return;previewKey=key;const c=$('proPreview'),g=c.getContext('2d');g.fillStyle='#fffdf7';g.fillRect(0,0,c.width,c.height);if(workingMaterial){previewMaterial(g,workingMaterial,color,inkAlpha/255);return}if(stampEffects.has(effect)){for(let i=0;i<4;i++)studioStamp(g,30+i*60,32,Math.min(22,width*.73+5),effect,color,drawOpacity)}else for(let i=0;i<16;i++)studioStroke(g,{x:12+i*13,y:32+Math.sin(i*.5)*5},{x:25+i*13,y:32+Math.sin((i+1)*.5)*5},Math.min(width,50),effect,color,i*24,drawOpacity)}
-function showPro(on){endStroke();if(on)extra(null);pro.hidden=!on;$('studioPro').setAttribute('aria-expanded',String(on));if(on){if(project&&!precise){precise=preciseColorPanel(pro,choosePro);brushControls=materialControls(pro,chooseMaterial,()=>workingMaterial||defaultMaterial('solid'))}proSync()}else $('studioPro').focus({preventScroll:true})}
+function proSync(){if(pro.hidden)return;precise?.refresh(color,inkAlpha);brushControls?.refresh(workingMaterial||defaultMaterial('solid'));proWidth.disabled=proOpacity.disabled=$('proPressure').disabled=!!workingMaterial;proColor.value=color;proEffect.value=effect;proWidth.value=width;proOpacity.value=Math.round(opacity*100);$('proWidthValue').textContent=width;$('proOpacityValue').textContent=Math.round(opacity*100)+'%';const mix=mixedColor();$('proMixSample').style.background=mix;$('proMixSample').title=mix;swatches($('proSwatches'),selectedSwatches());swatches($('proShades'),[[-.75,'Очень тёмный'],[-.4,'Темнее'],[-.2,'Тёмный'],[0,'Текущий'],[.25,'Светлее'],[.5,'Светлый'],[.75,'Очень светлый']].map(([v,n])=>[mixColor(color,v<0?'#000000':'#ffffff',Math.abs(v)),n]));const drawOpacity=opacity*inkAlpha/255;const key=[color,effect,width,drawOpacity,JSON.stringify(workingMaterial)].join('|');if(key===previewKey)return;previewKey=key;const c=$('proPreview'),g=c.getContext('2d');g.fillStyle='#fffdf7';g.fillRect(0,0,c.width,c.height);if(workingMaterial){previewMaterial(g,workingMaterial,color,inkAlpha/255);return}if(stampEffects.has(effect)){for(let i=0;i<4;i++)studioStamp(g,30+i*60,32,Math.min(22,width*.73+5),effect,color,drawOpacity)}else for(let i=0;i<16;i++)studioStroke(g,{x:12+i*13,y:32+Math.sin(i*.5)*5},{x:25+i*13,y:32+Math.sin((i+1)*.5)*5},Math.min(width,50),effect,color,i*24,drawOpacity)}
+function showPro(on){endStroke();if(on)extra(null);pro.hidden=!on;$('studioPro').setAttribute('aria-expanded',String(on));if(on){if(project&&!precise){precise=preciseColorPanel(pro,choosePro);$('preciseMixSpace').onchange=proSync;brushControls=materialControls(pro,chooseMaterial,()=>workingMaterial||defaultMaterial('solid'))}proSync()}else $('studioPro').focus({preventScroll:true})}
 for(const b of panel.querySelectorAll('[data-effect]')){const o=document.createElement('option');o.value=b.dataset.effect;o.textContent=b.textContent.trim();proEffect.append(o)}
-$('studioPro').onclick=()=>showPro(pro.hidden);$('studioProClose').onclick=()=>showPro(false);paletteSelect.onchange=proSync;proColor.oninput=()=>choosePro(proColor.value);$('proSecond').oninput=$('proRatio').oninput=proSync;$('proMix').onclick=()=>choosePro(mixColor(color,$('proSecond').value,Number($('proRatio').value)/100));proEffect.onchange=()=>{workingMaterial=null;effect=proEffect.value;picked=eraser=fillMode=false;toolSync()};proWidth.oninput=()=>{width=Number(proWidth.value);toolSync()};proOpacity.oninput=()=>{opacity=Number(proOpacity.value)/100;toolSync()};
+$('studioPro').onclick=()=>showPro(pro.hidden);$('studioProClose').onclick=()=>showPro(false);paletteSelect.onchange=proSync;proColor.oninput=()=>choosePro(proColor.value);$('proSecond').oninput=$('proRatio').oninput=proSync;$('proMix').onclick=()=>choosePro(mixedColor());proEffect.onchange=()=>{workingMaterial=null;effect=proEffect.value;picked=eraser=fillMode=false;toolSync()};proWidth.oninput=()=>{width=Number(proWidth.value);toolSync()};proOpacity.oninput=()=>{opacity=Number(proOpacity.value)/100;toolSync()};
 const recentColorKey='skazki-recent-colors-v1';let recentColors=[];try{const a=JSON.parse(fget(recentColorKey)||'[]');if(Array.isArray(a))recentColors=a.filter(c=>/^#[0-9a-f]{6}$/i.test(c)).slice(0,4)}catch(e){}
 const recentHost=document.createElement('div');recentHost.id='recentDrawingColors';recentHost.setAttribute('role','group');recentHost.setAttribute('aria-label','Недавние цвета');controls.after(recentHost);
 function showRecent(){recentHost.replaceChildren();if(!recentColors.length)return;const label=document.createElement('small');label.textContent='Недавние';recentHost.append(label);for(const c of recentColors){const b=document.createElement('button');b.type='button';b.className='drawing-color';b.style.setProperty('--swatch',c);b.setAttribute('aria-label','Недавний цвет '+c);b.setAttribute('aria-pressed',String(c===color));b.onclick=()=>{color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;eraser=false;brushMode('brush');toolSync();showRecent()};recentHost.append(b)}}
@@ -2373,9 +2386,14 @@ function appendStrokePoint(event,bounds,ending=false){
 function applyPointTool(p){
   const x=Math.min(canvas.width-1,Math.floor(p.x)),y=Math.min(canvas.height-1,Math.floor(p.y));
   if(picked){
-    const v=composite.getImageData(x,y,1,1).data;
-    color='#'+Array.from(v.slice(0,3)).map(channelHex).join('');inkAlpha=layers?v[3]:255;precise?.record(color,inkAlpha);
-    $('drawingCustom').value=color;picked=false;eraser=false;fillMode=false;brushMode('brush');rememberColor(color);toolSync();return;
+    const sampleLayer=layers&&precise?.sampleLayer;
+    const source=sampleLayer?activeLayer().canvas.getContext('2d'):composite;
+    const [red,green,blue,alpha]=source.getImageData(x,y,1,1).data;
+    if(layers&&alpha===0){$('drawingStatus').textContent=`Пиксель ${x}, ${y} прозрачен. Выбери другую точку.`;return}
+    const sampled='#'+[red,green,blue].map(channelHex).join('');
+    choosePro(sampled,layers&&precise?.sampleAlpha!==false?alpha:255);
+    if(layers)$('drawingStatus').textContent=`${sampled.toUpperCase()} · ${x}, ${y} · ${sampleLayer?'активный слой':'видимый рисунок'}`;
+    return;
   }
   if(!editableLayer()||eraser&&alphaLocked())return;
   if(fillMode){
