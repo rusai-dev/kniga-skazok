@@ -180,6 +180,178 @@ const grain=(spread,alpha)=>{const n=Math.min(120,Math.max(4,Math.ceil(len/2))),
 ctx.save();if(kind==='grain-pencil'){line(width,color,.20);line(width*.32,color,.55);grain(.43,.65)}else if(kind==='gouache'){line(width*1.48,color,.36);line(width*1.23,color,.87);line(width*.8,color,.95)}else if(kind==='ink'){line(width*(.35+.65*Math.abs(to.x-from.x)/(len||1)),color)}else if(kind==='spray'){const n=Math.min(180,Math.max(8,Math.ceil(len*3)));for(let i=0;i<n;i++){const t=i/n,x=from.x+(to.x-from.x)*t,y=from.y+(to.y-from.y)*t,a=i*2.39996,r=width*Math.sqrt((i*.618033)%1);ctx.globalAlpha=.26*opacity;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,Math.max(.5,width*.045),0,Math.PI*2);ctx.fill()}}else if(kind==='water'){line(width*1.75,color,.08);line(width*1.35,color,.16);line(width*.8,color,.10)}else if(kind==='pastel'){line(width*1.55,color,.15);line(width*.92,color,.30);grain(.65,.48)}else if(kind==='soft'){line(width*1.7,color,.17);line(width*1.1,color,.35);line(width*.55,color,.75)}else if(kind==='crayon'){line(width,color,.52);const n=Math.max(1,Math.ceil(len/2));for(let i=0;i<n;i++){const t=(i+.5)/n,x=from.x+(to.x-from.x)*t,y=from.y+(to.y-from.y)*t;ctx.fillStyle=color;ctx.globalAlpha=.55*opacity;ctx.beginPath();ctx.arc(x+Math.sin(x*5+y)*width*.38,y+Math.cos(y*7+x)*width*.38,Math.max(.6,width*.08),0,Math.PI*2);ctx.fill()}}else if(kind==='marker')line(width*1.3,color,.72);else if(kind==='rainbow')line(width,'hsl('+hue+' 78% 54%)');else if(kind==='gold'||kind==='silver'){const metal=kind==='gold'?['#a4782b','#f2d07b','#fff1c5']:['#788899','#c9d8e0','#f6fbff'];line(width*1.2,metal[0]);line(width*.78,metal[1]);line(width*.24,metal[2],.85)}else if(kind==='neon'){line(width*2.1,color,.18);line(width*1.45,color,.48);line(width*.65,color);line(width*.19,'#fffdf7',.85)}else if(kind==='glitter'){line(width,color,.65);const step=Math.max(3,width*.35),n=Math.max(1,Math.ceil(len/step));for(let i=0;i<n;i++){const t=(i+.5)/n,px=from.x+(to.x-from.x)*t,py=from.y+(to.y-from.y)*t;ctx.globalAlpha=.9*opacity;ctx.fillStyle=i%2?'#fff8d6':'#e9c371';ctx.beginPath();ctx.arc(px+Math.sin(px*2+py)*width*.37,py+Math.cos(py*2+px)*width*.37,Math.max(1,width*.095),0,Math.PI*2);ctx.fill()}}else line(width,color);ctx.restore();
 }
 function studioEffectPreview(canvas,kind){const ctx=canvas.getContext('2d');if(!ctx)return;ctx.clearRect(0,0,canvas.width,canvas.height);if(stampEffects.has(kind)){for(let i=0;i<3;i++)studioStamp(ctx,20+i*30,20,10,kind,['#b879a0','#d4a350','#719eaa'][i])}else for(let i=0;i<13;i++)studioStroke(ctx,{x:7+i*6.5,y:22+Math.sin(i*.5)*6},{x:7+(i+1)*6.5,y:22+Math.sin((i+1)*.5)*6},9,kind,'#9b83b9',i*27)}
+
+const studioMaterials={solid:'Круглая', 'grain-pencil':'Карандаш', charcoal:'Уголь', pastel:'Пастель', dry:'Сухая кисть',
+  ink:'Перо', calligraphy:'Каллиграфия', marker:'Маркер', water:'Акварель', gouache:'Гуашь', airbrush:'Аэрограф', eraser:'Ластик'};
+
+function materialStamp(ctx,point,width,kind,color,flow,angle,seed){
+  const r=Math.max(.25,width/2),tone=(multiplier,alpha=1)=>{ctx.fillStyle=color;ctx.globalAlpha=flow*alpha;
+    ctx.beginPath();ctx.arc(0,0,r*multiplier,0,2*Math.PI);ctx.fill();};
+  function noise(index){
+    const number=Math.sin((seed+index*83.179)*12.9898)*43758.5453;
+    return number-Math.floor(number);
+  }
+  function dust(number,spread,size,alpha){
+    ctx.fillStyle=color;ctx.globalAlpha=flow*alpha;ctx.beginPath();
+    for(let i=0;i<number;i++){
+      const radial=Math.sqrt(noise(i*3))*r*spread,theta=2*Math.PI*noise(i*3+1);
+      const radius=Math.max(.25,r*size*(.4+.6*noise(i*3+2))),x=Math.cos(theta)*radial,y=Math.sin(theta)*radial;
+      ctx.moveTo(x+radius,y);ctx.arc(x,y,radius,0,2*Math.PI);
+    }
+    ctx.fill();
+  }
+  function feather(spread,stops){
+    const gradient=ctx.createRadialGradient(0,0,0,0,0,r*spread);
+    for(const [offset,alpha] of stops)gradient.addColorStop(offset,color+channelHex(alpha*255));
+    ctx.fillStyle=gradient;ctx.globalAlpha=flow;ctx.fillRect(-r*spread,-r*spread,2*r*spread,2*r*spread);
+  }
+  ctx.save();ctx.translate(point.x,point.y);
+  switch(kind){
+    case 'grain-pencil': tone(.27,.38);dust(12,.92,.055,.65);break;
+    case 'charcoal': tone(.49,.20);dust(28,1.15,.14,.70);break;
+    case 'pastel': tone(.78,.33);dust(18,1.12,.09,.53);break;
+    case 'dry':
+      ctx.rotate(angle);ctx.fillStyle=color;
+      for(let i=0;i<9;i++){
+        if(noise(i)>.78)continue;
+        ctx.globalAlpha=flow*(.22+.50*noise(i+10));
+        ctx.fillRect(-r*.75,(i/4-1)*r*.70,r*(.32+noise(i+20)),Math.max(.35,r*.10));
+      }
+      break;
+    case 'ink':
+    case 'calligraphy':
+    case 'marker':
+      ctx.rotate(angle);ctx.globalAlpha=flow;ctx.fillStyle=color;ctx.beginPath();
+      if(kind==='marker')ctx.rect(-r*.95,-r*.49,r*1.9,r*.98);
+      else ctx.ellipse(0,0,r,Math.max(.25,r*(kind==='ink'?.43:.18)),0,0,2*Math.PI);
+      ctx.fill();break;
+    case 'water': feather(1.18,[[0,.17],[.65,.12],[.83,.20],[1,0]]);dust(12,.95,.045,.15);break;
+    case 'gouache': tone(.94,.9);dust(12,1.03,.075,.48);break;
+    case 'airbrush': feather(1.3,[[0,.38],[.40,.20],[.75,.055],[1,0]]);break;
+    default: tone(1);
+  }
+  ctx.restore();
+}
+
+function previewMaterial(ctx,settings,color,alpha){
+  const {width,height}=ctx.canvas,source=newLayerCanvas(width,height),ink=source.getContext('2d');
+  const eraser=settings.kind==='eraser',pigment=eraser?'#000000':color;
+  const size=Math.min(48,settings.size),step=Math.max(.7,size*settings.spacing/100),angle=settings.angle*Math.PI/180;
+  if(eraser){ctx.fillStyle='#344b3d';ctx.fillRect(10,10,width-20,height-20)}
+  for(let i=0;12+i*step<width-10;i++){
+    const x=12+i*step,t=x/width,pressure=pressureResponse(.35+.65*t,settings.curve);
+    materialStamp(ink,{x,y:height/2+5*Math.sin(t*8)},size*(.15+.85*pressure),settings.kind,pigment,
+      (settings.kind==='marker'?1:settings.flow/100)*(settings.pressureOpacity?pressure:1),angle,i);
+  }
+  ctx.save();if(eraser)ctx.globalCompositeOperation='destination-out';
+  ctx.globalAlpha=settings.opacity/100*(eraser?1:alpha);ctx.drawImage(source,0,0);ctx.restore();
+}
+
+function pressureResponse(pressure,curve){return curve==='soft'?Math.sqrt(pressure):curve==='firm'?Math.pow(pressure,1.7):pressure}
+
+function defaultMaterial(kind){
+  return {kind,size:kind==='eraser'?18:11,opacity:100,flow:65,spacing:14,angle:40,curve:'normal',pressureOpacity:false};
+}
+function validMaterial(value){
+  const bounded=(field,min,max)=>Number.isFinite(value[field])&&value[field]>=min&&value[field]<=max;
+  return value&&Object.prototype.hasOwnProperty.call(studioMaterials,value.kind)&&bounded('size',.5,512)&&
+    bounded('opacity',1,100)&&bounded('flow',1,100)&&bounded('spacing',1,100)&&bounded('angle',-180,180)&&
+    ['soft','normal','firm'].includes(value.curve)&&typeof value.pressureOpacity==='boolean';
+}
+
+function materialControls(host,activate,getMaterial){
+  const storageKey='skazki-studio-brush-presets-v1',root=document.createElement('details');
+  root.innerHTML=`<summary>Материалы и пресеты</summary><label class="field">Материал<select id="studioMaterial"></select></label>
+    <label class="field">Размер, пиксели<input id="materialSize" type="number" min="0.5" max="512" step="0.5"></label>
+    <label class="field">Непрозрачность штриха, %<input id="materialOpacity" type="number" min="1" max="100"></label>
+    <div id="materialFlowLabel"><label class="field">Подача краски, %<input id="materialFlow" type="number" min="1" max="100"></label></div>
+    <label class="field">Шаг, % диаметра<input id="materialSpacing" type="number" min="1" max="100"></label>
+    <div id="materialAngleLabel"><label class="field">Угол пера, °<input id="materialAngle" type="number" min="-180" max="180"></label></div>
+    <label class="field">Кривая нажима<select id="materialCurve"><option value="soft">Мягкая</option><option value="normal">Обычная</option><option value="firm">Жёсткая</option></select></label>
+    <label><input id="materialPressureOpacity" type="checkbox">Нажим меняет подачу</label>
+    <div class="actions"><button type="button" id="resetMaterial">Сбросить настройки кисти</button><button type="button" id="saveMaterialPreset">Сохранить пресет</button></div>
+    <label class="field">Мои пресеты<select id="materialPresets"></select></label>
+    <div class="actions"><button type="button" id="exportMaterialPreset">Скачать пресет</button><button type="button" id="importMaterialPreset">Открыть пресет</button><button type="button" id="removeMaterialPreset">Удалить пресет</button></div>
+    <input id="materialPresetFile" type="file" accept=".json,application/json" hidden><p id="materialStatus" role="status"></p>`;
+  host.querySelector('#proPreview').before(root);
+  const kind=$('studioMaterial'),presets=$('materialPresets'),status=$('materialStatus');
+  const [size,opacity,flow,spacing,angle]=['Size','Opacity','Flow','Spacing','Angle'].map(field=>$('material'+field));
+  const curve=$('materialCurve'),pressure=$('materialPressureOpacity');
+  let values={},saved=[];
+  function validPreset(entry){return entry&&typeof entry.name==='string'&&entry.name.trim()&&entry.name.length<=60&&validMaterial(entry.settings)}
+  try{
+    const data=JSON.parse(fget(storageKey)||'{}');
+    for(const id of Object.keys(studioMaterials))if(validMaterial(data.values?.[id])&&data.values[id].kind===id)values[id]=data.values[id];
+    if(Array.isArray(data.presets))saved=data.presets.filter(validPreset).slice(0,24);
+  }catch(error){}
+  function persist(){
+    if(!fput(storageKey,JSON.stringify({values,presets:saved})))status.textContent='Не удалось сохранить настройки на этом устройстве.';
+  }
+  for(const [value,name] of Object.entries(studioMaterials))kind.add(new Option(name,value));
+  function refreshPresets(select=''){
+    presets.replaceChildren(new Option('Выбери пресет',''));
+    saved.forEach((entry,i)=>presets.add(new Option(entry.name,String(i))));presets.value=select;
+    $('exportMaterialPreset').disabled=$('removeMaterialPreset').disabled=presets.value==='';
+  }
+  function refresh(material){
+    kind.value=material.kind;
+    for(const [field,value] of [[size,material.size],[opacity,material.opacity],[flow,material.flow],[spacing,material.spacing],[angle,material.angle]]){
+      if(document.activeElement!==field)field.value=value;
+    }
+    curve.value=material.curve;pressure.checked=material.pressureOpacity;
+    $('materialFlowLabel').hidden=material.kind==='marker';
+    $('materialAngleLabel').hidden=!['dry','ink','calligraphy','marker'].includes(material.kind);
+  }
+  function choose(material,save=false){
+    if(save){values[material.kind]=material;persist()}
+    activate(material);refresh(material);
+  }
+  kind.onchange=()=>{refreshPresets();choose(values[kind.value]||defaultMaterial(kind.value))};
+  for(const field of [size,opacity,flow,spacing,angle,curve,pressure])field.onchange=()=>{
+    const settings={kind:kind.value,size:size.valueAsNumber,opacity:opacity.valueAsNumber,flow:flow.valueAsNumber,
+      spacing:spacing.valueAsNumber,angle:angle.valueAsNumber,curve:curve.value,pressureOpacity:pressure.checked};
+    if(validMaterial(settings)){refreshPresets();choose(settings,true)}
+    else{status.textContent='Проверь пределы настроек.';refresh(getMaterial())}
+  };
+  $('resetMaterial').onclick=()=>{refreshPresets();choose(defaultMaterial(kind.value),true)};
+  $('saveMaterialPreset').onclick=()=>{
+    if(saved.length>=24){status.textContent='В списке уже 24 пресета.';return}
+    const name=prompt('Название пресета',studioMaterials[kind.value])?.trim().slice(0,60);
+    if(!name)return;
+    saved.push({name,settings:{...getMaterial()}});persist();refreshPresets(String(saved.length-1));
+  };
+  presets.onchange=()=>{
+    const entry=presets.value===''?null:saved[Number(presets.value)];
+    if(entry)choose(entry.settings);
+    $('exportMaterialPreset').disabled=$('removeMaterialPreset').disabled=!entry;
+  };
+  $('removeMaterialPreset').onclick=()=>{
+    const i=Number(presets.value);
+    if(presets.value===''||!confirm('Удалить пресет «'+saved[i].name+'»?'))return;
+    saved.splice(i,1);persist();refreshPresets();
+  };
+  $('exportMaterialPreset').onclick=()=>{
+    if(presets.value==='')return;
+    const file=new Blob([JSON.stringify({schemaVersion:1,...saved[Number(presets.value)]})],{type:'application/json'});
+    const link=document.createElement('a'),url=URL.createObjectURL(file);link.href=url;link.download='pres-nastroiki-kisti.json';document.body.append(link);
+    try{link.click()}finally{link.remove();setTimeout(()=>URL.revokeObjectURL(url),500)}
+  };
+  const file=$('materialPresetFile');
+  $('importMaterialPreset').onclick=()=>file.click();
+  file.onchange=async()=>{
+    const item=file.files[0];file.value='';
+    if(!item)return;
+    try{
+      if(!item.size||item.size>16384||saved.length>=24)throw Error('preset');
+      const entry=JSON.parse(await readText(item));
+      if(!root.isConnected)return;
+      if(entry.schemaVersion!==1||!archiveKeysSafe(entry)||!validPreset(entry))throw Error('preset');
+      if(!confirm('Добавить пресет «'+entry.name+'»?'))return;
+      saved.push({name:entry.name,settings:entry.settings});persist();refreshPresets(String(saved.length-1));presets.onchange();
+    }catch(error){if(root.isConnected)status.textContent='Пресет не прочитан. Настройки остались прежними.'}
+  };
+  refresh(getMaterial());refreshPresets();return {refresh,settings:kind=>values[kind]||defaultMaterial(kind)};
+}
 function studioFitImage(w,h,iw,ih){const scale=Math.min(w/iw,h/ih),dw=iw*scale,dh=ih*scale;return {x:(w-dw)/2,y:(h-dh)/2,w:dw,h:dh}}
 
 
@@ -566,8 +738,8 @@ function projectPng(canvas){
   return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('pixels')),'image/png'));
 }
 
-const projectEncoded=new WeakMap(),referenceStencils=new WeakMap();
-function invalidateLayer(source){projectEncoded.delete(source);referenceStencils.delete(source)}
+const projectEncoded=new WeakMap(),referenceStencils=new WeakMap(),emptyProjectLayers=new WeakSet();
+function invalidateLayer(source){projectEncoded.delete(source);referenceStencils.delete(source);emptyProjectLayers.delete(source)}
 function encodedLayer(source){
   if(projectEncoded.has(source))return projectEncoded.get(source);
   const pending=projectPng(source).catch(error=>{
@@ -589,6 +761,12 @@ const projectBlends={'source-over':'Обычный',multiply:'Умножение
 function newLayerCanvas(width,height){
   const canvas=document.createElement('canvas');
   canvas.width=width;canvas.height=height;
+  return canvas;
+}
+
+function newEmptyProjectLayer(width,height){
+  const canvas=newLayerCanvas(width,height);
+  emptyProjectLayers.add(canvas);
   return canvas;
 }
 
@@ -623,7 +801,7 @@ function projectRenderer(target,background){
     if(background===null)target.clearRect(...area);
     else{target.fillStyle=background||'#fffdf7';target.fillRect(...area)}
     for(const [index,layer] of layers.entries()){
-      if(!layer.visible)continue;
+      if(!layer.visible||layer.opacity===0||emptyProjectLayers.has(layer.canvas))continue;
       target.globalAlpha=layer.opacity;target.globalCompositeOperation=layer.blend;
       target.drawImage(source(layers,layer,index,area),...area,...area);
     }
@@ -808,8 +986,8 @@ function preciseColorPanel(host,choose){
   function refresh(c,alpha){
     a=alpha;
     if(c!==previousHex){[h,s,v]=colorHSV(c,h);previousHex=c}
-    if(!root.open)return;
-    hex.value=c+channelHex(a);channels.forEach((input,i)=>{input.value=[...colorChannels(c),a][i]});
+    const rgba=[...colorChannels(c),a];
+    hex.value=c+channelHex(a);channels.forEach((input,i)=>{input.value=rgba[i]});
     saturation.value=Math.round(s*100);value.value=Math.round(v*100);
     const degrees=Math.floor(h)%360,angle=h*Math.PI/180;
     hue.setAttribute('aria-valuenow',String(degrees));hue.setAttribute('aria-valuetext',degrees+'°');
@@ -862,7 +1040,6 @@ function preciseColorPanel(host,choose){
     if(!delta)return;
     event.preventDefault();h=(h+delta*(event.shiftKey?10:1)+360)%360;applyHSV(true);
   };
-  root.ontoggle=()=>{if(root.open&&previousHex)refresh(previousHex,a)};
   return {refresh,record};
 }
 
@@ -1152,7 +1329,7 @@ function setupProjectCreation(store,visible){
     if(creating||!form.checkValidity()||!projectProfile(w,h))return;
     creating=true;create.disabled=true;
     try{
-      const canvas=newLayerCanvas(w,h),context=canvas.getContext('2d');
+      const canvas=newEmptyProjectLayer(w,h),context=canvas.getContext('2d');
       if(!context)throw Error('profile');
       context.getImageData(w-1,h-1,1,1);
       const title=$('newProjectTitle').value.trim()||'Новый рисунок',id=projectIdentity();
@@ -1250,6 +1427,7 @@ let ctx=composite;
 if(!ctx||!window.drawingStorage){start.disabled=true;return}
 const palette=[["#25272a","Чёрный"],["#344b3d","Лесной"],["#79564a","Коричневый"],["#a97755","Карамель"],["#d6ab82","Песочный"],["#fffdf7","Белый"],["#bd3948","Красный"],["#e76f60","Коралловый"],["#f18eaa","Розовый"],["#f8bfd3","Нежно-розовый"],["#c24e83","Малиновый"],["#8e416f","Ягодный"],["#e48641","Оранжевый"],["#f1bc48","Золотой"],["#f8df71","Лимонный"],["#f9eabb","Сливочный"],["#f1b297","Персиковый"],["#ba7956","Терракота"],["#609a58","Травяной"],["#a5c76f","Салатовый"],["#d1e7a6","Мятный"],["#2d7b6e","Изумрудный"],["#70bfbd","Бирюзовый"],["#2c92a5","Морской"],["#87bee7","Небесный"],["#487ec3","Синий"],["#375378","Тёмно-синий"],["#b1b9ed","Лавандовый"],["#9b83b9","Сиреневый"],["#785098","Фиолетовый"],["#a7b1b5","Серебристый"],["#687480","Серый"],["#f6c2a5","Светлый персик"],["#a94e39","Кирпичный"],["#f8a24b","Мандариновый"],["#c47127","Медовый"],["#fff4b7","Светлый лимон"],["#d3a82b","Горчичный"],["#ff6981","Клубничный"],["#8c253b","Вишнёвый"],["#ffd9e4","Розовая дымка"],["#ce76b7","Орхидея"],["#6f365d","Сливовый"],["#e3ceff","Светлая сирень"],["#5e4497","Черничный"],["#d7eaff","Ледяной голубой"],["#204e83","Сапфировый"],["#3ba7df","Лазурный"],["#a7e4ed","Аквамарин"],["#106d83","Глубокий бирюзовый"],["#bdecd7","Светлая мята"],["#397f47","Тёмная трава"],["#8eaa42","Оливковый"],["#56713c","Хвойный"],["#eaf5c5","Светлый салат"],["#c6b09b","Светлый беж"],["#9c714c","Ореховый"],["#51382b","Шоколадный"],["#e8d3b0","Ванильный"],["#b1a1a5","Тауп"],["#e4e5e3","Светлый серый"],["#494f5b","Графитовый"],["#fef0e9","Фарфоровый"],["#fae2d0","Телесный светлый"],["#dc966f","Телесный тёплый"],["#af6f51","Телесный глубокий"],["#f6edaa","Бледно-золотой"],["#accbe4","Джинсовый"],["#c1acae","Пыльная роза"],["#86aeb0","Морская дымка"],["#b9b7d9","Сумеречный"],["#39475f","Ночной"]];
 let picked=false,color=palette[1][0],inkAlpha=255,width=brushWidths()[1],pointer=null,last=null,dirty=false,undo=[],redo=[],seed=1,fillMode=false,eraser=false,restoring=false,stored=false,lessonStep=0,effect='solid',distance=0,hue=0,opacity=1;
+let workingMaterial,lastMaterial,brushControls,inkBuffer,lastTilt=0;
 const paper=profile?.background||'#fffdf7';
 const art=form.storyArt,storage=openedProject?null:drawingStorage(DRAWING_DRAFT,DRAWING_OUTLINE,art,drawingFingerprint);
 let project=openedProject?.detail,projectWrite=null,projectGeneration=0;
@@ -1296,6 +1474,17 @@ function selectLayer(id,target='layer'){
   if(!context)throw Error('profile');
   ctx=context;
   $('openProjectLayers').textContent=onMask()?'Слои · маска':'Слои';
+}
+
+function chooseMaterial(settings){
+  endStroke();workingMaterial=settings;
+  if(settings.kind!=='eraser')lastMaterial=settings;
+  eraser=settings.kind==='eraser';picked=fillMode=false;toolSync();
+}
+function brushMode(kind){
+  if(!workingMaterial)return;
+  if(kind==='eraser')workingMaterial=brushControls.settings('eraser');
+  else if(kind==='brush')workingMaterial=lastMaterial||brushControls.settings('solid');
 }
 
 function updateLayers(action){
@@ -1456,7 +1645,7 @@ function setupLayerPanel(){
   $('addProjectLayer').onclick=()=>{
     if(layers.length>=layerCapacity())return;
     updateLayers(()=>{
-      const layer={id:projectIdentity(),name:'Слой '+(layers.length+1),visible:true,locked:false,opacity:1,blend:'source-over',canvas:newLayerCanvas(canvas.width,canvas.height)};
+      const layer={id:projectIdentity(),name:'Слой '+(layers.length+1),visible:true,locked:false,opacity:1,blend:'source-over',canvas:newEmptyProjectLayer(canvas.width,canvas.height)};
       layers.push(layer);selectLayer(layer.id);
     });
   };
@@ -1732,24 +1921,24 @@ function selectedSwatches(){
 }
 function mixColor(a,b,t){return '#'+[1,3,5].map(i=>Math.round(parseInt(a.slice(i,i+2),16)*(1-t)+parseInt(b.slice(i,i+2),16)*t).toString(16).padStart(2,'0')).join('')}
 let precise;
-function choosePro(c,alpha=255,commit=true){endStroke();color=c;inkAlpha=alpha;$('drawingCustom').value=c;picked=eraser=fillMode=false;if(commit){rememberColor(c);precise?.record(c,alpha)}toolSync()}
+function choosePro(c,alpha=255,commit=true){endStroke();color=c;inkAlpha=alpha;$('drawingCustom').value=c;picked=eraser=fillMode=false;brushMode('brush');if(commit){rememberColor(c);precise?.record(c,alpha)}toolSync()}
 function swatches(host,items){while(host.children.length>items.length)host.lastElementChild.remove();for(let i=0;i<items.length;i++){const [c,name]=items[i];let b=host.children[i];if(!b){b=document.createElement('button');b.type='button';b.className='drawing-color';b.onclick=()=>choosePro(b.dataset.color);host.append(b)}if(b.dataset.color!==c){b.dataset.color=c;b.style.setProperty('--swatch',c)}if(b.getAttribute('aria-label')!==name)b.setAttribute('aria-label',name);const on=String(c===color);if(b.getAttribute('aria-pressed')!==on)b.setAttribute('aria-pressed',on)}}
 let previewKey='';
-function proSync(){if(pro.hidden)return;precise?.refresh(color,inkAlpha);proColor.value=color;proEffect.value=effect;proWidth.value=width;proOpacity.value=Math.round(opacity*100);$('proWidthValue').textContent=width;$('proOpacityValue').textContent=Math.round(opacity*100)+'%';const mix=mixColor(color,$('proSecond').value,Number($('proRatio').value)/100);$('proMixSample').style.background=mix;$('proMixSample').title=mix;swatches($('proSwatches'),selectedSwatches());swatches($('proShades'),[[-.75,'Очень тёмный'],[-.4,'Темнее'],[-.2,'Тёмный'],[0,'Текущий'],[.25,'Светлее'],[.5,'Светлый'],[.75,'Очень светлый']].map(([v,n])=>[mixColor(color,v<0?'#000000':'#ffffff',Math.abs(v)),n]));const drawOpacity=opacity*inkAlpha/255;const key=[color,effect,width,drawOpacity].join('|');if(key===previewKey)return;previewKey=key;const c=$('proPreview'),g=c.getContext('2d');g.fillStyle='#fffdf7';g.fillRect(0,0,c.width,c.height);if(stampEffects.has(effect)){for(let i=0;i<4;i++)studioStamp(g,30+i*60,32,Math.min(22,width*.73+5),effect,color,drawOpacity)}else for(let i=0;i<16;i++)studioStroke(g,{x:12+i*13,y:32+Math.sin(i*.5)*5},{x:25+i*13,y:32+Math.sin((i+1)*.5)*5},Math.min(width,50),effect,color,i*24,drawOpacity)}
-function showPro(on){endStroke();if(on)extra(null);pro.hidden=!on;$('studioPro').setAttribute('aria-expanded',String(on));if(on){if(project&&!precise)precise=preciseColorPanel(pro,choosePro);proSync()}else $('studioPro').focus({preventScroll:true})}
+function proSync(){if(pro.hidden)return;precise?.refresh(color,inkAlpha);brushControls?.refresh(workingMaterial||defaultMaterial('solid'));proWidth.disabled=proOpacity.disabled=$('proPressure').disabled=!!workingMaterial;proColor.value=color;proEffect.value=effect;proWidth.value=width;proOpacity.value=Math.round(opacity*100);$('proWidthValue').textContent=width;$('proOpacityValue').textContent=Math.round(opacity*100)+'%';const mix=mixColor(color,$('proSecond').value,Number($('proRatio').value)/100);$('proMixSample').style.background=mix;$('proMixSample').title=mix;swatches($('proSwatches'),selectedSwatches());swatches($('proShades'),[[-.75,'Очень тёмный'],[-.4,'Темнее'],[-.2,'Тёмный'],[0,'Текущий'],[.25,'Светлее'],[.5,'Светлый'],[.75,'Очень светлый']].map(([v,n])=>[mixColor(color,v<0?'#000000':'#ffffff',Math.abs(v)),n]));const drawOpacity=opacity*inkAlpha/255;const key=[color,effect,width,drawOpacity,JSON.stringify(workingMaterial)].join('|');if(key===previewKey)return;previewKey=key;const c=$('proPreview'),g=c.getContext('2d');g.fillStyle='#fffdf7';g.fillRect(0,0,c.width,c.height);if(workingMaterial){previewMaterial(g,workingMaterial,color,inkAlpha/255);return}if(stampEffects.has(effect)){for(let i=0;i<4;i++)studioStamp(g,30+i*60,32,Math.min(22,width*.73+5),effect,color,drawOpacity)}else for(let i=0;i<16;i++)studioStroke(g,{x:12+i*13,y:32+Math.sin(i*.5)*5},{x:25+i*13,y:32+Math.sin((i+1)*.5)*5},Math.min(width,50),effect,color,i*24,drawOpacity)}
+function showPro(on){endStroke();if(on)extra(null);pro.hidden=!on;$('studioPro').setAttribute('aria-expanded',String(on));if(on){if(project&&!precise){precise=preciseColorPanel(pro,choosePro);brushControls=materialControls(pro,chooseMaterial,()=>workingMaterial||defaultMaterial('solid'))}proSync()}else $('studioPro').focus({preventScroll:true})}
 for(const b of panel.querySelectorAll('[data-effect]')){const o=document.createElement('option');o.value=b.dataset.effect;o.textContent=b.textContent.trim();proEffect.append(o)}
-$('studioPro').onclick=()=>showPro(pro.hidden);$('studioProClose').onclick=()=>showPro(false);paletteSelect.onchange=proSync;proColor.oninput=()=>choosePro(proColor.value);$('proSecond').oninput=$('proRatio').oninput=proSync;$('proMix').onclick=()=>choosePro(mixColor(color,$('proSecond').value,Number($('proRatio').value)/100));proEffect.onchange=()=>{effect=proEffect.value;picked=eraser=fillMode=false;toolSync()};proWidth.oninput=()=>{width=Number(proWidth.value);toolSync()};proOpacity.oninput=()=>{opacity=Number(proOpacity.value)/100;toolSync()};
+$('studioPro').onclick=()=>showPro(pro.hidden);$('studioProClose').onclick=()=>showPro(false);paletteSelect.onchange=proSync;proColor.oninput=()=>choosePro(proColor.value);$('proSecond').oninput=$('proRatio').oninput=proSync;$('proMix').onclick=()=>choosePro(mixColor(color,$('proSecond').value,Number($('proRatio').value)/100));proEffect.onchange=()=>{workingMaterial=null;effect=proEffect.value;picked=eraser=fillMode=false;toolSync()};proWidth.oninput=()=>{width=Number(proWidth.value);toolSync()};proOpacity.oninput=()=>{opacity=Number(proOpacity.value)/100;toolSync()};
 const recentColorKey='skazki-recent-colors-v1';let recentColors=[];try{const a=JSON.parse(fget(recentColorKey)||'[]');if(Array.isArray(a))recentColors=a.filter(c=>/^#[0-9a-f]{6}$/i.test(c)).slice(0,4)}catch(e){}
 const recentHost=document.createElement('div');recentHost.id='recentDrawingColors';recentHost.setAttribute('role','group');recentHost.setAttribute('aria-label','Недавние цвета');controls.after(recentHost);
-function showRecent(){recentHost.replaceChildren();if(!recentColors.length)return;const label=document.createElement('small');label.textContent='Недавние';recentHost.append(label);for(const c of recentColors){const b=document.createElement('button');b.type='button';b.className='drawing-color';b.style.setProperty('--swatch',c);b.setAttribute('aria-label','Недавний цвет '+c);b.setAttribute('aria-pressed',String(c===color));b.onclick=()=>{color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;eraser=false;toolSync();showRecent()};recentHost.append(b)}}
+function showRecent(){recentHost.replaceChildren();if(!recentColors.length)return;const label=document.createElement('small');label.textContent='Недавние';recentHost.append(label);for(const c of recentColors){const b=document.createElement('button');b.type='button';b.className='drawing-color';b.style.setProperty('--swatch',c);b.setAttribute('aria-label','Недавний цвет '+c);b.setAttribute('aria-pressed',String(c===color));b.onclick=()=>{color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;eraser=false;brushMode('brush');toolSync();showRecent()};recentHost.append(b)}}
 function rememberColor(c){recentColors=[c,...recentColors.filter(x=>x!==c)].slice(0,4);fput(recentColorKey,JSON.stringify(recentColors));showRecent()}
 showRecent();
 $('paletteMore').onclick=()=>{const expanded=$('paletteMore').getAttribute('aria-expanded')!=='true';$('paletteMore').setAttribute('aria-expanded',String(expanded));$('paletteMore').textContent=expanded?'Основные':'Все цвета';controls.classList.toggle('palette-expanded',expanded)};
 for(const [c,label] of palette){
-const b=document.createElement('button');b.type='button';b.className='drawing-color';b.style.setProperty('--swatch',c);b.setAttribute('aria-label',label);b.setAttribute('aria-pressed',String(c===color));b.textContent=' ';b.dataset.color=c;if(!basicColors.has(c))b.dataset.extended='true';b.onclick=()=>{endStroke();color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;rememberColor(c);if(eraser){eraser=false;fillMode=false}toolSync()};controls.append(b);
+const b=document.createElement('button');b.type='button';b.className='drawing-color';b.style.setProperty('--swatch',c);b.setAttribute('aria-label',label);b.setAttribute('aria-pressed',String(c===color));b.textContent=' ';b.dataset.color=c;if(!basicColors.has(c))b.dataset.extended='true';b.onclick=()=>{endStroke();color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;rememberColor(c);if(eraser){eraser=false;fillMode=false;brushMode('brush')}toolSync()};controls.append(b);
 }
-function toolSync(){$('drawingFullColor').value=color;proSync();for(const b of panel.querySelectorAll('[data-effect]'))b.setAttribute('aria-pressed',String(!picked&&!eraser&&!fillMode&&b.dataset.effect===effect));for(const b of controls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(!eraser&&b.dataset.color===color));for(const b of panel.querySelectorAll('[data-tool]'))b.setAttribute('aria-pressed',String(b.dataset.tool===(picked?'pick':eraser?'eraser':fillMode?'fill':'brush')));for(const b of panel.querySelectorAll('[data-width]'))b.setAttribute('aria-pressed',String(Number(b.dataset.width)===width))}
-for(const b of panel.querySelectorAll('[data-tool]'))b.onclick=()=>{endStroke();picked=b.dataset.tool==='pick';eraser=b.dataset.tool==='eraser';fillMode=b.dataset.tool==='fill';toolSync()};for(const b of panel.querySelectorAll('[data-width]'))b.onclick=()=>{endStroke();width=Number(b.dataset.width);toolSync()};$('drawingCustom').oninput=()=>{const c=$('drawingCustom').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;inkAlpha=255;picked=false;eraser=false;rememberColor(c);toolSync()}};for(const b of panel.querySelectorAll('[data-effect]')){b.onclick=()=>{effect=b.dataset.effect;picked=false;eraser=false;fillMode=false;toolSync();extra(null)}};toolSync();
+function toolSync(){$('drawingFullColor').value=color;proSync();for(const b of panel.querySelectorAll('[data-effect]'))b.setAttribute('aria-pressed',String(!workingMaterial&&!picked&&!eraser&&!fillMode&&b.dataset.effect===effect));for(const b of controls.querySelectorAll('button'))b.setAttribute('aria-pressed',String(!eraser&&b.dataset.color===color));for(const b of panel.querySelectorAll('[data-tool]'))b.setAttribute('aria-pressed',String(b.dataset.tool===(picked?'pick':eraser?'eraser':fillMode?'fill':'brush')));for(const b of panel.querySelectorAll('[data-width]'))b.setAttribute('aria-pressed',String(Number(b.dataset.width)===width))}
+for(const b of panel.querySelectorAll('[data-tool]'))b.onclick=()=>{endStroke();picked=b.dataset.tool==='pick';eraser=b.dataset.tool==='eraser';fillMode=b.dataset.tool==='fill';brushMode(b.dataset.tool);toolSync()};for(const b of panel.querySelectorAll('[data-width]'))b.onclick=()=>{endStroke();width=Number(b.dataset.width);toolSync()};$('drawingCustom').oninput=()=>{const c=$('drawingCustom').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;inkAlpha=255;picked=false;eraser=false;brushMode('brush');rememberColor(c);toolSync()}};for(const b of panel.querySelectorAll('[data-effect]')){b.onclick=()=>{workingMaterial=null;effect=b.dataset.effect;picked=false;eraser=false;fillMode=false;toolSync();extra(null)}};toolSync();
 function effectPreviews(show){
 for(const b of panel.querySelectorAll('[data-effect]')){
 const existing=b.querySelector('canvas');
@@ -1862,13 +2051,14 @@ function endStroke(){
   if(id===null)return;
   try{canvas.releasePointerCapture(id)}catch(e){}
   if(projectStroke){delete projectStroke.tiles;projectStroke=null}
-  if(stroke){undo.push(stroke.frame);redo=[];trimUndo();stroke=null;sync()}
+  if(stroke){releaseInk(stroke);undo.push(stroke.frame);redo=[];trimUndo();stroke=null;sync()}
   if(!dirty||stored)return;
   if(project)scheduleProject();else persist();
 }
 function abandonTouchStroke(){
   if(stroke?.kind!=='touch')return;
   const {frame,source,encoded,confirmed,generation}=stroke,id=pointer;
+  releaseInk(stroke);
   pointer=last=stroke=projectStroke=null;
   try{canvas.releasePointerCapture(id)}catch(error){}
   if(previewFrame){cancelAnimationFrame(previewFrame);previewFrame=0}
@@ -1953,11 +2143,12 @@ for(const type of ['pointerup','pointercancel','lostpointercapture'])view.addEve
   if(!touches.size)pinching=false;
 },{capture:true});
 expand.onclick=()=>enlarge(expand.getAttribute('aria-pressed')!=='true');$('drawingFullSave').onclick=()=>$('drawingSave').click();
-$('drawingFullColor').oninput=()=>{const c=$('drawingFullColor').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;eraser=false;fillMode=false;rememberColor(c);toolSync()}};
+$('drawingFullColor').oninput=()=>{const c=$('drawingFullColor').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;inkAlpha=255;$('drawingCustom').value=c;picked=false;eraser=false;fillMode=false;brushMode('brush');rememberColor(c);toolSync()}};
 function capture(){return {patches:[],bytes:0,dirty,outlineKey,layers:layers?.map(layer=>({...layer})),groups:groups.map(group=>({...group})),referenceLayerId,activeLayerId,activeTarget}}
 function capturePatch(frame,target,x,y,width,height){
   const pixels=target.getImageData(x,y,width,height);
-  frame.patches.push({target,x,y,pixels});frame.bytes+=pixels.data.byteLength;
+  const patch={target,x,y,pixels};
+  frame.patches.push(patch);frame.bytes+=pixels.data.byteLength;return patch;
 }
 function restoreDrawing(frame){
  if(frame.layers){layers=frame.layers;groups=frame.groups;referenceLayerId=frame.referenceLayerId;selectLayer(frame.activeLayerId,frame.activeTarget);}
@@ -1988,15 +2179,47 @@ function captureStrokePatch(to,reach){
   const y1=Math.max(0,Math.min(last.y,to.y)-reach),y2=Math.min(canvas.height,Math.max(last.y,to.y)+reach);
   const bounds=[Math.floor(x1),Math.floor(y1),Math.ceil(x2),Math.ceil(y2)];
   repaintBounds=repaintBounds?repaintBounds.map((value,i)=>i<2?Math.min(value,bounds[i]):Math.max(value,bounds[i])):bounds;
+  const affected=[];
   for(let y=Math.floor(y1/tile)*tile;y<y2;y+=tile)for(let x=Math.floor(x1/tile)*tile;x<x2;x+=tile){
     const key=y*canvas.width+x;
-    if(projectStroke.tiles.has(key))continue;
-    projectStroke.tiles.add(key);
-    capturePatch(projectStroke,ctx,x,y,Math.min(tile,canvas.width-x),Math.min(tile,canvas.height-y));
+    if(!projectStroke.tiles.has(key))projectStroke.tiles.set(key,capturePatch(projectStroke,ctx,x,y,Math.min(tile,canvas.width-x),Math.min(tile,canvas.height-y)));
+    affected.push(projectStroke.tiles.get(key));
   }
+  return affected;
 }
 function point(e,r=canvas.getBoundingClientRect()){if(!r.width||!r.height)return {x:0,y:0};return {x:Math.max(0,Math.min(canvas.width,(e.clientX-r.left)*canvas.width/r.width)),y:Math.max(0,Math.min(canvas.height,(e.clientY-r.top)*canvas.height/r.height))}}
-function line(to,pressure=1){
+function releaseInk(outgoing){
+  if(!outgoing.ink)return;
+  for(const {x,y,pixels} of outgoing.frame.patches)outgoing.ink.clearRect(x,y,pixels.width,pixels.height);
+}
+function materialLine(to,pressure,ending){
+  const {material,ink}=stroke,patches=captureStrokePatch(to,material.size*1.5+4);
+  const dx=to.x-last.x,dy=to.y-last.y,length=Math.hypot(dx,dy),step=Math.max(.5,material.size*material.spacing/100);
+  const nib=material.angle*Math.PI/180+(stroke.kind==='pen'?lastTilt:0);
+  const flow=(material.kind==='marker'?100:material.flow)/100;
+  function stamp(at){
+    const t=length?at/length:1,input=lastPressure+(pressure-lastPressure)*t;
+    const response=pressureResponse(input,material.curve),size=Math.max(.5,material.size*(.15+.85*response));
+    materialStamp(ink,{x:last.x+dx*t,y:last.y+dy*t},size,material.kind,material.pigment,
+      flow*(material.pressureOpacity?response:1),nib,stroke.particles++);
+  }
+  ink.save();if(selection?.active)ink.clip(selection.clipPath(),'evenodd');
+  if(!stroke.particles)stamp(0);
+  else if(length){
+    for(let at=step-stroke.carry;at<=length;at+=step)stamp(at);
+    stroke.carry=(stroke.carry+length)%step;
+  }
+  if(ending&&stroke.carry>.01)stamp(length);
+  ink.restore();
+  invalidateLayer(ctx.canvas);ctx.save();ctx.globalCompositeOperation=material.composite;ctx.globalAlpha=material.alpha*material.opacity/100;
+  for(const {x,y,pixels} of patches){
+    const area=[x,y,pixels.width,pixels.height];
+    ctx.putImageData(pixels,x,y);ctx.drawImage(ink.canvas,...area,...area);
+  }
+  ctx.restore();last=to;
+}
+function line(to,pressure=1,ending=false){
+  if(stroke?.material){materialLine(to,pressure,ending);return}
   const mask=onMask(),erase=mask?eraser!==activeLayer().maskInverted:!!layers&&eraser;
   const mode=erase?'destination-out':alphaLocked()?'source-atop':null;
   const clipped=selection?.active;
@@ -2018,13 +2241,14 @@ function line(to,pressure=1){
   if(mode||clipped)ctx.restore();
   last=to;
 }
-const penWidth=e=>$('proPressure').checked&&e.pointerType==='pen'&&e.pressure>0?Math.max(.2,Math.min(1,e.pressure)):1;
+const penWidth=e=>($('proPressure').checked||stroke?.material)&&e.pointerType==='pen'&&e.pressure>0?Math.max(.2,Math.min(1,e.pressure)):1;
 let lastPressure=1;
 function appendStrokePoint(event,bounds,ending=false){
   const next=point(event,bounds);
-  if(next.x===last.x&&next.y===last.y)return;
+  if(next.x===last.x&&next.y===last.y&&!(ending&&stroke?.material&&stroke.carry>.01))return;
   const pressure=ending&&event.pointerType==='pen'&&event.pressure===0?lastPressure:penWidth(event);
-  line(next,pressure);
+  if(event.pointerType==='pen'&&Number.isFinite(event.tiltX))lastTilt=Math.atan2(event.tiltY,event.tiltX);
+  line(next,pressure,ending);
   lastPressure=pressure;
 }
 function applyPointTool(p){
@@ -2032,7 +2256,7 @@ function applyPointTool(p){
   if(picked){
     const v=composite.getImageData(x,y,1,1).data;
     color='#'+Array.from(v.slice(0,3)).map(channelHex).join('');inkAlpha=layers?v[3]:255;precise?.record(color,inkAlpha);
-    $('drawingCustom').value=color;picked=false;eraser=false;fillMode=false;rememberColor(color);toolSync();return;
+    $('drawingCustom').value=color;picked=false;eraser=false;fillMode=false;brushMode('brush');rememberColor(color);toolSync();return;
   }
   if(!editableLayer()||eraser&&alphaLocked())return;
   if(fillMode){
@@ -2058,10 +2282,21 @@ canvas.addEventListener('pointerdown',e=>{
     return;
   }
   if(!editableLayer()||eraser&&alphaLocked())return;
+  let advanced,ink;
+  if(workingMaterial&&!onMask()){
+    if(!projectProfile(canvas.width,canvas.height,layers.length,maskCount()+1)){$('drawingStatus').textContent='Для этой кисти недостаточно памяти на выбранном холсте.';return}
+    if(!inkBuffer)inkBuffer=newLayerCanvas(canvas.width,canvas.height).getContext('2d');
+    if(!inkBuffer){$('drawingStatus').textContent='Не удалось подготовить кисть. Попробуй меньший холст.';return}
+    ink=inkBuffer;
+    advanced={...workingMaterial,pigment:eraser?'#000000':color,alpha:eraser?1:inkAlpha/255,
+      composite:eraser?'destination-out':alphaLocked()?'source-atop':'source-over'};
+  }
   const frame=capture();
   if(!layers)capturePatch(frame,ctx,0,0,canvas.width,canvas.height);
-  if(layers){projectStroke=frame;frame.tiles=new Set();}
-  stroke={frame,kind:e.pointerType,source:ctx.canvas,encoded:projectEncoded.get(ctx.canvas),confirmed:stored,generation:projectGeneration};
+  if(layers){projectStroke=frame;frame.tiles=new Map();}
+  stroke={frame,kind:e.pointerType,source:ctx.canvas,encoded:projectEncoded.get(ctx.canvas),confirmed:stored,generation:projectGeneration,
+    material:advanced,ink,carry:0,particles:0};
+  lastTilt=e.tiltX||e.tiltY?Math.atan2(e.tiltY,e.tiltX):0;
   distance=0;pointer=e.pointerId;last=p;try{canvas.setPointerCapture(pointer)}catch(err){}
   lastPressure=penWidth(e);line(last,lastPressure);protectOutline();dirty=true;projectGeneration++;stored=false;sync();
 });
