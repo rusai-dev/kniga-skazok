@@ -79,10 +79,27 @@ async function main() {
     // Do not await navigator.serviceWorker.ready: it never rejects if install fails.
     // The next bounded predicate proves that the old worker really activated.
     await bounded('old service worker register',()=>page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});}),25000);
-    await page.waitForFunction(async()=>{
+    // Explicit polling: an async waitForFunction predicate can return a truthy
+    // Promise before the underlying boolean becomes true. Never start upgrade
+    // before the exact old worker controls the page and its offline shell exists.
+    const oldCache='skazki-shell-'+oldVersion;
+    const inspectOld=()=>page.evaluate(async ({name,expected})=>{
       const reg=await navigator.serviceWorker.getRegistration();
-      return navigator.serviceWorker.controller?.state==='activated'&&reg?.active?.state==='activated'&&!reg.waiting&&!reg.installing;
-    },null,{timeout:30000});
+      const keys=await caches.keys();
+      const cache=keys.includes(name)?await caches.open(name):null;
+      const cached=cache?await cache.match(new URL('index.html',location.href).href):null;
+      const html=cached?await cached.text():'';
+      return {controller:navigator.serviceWorker.controller?.state||null,active:reg?.active?.state||null,waiting:reg?.waiting?.state||null,installing:reg?.installing?.state||null,cacheKeys:keys,entries:cache?(await cache.keys()).length:0,exactHTML:html.includes('<footer>Книга сказок · версия '+expected+'</footer>')};
+    },{name:oldCache,expected:oldVersion});
+    const isOldReady=state=>state.controller==='activated'&&state.active==='activated'&&!state.waiting&&!state.installing&&state.exactHTML&&state.entries>=14;
+    let oldState=await bounded('inspect old verified shell',inspectOld,10000);
+    const deadlineOld=Date.now()+35000;
+    while(!isOldReady(oldState)&&Date.now()<deadlineOld){
+      await new Promise(resolve=>setTimeout(resolve,250));
+      oldState=await bounded('inspect old verified shell',inspectOld,10000);
+    }
+    console.log('Exact old shell readiness',JSON.stringify(oldState));
+    assert.ok(isOldReady(oldState),'old shell did not finish installation; do not attempt upgrade');
     assert.equal(await page.evaluate(()=>APP_RELEASE),oldVersion);
     mark('create old-version draft with original and unfinished drawing');
     await page.evaluate(keys=>{
@@ -117,6 +134,7 @@ async function main() {
     assert.equal(oldPixels,before.studio.sheets[0].src);
     await page.evaluate(async()=>{
       const reg=await navigator.serviceWorker.getRegistration();
+      if(reg?.active?.state!=='activated'||reg.installing||reg.waiting||navigator.serviceWorker.controller?.state!=='activated')throw Error('old worker not active before update');
       window.qaSwitches=0;window.qaWorkerEvents=[];window.qaOldWorker=reg.active;
       navigator.serviceWorker.addEventListener('controllerchange',()=>{window.qaSwitches++;window.qaWorkerEvents.push('controllerchange');});
       reg.addEventListener('updatefound',()=>{
@@ -146,7 +164,7 @@ async function main() {
       const keys=await caches.keys();
       const cache=keys.includes(name)?await caches.open(name):null;
       const marker=cache?await cache.match(key):null;
-      return {active:reg?.active?.state,waiting:reg?.waiting?.state,installing:reg?.installing?.state,oldStillActive:reg?.active===window.qaOldWorker,marker:marker?await marker.text():null,cacheKeys:keys,entries:cache?(await cache.keys()).map(r=>new URL(r.url).pathname):[],events:window.qaWorkerEvents,switches:window.qaSwitches,updateError:window.qaUpdateError};
+      return {active:reg?.active?.state,waiting:reg?.waiting?.state,installing:reg?.installing?.state,oldStillActive:!!window.qaOldWorker&&reg?.active===window.qaOldWorker,marker:marker?await marker.text():null,cacheKeys:keys,entries:cache?(await cache.keys()).map(r=>new URL(r.url).pathname):[],events:window.qaWorkerEvents,switches:window.qaSwitches,updateError:window.qaUpdateError};
     },{name:newCache,key:readyKey});
     const deadlineInstall=Date.now()+60000;
     let state=await bounded('inspect installed cache',installationState,10000);
