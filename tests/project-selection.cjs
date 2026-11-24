@@ -48,6 +48,25 @@ module.exports = async function verifyProjectSelection(browser, url) {
     const before = await canvas.evaluate(sheet => sheet.toDataURL());
     await select('Прямоугольник', [[100, 105], [190, 205]]);
     assert.equal(await canvas.evaluate(sheet => sheet.toDataURL()), before, 'the selection contour is a separate visual layer');
+    for (let zoom = 0; zoom < 4; zoom++) await canvas.press('=');
+    assert.equal(await page.locator('#drawingDetail').textContent(), '800%');
+    const contour = await canvas.evaluate(async sheet => {
+      const view = sheet.parentElement;
+      const outline = view.querySelector('canvas[aria-hidden="true"]');
+      const viewRect = view.getBoundingClientRect(), sheetRect = sheet.getBoundingClientRect();
+      const left = sheetRect.left-viewRect.left-view.clientLeft+view.scrollLeft;
+      const top = sheetRect.top-viewRect.top-view.clientTop+view.scrollTop;
+      view.scrollLeft=left+sheetRect.width*100/390-view.clientWidth/2;
+      view.scrollTop=top+sheetRect.height*155/260-view.clientHeight/2;
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      const x=Math.max(0,Math.round(outline.width/2)-24);
+      const ink=outline.getContext('2d').getImageData(x,Math.round(outline.height/2)-12,48,24).data;
+      return {bounded: outline.width<=view.clientWidth&&outline.height<=view.clientHeight,
+        sheet: sheet.style.width, visible: ink.some((value,index)=>index%4===3&&value>0)};
+    });
+    assert.deepEqual(contour, {bounded: true, sheet: '5760px', visible: true}, 'zoom allocates only visible pixels and redraws the contour at the scrolled document point');
+    assert.equal(await canvas.evaluate(sheet => sheet.toDataURL()), before);
+    await page.locator('#drawingDetail').click();
     await fillColor('#1a4d9d');
     await position(244, 160);
     assert.deepEqual(await pixel(244, 160), paper);

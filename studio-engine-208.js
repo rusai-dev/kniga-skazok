@@ -830,6 +830,7 @@ function referenceStencil(canvas){
 function projectSelection(canvas,view,showStatus){
   const overlay=document.createElement('canvas');
   overlay.setAttribute('aria-hidden','true');overlay.hidden=true;
+  overlay.width=overlay.height=0;
   overlay.style.cssText='position:absolute;pointer-events:none;z-index:2;margin:0;border:0;box-shadow:none';
   view.style.position='relative';view.append(overlay);
   const modes={rectangle:'Прямоугольник',lasso:'Лассо'};
@@ -850,18 +851,24 @@ function projectSelection(canvas,view,showStatus){
   function paint(){
     const outline=path(gesture);
     const box=canvas.getBoundingClientRect(),frame=view.getBoundingClientRect();
-    if(!outline||!box.width||!box.height){overlay.hidden=true;return}
+    const viewLeft=frame.left+view.clientLeft,viewTop=frame.top+view.clientTop;
+    const left=Math.max(box.left,viewLeft),top=Math.max(box.top,viewTop);
+    const width=Math.floor(Math.min(box.right,viewLeft+view.clientWidth)-left);
+    const height=Math.floor(Math.min(box.bottom,viewTop+view.clientHeight)-top);
+    if(!outline||width<1||height<1){
+      if(!overlay.hidden){overlay.hidden=true;overlay.width=overlay.height=0}
+      return;
+    }
     overlay.hidden=false;
-    overlay.style.left=box.left-frame.left+view.scrollLeft-view.clientLeft+'px';
-    overlay.style.top=box.top-frame.top+view.scrollTop-view.clientTop+'px';
-    overlay.style.width=box.width+'px';overlay.style.height=box.height+'px';
-    const width=Math.round(box.width),height=Math.round(box.height);
+    overlay.style.left=left-viewLeft+view.scrollLeft+'px';
+    overlay.style.top=top-viewTop+view.scrollTop+'px';
+    overlay.style.width=width+'px';overlay.style.height=height+'px';
     if(overlay.width!==width||overlay.height!==height){overlay.width=width;overlay.height=height}
     const ctx=overlay.getContext('2d');
     if(!ctx)return;
     ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,width,height);ctx.setLineDash([]);
-    ctx.scale(overlay.width/canvas.width,overlay.height/canvas.height);
-    const scale=canvas.width/overlay.width;
+    ctx.setTransform(box.width/canvas.width,0,0,box.height/canvas.height,box.left-left,box.top-top);
+    const scale=canvas.width/box.width;
     ctx.lineWidth=2*scale;ctx.strokeStyle='#ffffff';ctx.stroke(outline);
     ctx.setLineDash([4*scale,5*scale]);ctx.strokeStyle='#273a58';ctx.stroke(outline);
   }
