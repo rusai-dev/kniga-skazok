@@ -801,7 +801,7 @@ function projectRenderer(target,background){
     }
     scratch.restore();return scratch.canvas;
   }
-  return (layers,area=[0,0,width,height])=>{
+  function render(layers,area=[0,0,width,height]){
     target.save();
     if(background===null)target.clearRect(...area);
     else{target.fillStyle=background||'#fffdf7';target.fillRect(...area)}
@@ -811,7 +811,9 @@ function projectRenderer(target,background){
       target.drawImage(source(layers,layer,index,area),...area,...area);
     }
     target.restore();
-  };
+  }
+  render.release=()=>{if(scratch){scratch.canvas.width=0;scratch=null}};
+  return render;
 }
 
 function visibleProjectLayers(layers,groups=[]){
@@ -1142,11 +1144,12 @@ async function projectPreview(saved){
   if(!saved||!supportsProject(saved.detail))throw Error('project');
   const {detail}=saved,layers=await loadProjectLayers(saved);
   const canvas=newLayerCanvas(detail.width,detail.height),context=canvas.getContext('2d',{alpha:false});
+  const render=context&&projectRenderer(context,detail.background||'#ffffff');
   try{
-    if(!context)throw Error('profile');
-    projectRenderer(context,detail.background||'#ffffff')(visibleProjectLayers(layers,detail.groups));
+    if(!render)throw Error('profile');
+    render(visibleProjectLayers(layers,detail.groups));
     return {src:drawingJPEG(canvas),documentId:detail.documentId,revision:detail.revision,title:detail.title};
-  }finally{canvas.width=canvas.height=0;for(const layer of layers){layer.canvas.width=0;if(layer.mask)layer.mask.width=0}}
+  }finally{render?.release();canvas.width=canvas.height=0;for(const layer of layers){layer.canvas.width=0;if(layer.mask)layer.mask.width=0}}
 }
 
 function openProjectHistory(store,item){
@@ -1759,6 +1762,12 @@ function setupSelectionPanel(){
   const copy=$('copyProjectSelection'),cut=$('cutProjectSelection'),paste=$('pasteProjectSelection');
   const actions=selectionPanel.firstElementChild;
   let pendingTransform,clipboard;
+  selectionPanel.release=()=>{
+    cancelAnimationFrame(pendingTransform);
+    if(transformPreview){transformPreview.patch.width=transformPreview.result.width=0;transformPreview=null}
+    if(clipboard){clipboard.content.width=0;clipboard=null}
+    selection.clear();
+  };
   function endPreview(){
     if(!transformPreview)return;
     transformPreview.patch.width=transformPreview.result.width=0;
@@ -1876,6 +1885,7 @@ function setupProjectFilters(){
     if(result){result.canvas.width=0;result=null}
     apply.disabled=true;
   }
+  filterPanel.release=stop;
   function close(){
     stop();filterPanel.hidden=true;trigger.setAttribute('aria-expanded','false');renderProject();
     $('studioMore').open=true;trigger.focus({preventScroll:true});
@@ -2158,6 +2168,19 @@ function endStroke(){
   if(stroke){releaseInk(stroke);undo.push(stroke.frame);redo=[];trimUndo();stroke=null;sync()}
   if(!dirty||stored)return;
   if(project)scheduleProject();else persist();
+}
+
+async function returnFromProject(){
+  if(!await flushProject()||!onProjectCanvas())return;
+  clearTimeout(projectTimer);cancelAnimationFrame(previewFrame);
+  filterPanel.release();selectionPanel.release();drawLayers.release();
+  const frames=[...undo,...redo],buffers=new Set([canvas,inkBuffer?.canvas,outlineLayer]);
+  for(const layer of [...layers,...frames.flatMap(frame=>frame.layers)]){
+    buffers.add(layer.canvas);buffers.add(layer.mask);
+  }
+  undo=[];redo=[];outlineBarrier=null;releaseColoringPreviews();
+  for(const buffer of buffers)if(buffer){invalidateLayer(buffer);buffer.width=buffer.height=0}
+  (openedProject.onReturn||artProjects)();
 }
 function abandonTouchStroke(){
   if(stroke?.kind!=='touch')return;
@@ -2555,8 +2578,8 @@ function drawTemplate(target,key,hero=null,outline=true){
 function generate(place,hero,outline){if(restoring||pointer!==null||!replaceableLayer())return false;if(dirty&&!confirm('Начать новую картинку? Старую можно вернуть кнопкой отмены.'))return false;remember();if(layers)invalidateLayer(ctx.canvas);setOutline(drawTemplate(ctx,place,hero,outline)?place:null);dirty=true;changed();return true}
 $('artGenerate').onclick=()=>{if(generate($('artPlace').value,$('artHero').value,$('artMode').value==='outline'))extra(null)};
 $('drawingClear').onclick=()=>{if(restoring||!dirty||!replaceableLayer())return;endStroke();if(!confirm(storage?.current()!==false?'Начать рисунок заново?':'Очистить только этот лист? Другой сохранённый рисунок останется. Можно сначала скачать PNG.'))return;remember();setOutline(null);clearPaper();dirty=false;changed()};
-$('drawingCancel').onclick=async()=>{if(restoring)return;endStroke();if(project){if(await flushProject()&&onProjectCanvas())(openedProject.onReturn||artProjects)();return}if(dirty){persist();if(!stored){toast('Не сохранено. Повтори или скачай PNG.');return}}extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing')closeModal();else form.returnToWords?.(1)};
-$('drawingSave').onclick=async()=>{if($('drawingSave').disabled)return;endStroke();if(project){if(await flushProject()&&onProjectCanvas())(openedProject.onReturn||artProjects)();return}try{if(!insertPicture(drawingJPEG(canvas),art&&canvas.toDataURL()))return;dirty=false;undo=[];redo=[];setOutline(null);clearPaper();if(!art)persist();extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing'){artGallery()}else{form.returnToWords?.(1);toast('Рисунок добавлен в сказку.')}}catch(e){toast('Повтори сохранение или скачай PNG.')}};
+$('drawingCancel').onclick=async()=>{if(restoring)return;endStroke();if(project)return returnFromProject();if(dirty){persist();if(!stored){toast('Не сохранено. Повтори или скачай PNG.');return}}extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing')closeModal();else form.returnToWords?.(1)};
+$('drawingSave').onclick=async()=>{if($('drawingSave').disabled)return;endStroke();if(project)return returnFromProject();try{if(!insertPicture(drawingJPEG(canvas),art&&canvas.toDataURL()))return;dirty=false;undo=[];redo=[];setOutline(null);clearPaper();if(!art)persist();extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing'){artGallery()}else{form.returnToWords?.(1);toast('Рисунок добавлен в сказку.')}}catch(e){toast('Повтори сохранение или скачай PNG.')}};
 $('drawingRescue').onclick=()=>{if(restoring||!dirty)return;if(project){exportProjectImage('image/png');return}endStroke();try{const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='moi-risunok.png';document.body.append(a);a.click();a.remove()}catch(e){toast('Не удалось скачать рисунок.')}};
 form.openDrawing=()=>{form.classList.remove('keyboard-writing','keyboard-title');panel.hidden=false;focusDrawing(true);setZoom(0);if(art){$('drawingSave').textContent=$('drawingFullSave').textContent=art.editing?'Готово':'Вставить в сказку'}};
 form.loadDrawing=(src,outline)=>{

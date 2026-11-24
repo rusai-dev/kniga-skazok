@@ -80,10 +80,14 @@ module.exports = async function verifyProjectProfiles(browser, url) {
     assert.deepEqual(jpeg, white);
     await closeLayers();
     assert.equal(fingerprint(await canvas.evaluate(sheet => sheet.toDataURL())), fingerprint(png), 'export leaves the editor canvas unchanged');
+    const closedCanvas = await canvas.elementHandle();
     await page.locator('#drawingSave').click();
     await page.locator('#projectShelf').waitFor().catch(async error => {
       throw new Error(`${error.message}\n${await page.locator('#modalBody').innerText()}`);
     });
+    assert.deepEqual(await closedCanvas.evaluate(sheet => [sheet.width, sheet.height, sheet.isConnected]), [0, 0, false],
+      'a confirmed exit releases the previous canvas backing store');
+    await closedCanvas.dispose();
     const archive = await exportFile(page, 'button[aria-label="Скачать архив «Прозрачный квадрат»"]');
     const originalRevisions = JSON.parse(archive).revisions;
     assert.equal(originalRevisions.at(-1).layers.length, 8);
