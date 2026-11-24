@@ -29,6 +29,10 @@ if (release !== newVersion) {
 assert.equal(JSON.parse(oldRead('release.json')).version,oldVersion);
 assert.ok(oldRead('index.html').toString().includes('<footer>Книга сказок · версия '+oldVersion+'</footer>'));
 const {fingerprint} = shellDefinition(newRead('sw.js').toString());
+const {createHash}=require('node:crypto');
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+const expectedWorkerHash=hash(newRead('sw.js'));
+const requests=[];
 let serving = oldVersion;
 const server = http.createServer((req,res) => {
   const pathname = new URL(req.url,'http://127.0.0.1').pathname;
@@ -38,10 +42,11 @@ const server = http.createServer((req,res) => {
   if (!/^[A-Za-z0-9_./-]+$/.test(name)||name.split('/').some(part=>part==='..'||part==='.')) {res.statusCode=404;return res.end();}
   try {
     const bytes=(serving===oldVersion?oldRead:newRead)(name);
+    if(name==='sw.js'||(serving===newVersion&&requests.length<250))requests.push({name,version:serving,bytes:bytes.length,...(name==='sw.js'?{sha256:hash(bytes)}:{})});
     res.setHeader('Content-Type',mime[path.extname(name)]||'application/octet-stream');
     res.setHeader('Cache-Control','no-store');
     res.end(bytes);
-  } catch {res.statusCode=404;res.end();}
+  } catch(error) {if(serving===newVersion)requests.push({name,version:serving,error:String(error.message).slice(0,200)});res.statusCode=404;res.end();}
 });
 const title='QA exact legacy upgrade';
 const text='Сова нашла фонарь.\n\nЭто синтетический черновик, не работа ребёнка.';
@@ -58,7 +63,10 @@ async function main() {
     const control=await context.newPage();await control.goto(origin+'/control.html');
     const page=await context.newPage();await page.goto(url);
     await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});await navigator.serviceWorker.ready;});
-    await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
+    await page.waitForFunction(async()=>{
+      const reg=await navigator.serviceWorker.getRegistration();
+      return navigator.serviceWorker.controller?.state==='activated'&&reg?.active?.state==='activated'&&!reg.waiting&&!reg.installing;
+    },null,{timeout:30000});
     assert.equal(await page.evaluate(()=>APP_RELEASE),oldVersion);
     await page.evaluate(keys=>{
       const canvas=document.createElement('canvas');canvas.width=48;canvas.height=48;
@@ -90,27 +98,49 @@ async function main() {
     assert.equal(before.studio.sheets.length,1);
     const oldPixels=await canvas.evaluate(c=>c.toDataURL());
     assert.equal(oldPixels,before.studio.sheets[0].src);
-    await page.evaluate(()=>{window.qaSwitches=0;navigator.serviceWorker.addEventListener('controllerchange',()=>window.qaSwitches++);});
+    await page.evaluate(async()=>{
+      const reg=await navigator.serviceWorker.getRegistration();
+      window.qaSwitches=0;window.qaWorkerEvents=[];window.qaOldWorker=reg.active;
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{window.qaSwitches++;window.qaWorkerEvents.push('controllerchange');});
+      reg.addEventListener('updatefound',()=>{
+        const worker=reg.installing;
+        if(!worker)return;
+        window.qaWorkerEvents.push('updatefound:'+worker.state);
+        worker.addEventListener('statechange',()=>window.qaWorkerEvents.push('state:'+worker.state));
+      });
+    });
     serving=newVersion;
     // Observe waiting on the exact old worker, without navigating the old editor.
     await page.evaluate(async()=>{
       const reg=await navigator.serviceWorker.getRegistration();
       await reg.update();
     });
-    await page.waitForFunction(async()=>!!(await navigator.serviceWorker.getRegistration()).waiting,{},{timeout:30000});
+    const newCache='skazki-shell-'+newVersion+'-'+fingerprint;
+    const readyKey=origin+'/book/__skazki_shell_verified__';
+    // Check the actual named cache rather than the cross-cache match option.
+    // A stale waiting reference is insufficient proof of a complete installation.
+    const installationState=()=>page.evaluate(async ({name,key})=>{
+      const reg=await navigator.serviceWorker.getRegistration();
+      const keys=await caches.keys();
+      const cache=keys.includes(name)?await caches.open(name):null;
+      const marker=cache?await cache.match(key):null;
+      return {active:reg?.active?.state,waiting:reg?.waiting?.state,installing:reg?.installing?.state,oldStillActive:reg?.active===window.qaOldWorker,marker:marker?await marker.text():null,cacheKeys:keys,entries:cache?(await cache.keys()).map(r=>new URL(r.url).pathname):[],events:window.qaWorkerEvents,switches:window.qaSwitches};
+    },{name:newCache,key:readyKey});
+    const deadlineInstall=Date.now()+60000;
+    let state=await installationState();
+    while(Date.now()<deadlineInstall&&(state.marker!==fingerprint||state.waiting!=='installed')){
+      await new Promise(resolve=>setTimeout(resolve,500));
+      state=await installationState();
+    }
+    console.log('Exact upgrade install diagnostics',JSON.stringify({state,expectedWorkerHash,requests}));
+    assert.ok(requests.some(r=>r.name==='sw.js'&&r.version===newVersion&&r.sha256===expectedWorkerHash),'browser must receive exact new worker bytes');
+    assert.equal(state.marker,fingerprint,'new verified shell marker is missing');
+    assert.equal(state.waiting,'installed','new worker must wait while editor is open');
     assert.equal(await page.evaluate(()=>window.qaSwitches),0);
     assert.equal(await page.evaluate(()=>APP_RELEASE),oldVersion);
     assert.equal(await canvas.evaluate(c=>c.toDataURL()),oldPixels);
     assert.deepEqual(contents(draft(await snapshot(page))),contents(before));
-    // WebKit can expose stale registration objects across different documents.
-    // Assert readiness in the controlled editor, then prove activation by
-    // opening the actual new cached HTML offline (not by registration identity).
-    const newCache='skazki-shell-'+newVersion+'-'+fingerprint;
-    const readyKey=origin+'/book/__skazki_shell_verified__';
-    assert.equal(await page.evaluate(async ({name,key})=>{
-      const marker=await caches.match(key,{cacheName:name});
-      return marker?await marker.text():null;
-    },{name:newCache,key:readyKey}),fingerprint,'new shell must be fully verified before closing the editor');
+    // The verified shell is now installed; activation must preserve the editor.
     await page.close();
     const persisted=await snapshot(control);
     assert.deepEqual(contents(draft(persisted)),contents(before));
@@ -164,6 +194,7 @@ async function main() {
   } finally {
     if(context)await context.close();
     if(browser)await browser.close();
+    server.closeAllConnections?.();
     await new Promise(resolve=>server.close(resolve));
   }
 }
