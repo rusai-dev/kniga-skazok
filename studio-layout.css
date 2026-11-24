@@ -1683,6 +1683,14 @@ body[data-home-screen="home"]{
   #modal.drawing-focus .studio-view-tools #drawingExpand::after {content:"⛶";font-size:19px}
 }
 
+.project-layer-panel{position:absolute;z-index:8;inset:0 0 auto auto;width:min(380px,100%);max-height:100%;overflow:auto;padding:10px;background:#fff;border:1px solid var(--edge);border-radius:14px}
+.project-layer-panel[hidden]{display:none}
+.project-layer-panel :is(button,input,select){min-height:44px}
+.project-layer-panel ol{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.project-layer-panel li{display:flex;flex-wrap:wrap;gap:5px;padding:6px;border:1px solid var(--line);border-radius:10px}
+.project-layer-panel [aria-pressed="true"]{background:var(--soft);border-color:var(--edge)}
+.project-layer-panel label{display:grid;width:100%}
+
 @media (max-width: 700px) {
   #modal.drawing-focus .studio-more .studio-modes {flex-wrap:wrap}
   #modal.drawing-focus #standaloneDrawing .studio-toolset {

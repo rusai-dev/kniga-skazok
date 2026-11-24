@@ -126,6 +126,7 @@ module.exports = async function verifyStudioProjects(browser, url) {
       await restored.locator('#homeCreate').click();
       await restored.locator('#childDraw').click();
       await restored.locator('#openProjects').click();
+      await restored.locator('#projectImport:enabled').waitFor();
       const input = restored.locator('#projectArchiveFile');
       const ready = restored.locator('#confirmProjectImport');
       const upload = buffer => input.setInputFiles({name: 'project.json', mimeType: 'application/json', buffer});
