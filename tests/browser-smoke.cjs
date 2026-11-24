@@ -382,9 +382,9 @@ const server=http.createServer((req,res)=>{
    await page.locator('#drawStory').click();
    const canvas=page.locator('#drawingCanvas');
    try{
-    await page.waitForFunction(()=>$('drawingCanvas').getBoundingClientRect().height>=44,undefined,{timeout:5000});
+    await page.waitForFunction(()=>($('drawingCanvas')?.getBoundingClientRect().height??0)>=44,undefined,{timeout:5000});
    }catch(error){
-    const layout=await page.evaluate(()=>Object.fromEntries(['modal','drawingPanel','studioViewport','drawingCanvas'].map(id=>[id,$(id).getBoundingClientRect().toJSON()])));
+    const layout=await page.evaluate(()=>Object.fromEntries(['modal','drawingPanel','studioViewport','drawingCanvas'].map(id=>[id,$(id)?.getBoundingClientRect().toJSON()??null])));
     throw Error('Studio canvas geometry at '+width+'×'+height+' '+JSON.stringify(layout),{cause:error});
    }
    await canvas.click();

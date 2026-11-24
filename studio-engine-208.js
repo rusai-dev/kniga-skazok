@@ -764,6 +764,11 @@ function newLayerCanvas(width,height){
   return canvas;
 }
 
+function projectPixelContext(canvas){
+  // Undo and fill regularly read pixels from layers. The visible composite keeps its default backing store.
+  return canvas.getContext('2d',{willReadFrequently:true});
+}
+
 function newEmptyProjectLayer(width,height){
   const canvas=newLayerCanvas(width,height);
   emptyProjectLayers.add(canvas);
@@ -1062,12 +1067,12 @@ async function decodeProjectPng(blob,width,height){
   return image;
 }
 
-async function loadProjectLayers(saved){
+async function loadProjectLayers(saved,editable=false){
   const {detail,pixels}=saved;
   async function backstore(hash){
     const blob=pixels.get(hash),image=await decodeProjectPng(blob,detail.width,detail.height);
     const canvas=newLayerCanvas(detail.width,detail.height);
-    const context=canvas.getContext('2d');
+    const context=editable?projectPixelContext(canvas):canvas.getContext('2d');
     if(!context)throw Error('profile');
     context.drawImage(image,0,0);
     projectEncoded.set(canvas,blob);
@@ -1290,7 +1295,7 @@ async function openStoryProject(form,receipt,returnWriter){
     await store.finishStoryLink(receipt).catch(()=>{});
     const saved=await store.read(receipt.documentId);
     if(!saved||!supportsProject(saved.detail))throw Error('project');
-    const layers=await loadProjectLayers(saved);
+    const layers=await loadProjectLayers(saved,true);
     if(!visible())return;
     form.flushStoryDraft?.();
     if(form.dataset.saveFailed==='yes'){toast('Сначала сохрани текст сказки.');return}
@@ -1361,7 +1366,7 @@ function setupProjectCreation(store,visible){
     if(creating||!form.checkValidity()||!projectProfile(w,h))return;
     creating=true;create.disabled=true;
     try{
-      const canvas=newEmptyProjectLayer(w,h),context=canvas.getContext('2d');
+      const canvas=newEmptyProjectLayer(w,h),context=projectPixelContext(canvas);
       if(!context)throw Error('profile');
       context.getImageData(w-1,h-1,1,1);
       const title=$('newProjectTitle').value.trim()||'Новый рисунок',id=projectIdentity();
@@ -1420,7 +1425,7 @@ async function artProjects(){
         try{
           const saved=await store.read(item.documentId);
           if(!saved||!supportsProject(saved.detail))throw Error('profile');
-          const layers=await loadProjectLayers(saved);
+          const layers=await loadProjectLayers(saved,true);
           if(visible())renderArtRoom({store,detail:saved.detail,layers});
         }catch(error){if(visible())status.textContent='Не удалось открыть проект. Сохранённый файл остался в списке.'}
         finally{open.disabled=false}
@@ -1512,7 +1517,7 @@ function selectLayer(id,target='layer'){
   activeLayerId=id;
   const layer=activeLayer();
   activeTarget=target==='mask'&&layer.mask?'mask':'layer';
-  const context=(onMask()?layer.mask:layer.canvas).getContext('2d');
+  const context=projectPixelContext(onMask()?layer.mask:layer.canvas);
   if(!context)throw Error('profile');
   ctx=context;
   $('openProjectLayers').textContent=onMask()?'Слои · маска':'Слои';
@@ -1658,7 +1663,7 @@ function showLayerRows(){
       if(mergeable)button('Объединить с нижним','merge',()=>{
         if(!confirm('Объединить два слоя? Это можно отменить.'))return;
         updateLayers(()=>{
-          const bitmap=newLayerCanvas(canvas.width,canvas.height),drawing=bitmap.getContext('2d');
+          const bitmap=newLayerCanvas(canvas.width,canvas.height),drawing=projectPixelContext(bitmap);
           if(!drawing)throw Error('profile');
           drawing.globalAlpha=lower.opacity;drawing.drawImage(lower.canvas,0,0);
           drawing.globalAlpha=layer.opacity;drawing.drawImage(layer.canvas,0,0);drawing.globalAlpha=1;
@@ -1673,9 +1678,9 @@ function showLayerRows(){
       });
       button('Дублировать','duplicate',()=>updateLayers(()=>{
         const target=newLayerCanvas(canvas.width,canvas.height);
-        target.getContext('2d').drawImage(layer.canvas,0,0);
+        projectPixelContext(target).drawImage(layer.canvas,0,0);
         const mask=layer.mask?newLayerCanvas(canvas.width,canvas.height):null;
-        if(mask)mask.getContext('2d').drawImage(layer.mask,0,0);
+        if(mask)projectPixelContext(mask).drawImage(layer.mask,0,0);
         const duplicate={...layer,id:projectIdentity(),name:layer.name.slice(0,70)+' · копия',canvas:target,mask};
         layers.splice(index+1,0,duplicate);selectLayer(duplicate.id);
       })).disabled=layers.length>=layerCapacity(layer.mask?1:0);
@@ -1702,7 +1707,7 @@ function showLayerRows(){
         button('Удалить маску','remove-mask',()=>updateLayers(()=>{selectLayer(layer.id);layer.mask=null}));
         const hint=document.createElement('small');hint.textContent='На маске кисть открывает рисунок, ластик скрывает.';row.append(hint);
       }else button('Добавить маску','add-mask',()=>updateLayers(()=>{
-        const mask=newLayerCanvas(canvas.width,canvas.height),brush=mask.getContext('2d');
+        const mask=newLayerCanvas(canvas.width,canvas.height),brush=projectPixelContext(mask);
         brush.fillStyle='#fff';brush.fillRect(0,0,mask.width,mask.height);
         layer.mask=mask;layer.maskEnabled=true;layer.maskInverted=false;selectLayer(layer.id,'mask');
       })).disabled=layers.length>layerCapacity(1);
