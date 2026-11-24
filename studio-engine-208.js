@@ -712,6 +712,8 @@ let picked=false,color=palette[1][0],width=brushWidths()[1],pointer=null,last=nu
 const paper='#fffdf7';
 const art=form.storyArt,storage=openedProject?null:drawingStorage(DRAWING_DRAFT,DRAWING_OUTLINE,art,drawingFingerprint);
 let project=openedProject?.detail,projectWrite=null,projectGeneration=0;
+let projectTimer,projectDeadline=0,projectStroke;
+const projectUndoLimit=128,projectUndoBytes=48*1024*1024;
 let layers=openedProject?.layers,activeLayerId=project?.activeLayerId||layers?.[0].id;
 let activeTarget=project?.activeTarget||'layer',layerBuffer;
 const activeLayer=()=>layers.find(layer=>layer.id===activeLayerId);
@@ -774,13 +776,21 @@ function selectLayer(id,target='layer'){
 
 function updateLayers(action){
   if(restoring)return;
-  endStroke();remember();action();dirty=true;changed();showLayerRows();
+  endStroke();
+  const frame=remember(false);
+  action();
+  const before=new Set(frame.layers.flatMap(layer=>[layer.canvas,layer.mask]).filter(Boolean));
+  const after=new Set(layers.flatMap(layer=>[layer.canvas,layer.mask]).filter(Boolean));
+  for(const source of before)if(!after.has(source))frame.bytes+=source.width*source.height*4;
+  for(const source of after)if(!before.has(source))frame.bytes+=source.width*source.height*4;
+  trimUndo();dirty=true;changed();showLayerRows();
 }
 
 function showLayerRows(){
   const rows=$('projectLayerRows'),previous=document.activeElement?.dataset.layerAction;
   rows.replaceChildren();
   $('projectLayersCount').textContent='Слои · '+layers.length+' из 8';
+  $('projectUndoLimit').textContent='Отмена · '+undo.length+' действий, до '+projectUndoLimit+' в пределах 48 МБ';
   $('addProjectLayer').disabled=layers.length>=8;
   for(let index=layers.length-1;index>=0;index--){
     const layer=layers[index],row=document.createElement('li');
@@ -844,7 +854,7 @@ function showLayerRows(){
 function setupLayerPanel(){
   layerPanel=document.createElement('section');
   layerPanel.className='project-layer-panel';layerPanel.hidden=true;layerPanel.setAttribute('aria-label','Слои');
-  layerPanel.innerHTML='<div class="actions"><strong id="projectLayersCount"></strong><button type="button" id="addProjectLayer">Добавить слой</button><button type="button" id="closeProjectLayers">Готово</button></div><ol id="projectLayerRows"></ol>';
+  layerPanel.innerHTML='<div class="actions"><strong id="projectLayersCount"></strong><button type="button" id="addProjectLayer">Добавить слой</button><button type="button" id="closeProjectLayers">Готово</button></div><small id="projectUndoLimit"></small><ol id="projectLayerRows"></ol>';
   form.querySelector('.studio-workspace').append(layerPanel);
   const open=$('openProjectLayers');open.hidden=false;
   function show(value){
@@ -939,7 +949,15 @@ async function projectInput(meta,outline){
     activeLayerId:active,activeTarget:target,layers:captured};
 }
 function onProjectCanvas(){return $('drawingCanvas')===canvas&&$('modal').hasAttribute('open')}
+function scheduleProject(){
+  clearTimeout(projectTimer);
+  if(onProjectCanvas()&&!projectWrite)$('drawingStatus').textContent='Изменения ожидают сохранения…';
+  const now=performance.now();
+  projectDeadline ||= now+4000;
+  projectTimer=setTimeout(()=>{if(pointer===null)persistProject()},Math.min(650,Math.max(0,projectDeadline-now)));
+}
 function persistProject(){
+  clearTimeout(projectTimer);projectDeadline=0;
   if(restoring||unreadableSource||stored)return Promise.resolve(stored);
   if(projectWrite)return projectWrite;
   const generation=projectGeneration,currentProject=project,outline=outlineKey;
@@ -958,9 +976,13 @@ function persistProject(){
     projectWrite=null;
     if(!onProjectCanvas())return;
     sync();
-    if(confirmed&&!stored&&pointer===null)persistProject();
+    if(confirmed&&!stored&&pointer===null)scheduleProject();
   });
   return projectWrite;
+}
+async function flushProject(){
+  while(!stored)if(!await persistProject())return false;
+  return true;
 }
 let projectCopyBusy=false;
 $('drawingSaveProject').onclick=async()=>{
@@ -994,9 +1016,16 @@ function persist(){
  catch(e){stored=false}
  $('drawingStatus').textContent=stored?'Черновик рисунка сохранён на этом устройстве.':'Не сохранено. Повтори или скачай PNG.';sync()
 }
-function endStroke(){const id=pointer;pointer=null;last=null;if(id!==null){try{canvas.releasePointerCapture(id)}catch(e){}if(dirty&&!stored)persist()}}
-form.flushDrawingDraft=()=>{if(restoring)return;endStroke();if((project||dirty)&&!stored)persist()};
-function changed(){projectGeneration++;stored=false;renderProject();sync();persist()}
+function endStroke(){
+  const id=pointer;pointer=null;last=null;
+  if(id===null)return;
+  try{canvas.releasePointerCapture(id)}catch(e){}
+  if(projectStroke){delete projectStroke.tiles;projectStroke=null;trimUndo()}
+  if(!dirty||stored)return;
+  if(project)scheduleProject();else persist();
+}
+form.flushDrawingDraft=()=>{if(restoring)return;endStroke();if(project)flushProject();else if(dirty&&!stored)persist()};
+function changed(){projectGeneration++;stored=false;renderProject();sync();if(project)scheduleProject();else persist()}
 function lesson(){const item=drawingLesson($('lessonSubject').value,lessonStep);$('lessonPicture').innerHTML=item.svg;$('lessonInstruction').textContent=item.instruction;$('lessonPrev').disabled=lessonStep===0;$('lessonNext').disabled=lessonStep===item.total-1;$('lessonNext').textContent=lessonStep===item.total-1?'Урок завершён':'Следующий шаг';$('lessonPicture').setAttribute('aria-label','Образец: шаг '+(lessonStep+1)+' из '+item.total)}
 $('lessonSubject').onchange=()=>{lessonStep=0;lesson()};$('lessonPrev').onclick=()=>{lessonStep=Math.max(0,lessonStep-1);lesson()};$('lessonNext').onclick=()=>{const total=drawingLesson($('lessonSubject').value,lessonStep).total;lessonStep=Math.min(total-1,lessonStep+1);lesson()};
 const expand=$('drawingExpand'),view=$('studioViewport'),detail=$('drawingDetail'),pan=$('drawingPan'),modal=$('modal');
@@ -1025,22 +1054,53 @@ view.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId){view.scr
 for(const event of ['pointerup','pointercancel','lostpointercapture'])view.addEventListener(event,e=>{if(drag&&drag.id===e.pointerId)drag=null});
 expand.onclick=()=>enlarge(expand.getAttribute('aria-pressed')!=='true');$('drawingFullSave').onclick=()=>$('drawingSave').click();
 $('drawingFullColor').oninput=()=>{const c=$('drawingFullColor').value;if(/^#[0-9a-f]{6}$/i.test(c)){color=c;$('drawingCustom').value=c;picked=false;eraser=false;fillMode=false;rememberColor(c);toolSync()}};
-function capture(){return {pixels:ctx.getImageData(0,0,canvas.width,canvas.height),dirty,outlineKey,
-  layers:layers?.map(layer=>({...layer})),activeLayerId,activeTarget}}
+function capture(){return {patches:[],bytes:0,dirty,outlineKey,layers:layers?.map(layer=>({...layer})),activeLayerId,activeTarget}}
+function capturePatch(frame,target,x,y,width,height){
+  const pixels=target.getImageData(x,y,width,height);
+  frame.patches.push({target,x,y,pixels});frame.bytes+=pixels.data.byteLength;
+}
 function restoreDrawing(frame){
  if(frame.layers){layers=frame.layers;selectLayer(frame.activeLayerId,frame.activeTarget);}
- ctx.putImageData(frame.pixels,0,0);
+ for(const {target,x,y,pixels} of frame.patches)target.putImageData(pixels,x,y);
  if(frame.outlineKey!==outlineKey)setOutline(frame.outlineKey);
  dirty=frame.dirty;changed();
  if(layerPanel&&!layerPanel.hidden)showLayerRows();
 }
-function remember(){undo.push(capture());if(undo.length>12)undo.shift();redo=[]}
+function trimUndo(){
+  let bytes=undo.reduce((total,frame)=>total+frame.bytes,0);
+  while(undo.length>1&&(undo.length>(layers?projectUndoLimit:12)||layers&&bytes>projectUndoBytes))bytes-=undo.shift().bytes;
+}
+function remember(full=true){
+  const frame=capture();
+  if(full)capturePatch(frame,ctx,0,0,canvas.width,canvas.height);
+  undo.push(frame);redo=[];trimUndo();return frame;
+}
+function exchangeHistory(from,to){
+  if(pointer!==null||!from.length)return;
+  const previous=from.pop(),current=capture();
+  for(const {target,x,y,pixels} of previous.patches)capturePatch(current,target,x,y,pixels.width,pixels.height);
+  current.bytes=previous.bytes;
+  to.push(current);restoreDrawing(previous);
+}
+function captureStrokePatch(to,reach){
+  if(!projectStroke)return;
+  const tile=64,x1=Math.max(0,Math.min(last.x,to.x)-reach),x2=Math.min(canvas.width,Math.max(last.x,to.x)+reach);
+  const y1=Math.max(0,Math.min(last.y,to.y)-reach),y2=Math.min(canvas.height,Math.max(last.y,to.y)+reach);
+  for(let y=Math.floor(y1/tile)*tile;y<y2;y+=tile)for(let x=Math.floor(x1/tile)*tile;x<x2;x+=tile){
+    const key=y*canvas.width+x;
+    if(projectStroke.tiles.has(key))continue;
+    projectStroke.tiles.add(key);
+    capturePatch(projectStroke,ctx,x,y,Math.min(tile,canvas.width-x),Math.min(tile,canvas.height-y));
+  }
+}
 function point(e,r=canvas.getBoundingClientRect()){if(!r.width||!r.height)return {x:0,y:0};return {x:Math.max(0,Math.min(canvas.width,(e.clientX-r.left)*canvas.width/r.width)),y:Math.max(0,Math.min(canvas.height,(e.clientY-r.top)*canvas.height/r.height))}}
 function line(to,pressure=1){
   const mask=onMask(),erase=mask?eraser!==activeLayer().maskInverted:!!layers&&eraser;
   const mode=erase?'destination-out':alphaLocked()?'source-atop':null;
   if(mode){ctx.save();ctx.globalCompositeOperation=mode}
   const w=eraser?width:Math.max(1,width*pressure),kind=eraser||mask?'solid':effect;
+  // Stamps and every current brush stay within twice the brush width of the path.
+  captureStrokePatch(to,2*w+4);
   const dx=to.x-last.x,dy=to.y-last.y,len=Math.hypot(dx,dy);
   if(stampEffects.has(kind)){
     const spacing=Math.max(16,w*1.65);
@@ -1082,7 +1142,9 @@ canvas.addEventListener('pointerdown',e=>{
     }
     return;
   }
-  remember();distance=0;pointer=e.pointerId;last=p;try{canvas.setPointerCapture(pointer)}catch(err){}
+  const frame=remember(!layers);
+  if(layers){projectStroke=frame;frame.tiles=new Set();}
+  distance=0;pointer=e.pointerId;last=p;try{canvas.setPointerCapture(pointer)}catch(err){}
   lastPressure=penWidth(e);line(last,lastPressure);protectOutline();dirty=true;projectGeneration++;stored=false;sync();
 });
 canvas.addEventListener('pointermove',event=>{
@@ -1107,14 +1169,14 @@ function finish(event){
   endStroke();
 }
 for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,finish);
-$('drawingUndo').onclick=()=>{if(pointer!==null||!undo.length)return;redo.push(capture());restoreDrawing(undo.pop())};
-$('drawingRedo').onclick=()=>{if(pointer!==null||!redo.length)return;undo.push(capture());restoreDrawing(redo.pop())};
+$('drawingUndo').onclick=()=>exchangeHistory(undo,redo);
+$('drawingRedo').onclick=()=>exchangeHistory(redo,undo);
 function loadPremiumColoring(){if(restoring||pointer!==null||!replaceableLayer())return;if(dirty&&!confirm('Начать новую раскраску? Старую можно вернуть кнопкой отмены.'))return;restoring=true;sync();const img=new Image();img.onload=()=>{if($('drawingCanvas')!==canvas)return;remember();setOutline(null);clearPaper();const f=studioFitImage(canvas.width,canvas.height,img.naturalWidth||img.width,img.naturalHeight||img.height);ctx.save();ctx.imageSmoothingEnabled=false;ctx.drawImage(img,f.x,f.y,f.w,f.h);ctx.restore();dirty=true;restoring=false;picked=false;eraser=false;fillMode=true;effect='solid';toolSync();changed();extra(null)};img.onerror=()=>{restoring=false;sync();toast('Не удалось открыть раскраску. Попробуй с интернетом или выбери другую.')};img.src=premiumArt.coloring}
 function generate(place,hero,outline){if(restoring||pointer!==null||!replaceableLayer())return false;if(dirty&&!confirm('Начать новую картинку? Старую можно вернуть кнопкой отмены.'))return false;remember();if(outline&&originalColoring(ctx,place))setOutline(place);else{setOutline(null);artScene(ctx,place,hero,outline,++seed)}dirty=true;changed();return true}
 $('artGenerate').onclick=()=>{if(generate($('artPlace').value,$('artHero').value,$('artMode').value==='outline'))extra(null)};
 $('drawingClear').onclick=()=>{if(restoring||!dirty||!replaceableLayer())return;endStroke();if(!confirm(storage?.current()!==false?'Начать рисунок заново?':'Очистить только этот лист? Другой сохранённый рисунок останется. Можно сначала скачать PNG.'))return;remember();setOutline(null);clearPaper();dirty=false;changed()};
-$('drawingCancel').onclick=async()=>{if(restoring)return;endStroke();if(project){await persistProject();if(stored&&onProjectCanvas())artProjects();return}if(dirty){persist();if(!stored){toast('Не сохранено. Повтори или скачай PNG.');return}}extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing')closeModal();else form.returnToWords?.(1)};
-$('drawingSave').onclick=async()=>{if($('drawingSave').disabled)return;endStroke();if(project){await persistProject();if(stored&&onProjectCanvas())artProjects();return}try{if(!insertPicture(drawingJPEG(canvas),art&&canvas.toDataURL()))return;dirty=false;undo=[];redo=[];setOutline(null);clearPaper();if(!art)persist();extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing'){artGallery()}else{form.returnToWords?.(1);toast('Рисунок добавлен в сказку.')}}catch(e){toast('Повтори сохранение или скачай PNG.')}};
+$('drawingCancel').onclick=async()=>{if(restoring)return;endStroke();if(project){if(await flushProject()&&onProjectCanvas())artProjects();return}if(dirty){persist();if(!stored){toast('Не сохранено. Повтори или скачай PNG.');return}}extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing')closeModal();else form.returnToWords?.(1)};
+$('drawingSave').onclick=async()=>{if($('drawingSave').disabled)return;endStroke();if(project){if(await flushProject()&&onProjectCanvas())artProjects();return}try{if(!insertPicture(drawingJPEG(canvas),art&&canvas.toDataURL()))return;dirty=false;undo=[];redo=[];setOutline(null);clearPaper();if(!art)persist();extra(null);panel.hidden=true;focusDrawing(false);if(form.id==='standaloneDrawing'){artGallery()}else{form.returnToWords?.(1);toast('Рисунок добавлен в сказку.')}}catch(e){toast('Повтори сохранение или скачай PNG.')}};
 $('drawingRescue').onclick=()=>{if(restoring||!dirty)return;endStroke();try{const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='moi-risunok.png';document.body.append(a);a.click();a.remove()}catch(e){toast('Не удалось скачать рисунок.')}};
 form.openDrawing=()=>{form.classList.remove('keyboard-writing','keyboard-title');panel.hidden=false;focusDrawing(true);setZoom(0);if(art){$('drawingSave').textContent=$('drawingFullSave').textContent=art.editing?'Готово':'Вставить в сказку'}};
 form.loadDrawing=(src,outline)=>{
