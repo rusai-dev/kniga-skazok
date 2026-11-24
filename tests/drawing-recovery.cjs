@@ -18,6 +18,7 @@ module.exports = async function verifyDrawingRecovery(browser, url) {
     for (const [index, key] of keys.entries()) assert.ok(after[index] === before[index], label + ': ' + key);
   };
   const draw = async () => {
+    await canvas.waitFor({state: 'visible'});
     const rect = await canvas.boundingBox();
     await page.mouse.move(rect.x + rect.width * .3, rect.y + rect.height * .3);
     await page.mouse.down();
