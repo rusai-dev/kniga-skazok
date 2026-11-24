@@ -32,7 +32,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - run: npm install --no-save --package-lock=false playwright@1.65.1
+      - name: Exact published 1.5.207 upgrade (synthetic data only)
+        run: node tests/release-207-to-208.cjs
+        env:
+          BROWSER: ${{ matrix.browser }}
       - run: node tests/browser-smoke.cjs
         env:
           BROWSER: ${{ matrix.browser }}
