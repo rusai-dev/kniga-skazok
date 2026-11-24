@@ -102,23 +102,44 @@ async function main() {
     assert.equal(await page.evaluate(()=>APP_RELEASE),oldVersion);
     assert.equal(await canvas.evaluate(c=>c.toDataURL()),oldPixels);
     assert.deepEqual(contents(draft(await snapshot(page))),contents(before));
-    // Retain the actual waiting worker before closing the old editor. Merely
-    // observing an activated worker can accept the old worker during handover.
-    await control.evaluate(async scope=>{
-      const reg=await navigator.serviceWorker.getRegistration(scope);
-      if(!reg?.waiting)throw Error('Expected new waiting worker before closing editor');
-      window.qaNextWorker=reg.waiting;
-    },url);
+    // WebKit can expose stale registration objects across different documents.
+    // Assert readiness in the controlled editor, then prove activation by
+    // opening the actual new cached HTML offline (not by registration identity).
+    const newCache='skazki-shell-'+newVersion+'-'+fingerprint;
+    const readyKey=origin+'/book/__skazki_shell_verified__';
+    assert.equal(await page.evaluate(async ({name,key})=>{
+      const marker=await caches.match(key,{cacheName:name});
+      return marker?await marker.text():null;
+    },{name:newCache,key:readyKey}),fingerprint,'new shell must be fully verified before closing the editor');
     await page.close();
-    await control.waitForFunction(async scope=>{
-      const reg=await navigator.serviceWorker.getRegistration(scope);
-      return window.qaNextWorker?.state==='activated'&&reg?.active===window.qaNextWorker&&!reg.waiting&&!reg.installing;
-    },url,{timeout:30000});
     const persisted=await snapshot(control);
     assert.deepEqual(contents(draft(persisted)),contents(before));
-    assert.ok(await control.evaluate(name=>caches.has(name),'skazki-shell-'+newVersion+'-'+fingerprint));
+    assert.ok(await control.evaluate(name=>caches.has(name),newCache));
     await context.setOffline(true);
-    const updated=await context.newPage();await updated.goto(url);
+    // Natural activation is asynchronous. Close each old-version probe so
+    // it cannot keep the preceding worker alive. Never force skipWaiting,
+    // clear caches, unregister, or bypass the worker.
+    let updated, observed=[];
+    const deadline=Date.now()+45000;
+    while(Date.now()<deadline){
+      const probe=await context.newPage();
+      let actual;
+      try {
+        await probe.goto(url,{timeout:8000});
+        actual=await probe.evaluate(()=>({version:typeof APP_RELEASE==='undefined'?null:APP_RELEASE,controlled:!!navigator.serviceWorker.controller}));
+        observed.push(actual);
+        assert.deepEqual(await snapshot(probe),persisted,'saved bytes must survive every offline activation probe');
+        if(actual.version===newVersion&&actual.controlled){updated=probe;break;}
+        assert.equal(actual.version,oldVersion,'unexpected offline shell');
+      } catch(error) {
+        await probe.close();
+        throw error;
+      }
+      await probe.close();
+      await new Promise(resolve=>setTimeout(resolve,350));
+    }
+    assert.ok(updated,'New verified shell did not activate offline: '+JSON.stringify(observed.slice(-8)));
+    console.log('Exact upgrade offline activation probes:',JSON.stringify(observed));
     assert.equal(await updated.evaluate(()=>APP_RELEASE),newVersion);
     assert.equal(await updated.locator('footer').textContent(),'Книга сказок · версия '+newVersion);
     assert.deepEqual(await snapshot(updated),persisted,'opening the updated shell must not rewrite any saved data');
