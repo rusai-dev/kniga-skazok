@@ -240,7 +240,7 @@ const sets=coverPalettes();return Object.prototype.hasOwnProperty.call(sets,name
 function coverArt(b,personalShelf=false){
 const rich=richMeta(b),src=rich.coverImage>=0?rich.images[rich.coverImage]:null;
 const palette=coverPalette(rich.cover);
-const fallback=personalShelf?'<img class="shelf-cover-art" alt="" loading="lazy" decoding="async" hidden onload="this.hidden=false" onerror="this.remove()" src="./assets/author/studio/art-n04-hedgehog-book-show-240.webp">':'';
+const fallback=personalShelf?'<img class="shelf-cover-art" alt="" width="240" height="240" loading="lazy" decoding="async" onload="this.dataset.ready=1" onerror="this.remove()" src="./assets/author/studio/art-n03-owl-library-entry184.webp">':'';
 const art=src?'<img alt="Иллюстрация обложки" src="'+src+'">':sceneArt(b.theme,b.icon||themeOf(b.theme)?.icon||'📖')+fallback;
 return '<div class="custom-cover" style="background:'+palette[0]+';border-color:'+palette[1]+';color:'+palette[2]+'"><div class="cover-picture">'+art+'</div><div class="cover-caption">'+esc(b.title||'Моя сказка')+'</div></div>';
 }

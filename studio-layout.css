@@ -1701,8 +1701,10 @@ body[data-home-screen="home"]{
   border-radius:6px 13px 13px 6px;
   box-shadow:-3px 0 #fff9,3px 4px #fffdf6,5px 6px #bea9d772,0 6px 12px #4d386333;
 }
-#libraryHome[data-own-shelf=true] .own-book .shelf-cover-art[hidden],
-#libraryHome[data-own-shelf=true] .own-book .cover-picture:has(.shelf-cover-art:not([hidden])) svg {display:none}
+#libraryHome[data-own-shelf=true] .cover-picture:has(.shelf-cover-art) {display:grid;place-items:center}
+#libraryHome[data-own-shelf=true] .cover-picture:has(.shelf-cover-art) > * {grid-area:1/1}
+#libraryHome[data-own-shelf=true] .shelf-cover-art:not([data-ready]),
+#libraryHome[data-own-shelf=true] .cover-picture:has(.shelf-cover-art[data-ready]) svg {visibility:hidden}
 #libraryHome[data-own-shelf=true] .own-book .own-book-actions {flex-wrap:wrap}
 #libraryHome[data-own-shelf=true] .own-book .own-book-actions button {min-width:44px;flex:1 1 auto}
 #libraryHome[data-own-shelf=true] .newpage {

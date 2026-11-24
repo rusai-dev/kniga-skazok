@@ -99,6 +99,8 @@ async function capture(browser,width,height) {
     await click('publishStory');
     const card=page.locator('.own-book').filter({hasText:'Атлас серебряной реки'}).first();
     await card.waitFor();
+    const cover=card.locator('.shelf-cover-art');
+    if(await cover.count())await cover.waitFor({state:'visible'});
     await page.locator('#toast').waitFor({state:'hidden'});
     await take('shelf');
     await card.locator('.own-read').click();
