@@ -281,3 +281,93 @@ Reported on a physical iPad: section buttons appear non-responsive. Independent 
 Safety changes: persistent family reader mode has an explicit link to personal studio without deleting family settings; a stale non-open dialog no longer leaves `modal-open` after Safari `pageshow`; failed startup library shape/read blocks writes instead of silently overwriting source bytes; a static navigation recovery link works even if application JavaScript fails. All changes retain the same local-library key/schema and no cache or child data is deleted. Additional browser tests include malformed stored library, restoration of stale modal CSS, and switching back from family to personal view. Public-site touch probe is kept as an isolated, synthetic-data check.
 
 Required release gates: exact final-SHA regression, browser smoke in Chromium and WebKit, startup <=1,000,000 source bytes, cold page <=1,200,000; then live public site version and touch navigation after deployment. Not yet verified: actual user's iPad session and Safari storage, physical/floating keyboard and Apple Pencil, real family account delivery, 30-minute stress, and safe downgrade. Never close those debts based on CI alone.
+
+
+## R03/R14 · 1.5.192 · закрытие редактора без последнего input
+
+- Given: в личной сказке изменился DOM-текст без события `input` (например, финальная композиция IME). When: ребёнок нажимает «Назад» или Esc. Then: последний текст сохраняется подтверждённой локальной записью до закрытия.
+- Given: хранилище отклонило эту запись. When: ребёнок закрывает редактор. Then: редактор остаётся открытым, прежняя сохранённая версия не повреждена, доступны повтор и спасательная копия. Когда запись снова доступна, повторное закрытие сохраняет текст; reload восстанавливает его.
+- Автотест: `tests/writer-background-save.cjs`, запуск через `tests/browser-smoke.cjs` в Chromium и WebKit. Переход от синтетического теста к реальному iPad — только после аппаратного воспроизведения.
+- Кандидат 1.5.192, PR зависим от #156; до exact-SHA CI — NOT TESTED, реальный iPad — HARDWARE PENDING.
+
+
+## R16 · candidate 1.5.193 — defer educational atlas until learning
+- Given: new service-worker-blocked Chromium/WebKit page showing personal home. When: cold-home resources settle. Then: no request to `assets/ui/learning-sprite-1536.webp`, but visible `#otherArt` remains at least 24×24 CSS px; both independent performance budgets pass.
+- Given: the child enters a mathematics/logic lesson. Then: original learning sprite remains available, illustrated buttons and navigation operate as before. Offline shell keeps atlas cached for later sections.
+- Synthetic browser tests do not substitute for real iPad memory, throughput or visual quality assessments. No final acceptance without exact-SHA CI and physical device review.
+
+
+## R14 · 1.5.194 — cross-tab conflict before typing
+- Given: two browser tabs open the same local library and both have an author editor. When: tab A persists a draft and tab B receives the native `storage` event. Then: tab B immediately displays an understandable warning and a draft export control, **before** its next input.
+- Given: tab B types after the conflict. Then: its text remains in the open DOM for rescue but never overwrites tab A's saved draft. Back/Escape must not close an edited, unsaved stale editor silently; a passive unchanged stale editor may close without writing. Reload from a deliberate recovery retrieves tab A's persisted version.
+- No automatic merging, no replacement of user text, and no forced reload while the user is typing. The two-tab CI test verifies synthetic scenarios only; real child/iPad acceptance still pending.
+
+
+## R14 + R16 · 1.5.195 integrated candidate
+- Given two simultaneous same-origin story tabs, When A saves and B has stale edits, Then warning/rescue and refusal of stale overwrite remain exactly as in tested PR #159. Existing synthetic `tests/writer-tab-conflict.cjs` must PASS Chromium and WebKit.
+- Given cold home, Then world scene JS must not be requested before world entry. Given world entry after the script loads, Then every original distinct SVG is available and offline shell retains the script. On missing scripts, show retry message without changing personal work.
+- Exact-SHA tests/visuals pending; physical iPad/Safari and second real family device remain not tested, release NO-GO.
+
+### R13 · 1.5.196 candidate — selected is not delivered
+- Acceptance: the locally selected family snapshot and counter must not state that a second profile received the book; reader acknowledgement remains the only delivery evidence. Regression and WebKit/Chromium browser-smoke must pass on this PR's exact SHA.
+- Cloud `enabled:false` and a missing real family A→B test are still **BLOCKED**. No real release claim and no changes to the stored child's work.
+
+### R13 1.5.197 — direct-reader missing-archive fallback
+- Given cloud `enabled:false` and public archive 404, with no verified cached archive revision, the family reader must start direct PeerJS transport, decrypt test books, display them, save a local receiver cache and return an ACK for received revision.
+- Given an existing verified archive revision, GitHub 404 must **not** trigger P2P fallback or overwrite reader cache. A later verified archive supersedes direct mode and closes the peer.
+- Fallback is online-only; no claim of server persistence or delivery to an offline relative. Actual Safari/iPad and two real family devices remain open requirements.
+
+### R13 1.5.198 · local disconnection semantics
+- Given a prepared synthetic family secret and locally saved books, cancelling the disconnect prompt must preserve the session and key. Confirming must stop only the local connection, preserve personal manuscripts and offline artifacts, and never promise remote revocation.
+- Removing a locally selected story must not claim existing server copies disappeared. New family invitations must state that old archives/links are not automatically revoked.
+- Actual authenticated revocation requires separate backend credentials, deletion/rotation and real second-device verification; BLOCKED, no user data used in CI.
+
+### R01/R02/R15/R16/R17 1.5.199 watercolor home
+- Visual approval basis: 23 Nov 2026 illustrated `Книга сказок` concept. Implement using real DOM controls, existing watercolor assets and no new lazy/eager art bank. Validate 1024×768 landscape and 768×1024 portrait, 44×44 tap areas, no horizontal overflow, accessible focus and reduced motion.
+- Resume opens writer, create opens clean editor without compulsory title/theme, personal bookshelf keeps existing ID route, creative studio and four learning buttons are usable. Regressions/visual diff must PASS on final SHA and original two budgets remain unchanged.
+
+### 1.5.200 R07/R15 — owner bookshelf art and usability
+- On personal shelf, a synthetic saved book must render with cover, readable title and 44×44 CSS px or larger cover/title/read/edit/info buttons at 1024×768, 768×1024 and 390×844, and no horizontal overflow.
+- Reading and returning must not change book id/title/body/theme/rich fields. Book remains after reload. Visual regressions across Chromium/WebKit must pass; existing external author catalogs may not be restyled accidentally.
+- No new art assets or child data migrations. Real iPad, family publishing and final merge gates unchanged.
+
+### R03/R04/R15 · 1.5.201 proposed watercolor writing workspace
+- On an iPad landscape layout without the keyboard, text writing area is to the left and illustrated actions «Нарисовать» / «Мои рисунки» remain visible beside it; no mandatory theme or wizard.
+- With visualViewport keyboard height 230px, do not overlap text/caret or lose typed text; drawing and gallery actions stay reachable. At 768×1024 and 390×844 there is no horizontal overflow; buttons remain ≥44×44.
+- Test reopening, offline save/reload, drawing insertion, keyboard and IME across Chromium/WebKit plus physical Safari/HARDWARE PENDING. Existing persistent storage schema unchanged.
+
+### R15/R17 1.5.202 — hero title must remain unobscured
+- At 1024×768, 768×1024, 834×1194, 390×844 the Friends button does not intersect H1, remains ≥44×44 and opens the real gallery. Hero and featured images decode to known project-manifest dimensions (240/320), without baked text, and all normal author actions keep working.
+- Verify cold-home budget ≤1,200,000 B and startup five files ≤1,000,000 B on exact SHA. Physical iPad: PENDING.
+
+
+### R01/R03/R04/R05/R07/R15/R17/R18 · 1.5.203 integrated candidate
+- Verify actual squirrel/Egypt watercolor on first screen, no Friends/H1 overlap, 44px actions and simple start/resume/shelf routes at 1024×768, 768×1024, 834×1194 and narrow viewports.
+- Verify real manuscript text and drawing tools side by side where space permits, and real canvas/brush/undo/redo/fullscreen/return with text unchanged. Confirm keyboard/caret during IME, zoom and orientation on physical iPad before granting hardware PASS.
+- Full regression, Chromium and WebKit, visual checks, five-startup-file and cold-home budgets on final candidate SHA. Family publication to a real second account and authenticated revocation are BLOCKED with `enabled:false`; release NO-GO until verified.
+
+
+### R15 / 1.5.204 — faithful interactive watercolor home, not a screenshot
+- At 1024×768 and 768×1024 check a strong watercolor illustrated header with real "Книга сказок" text, a dominant "Мои сказки" section, Egypt-themed "Продолжить"/writer card, large real writing/drawing/shelf actions and compact reading/mathematics/logic/world cards. No home H1/Friends overlap, 44px clickable controls, horizontal overflow or forced long scroll in 1024×768.
+- At 390×844, allow stacked cards but keep actual new/resume writing entry accessible and preserve readers/drafts. A confirmation-of-save badge must be tied to successful persistence, never decorative by default.
+- All illustrations remain actual optimized assets; all action labels remain DOM text. Verify reduced-motion and visible focus. Exact-SHA Chromium/WebKit plus physical iPad Safari and Pencil proof required. Family A→B still BLOCKED while cloud disabled. Production release NO-GO.
+
+
+### R15 / 1.5.205 — cat face framing in the real continuation CTA
+- At 1024×768, 768×1024, 834×1194 and 390×844 visually verify that both ears and the whole black Egyptian cat face remain inside the left rounded image and are not occluded by the CTA text/play button. Use actual Chromium and WebKit screenshot artifacts and inspect them manually; source dimensions/hash tests are a necessary but not sufficient visual check.
+- The writing/resume action remains one working button and is not a baked screenshot. Real nine-hero scene rotation, honest "Сегодня с тобой ..." caption, shelf, drafting, drawing and all four secondary learning entries remain functional and accessible. Cold-home must use ≤1,200,000 encoded bytes; the five original source files ≤1,000,000.
+- Physical iPad Safari, keyboard, portrait/landscape and Pencil acceptance remain pending, family-cloud A→B delivery blocked; do not deploy without those checks.
+
+### 1.5.206 · R01/R02/R08/R09/R15/R16/R17
+
+- Given a clean profile, the real writing action starts a blank draft. After saving text and closing with Escape, «Продолжить сказку» opens that text again. The same action works after reload.
+- The approved banner and decoded companion are both visible at iPad, split-view and phone widths. The frame retains the faces in the banner, the complete rotating portrait and the Egyptian cat's ears and muzzle. The greeting announces the decoded companion by name.
+- On a return visit with a stale legacy cat cached, the current shell uses the verified versioned cat and banner online and offline. The existing story and drawing storage checks still apply.
+- Evidence includes the full browser smoke and regression, matching before/after scenes and screenshots of the favorite and the cat crop in Chromium and WebKit. Hardware Safari, Pencil and real family delivery remain pending or blocked.
+
+### 1.5.207 · Personal studio and reading
+
+- When the writer opens and closes the illustrations drawer, the same text and caret are available. Saving a canvas drawing inserts its marker at that position and moves the caret past the marker.
+- The visible zoom controls reach all four scales and retain the canvas bitmap. Brush, palette, undo, redo, PNG rescue and save behavior continue through the original drawing engine.
+- The personal reader opens at the selected chapter or illustration. A previously selected personal cover and the story record survive reading and a reload. The book, chapter syntax and drawing storage formats are unchanged.
+- The before/after browser evidence covers the editor, drawing workspace, personal shelf and book in landscape and portrait tablet sizes. Physical iPad screenshots and Pencil confirmation are pending.

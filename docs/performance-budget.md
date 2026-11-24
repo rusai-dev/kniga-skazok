@@ -16,3 +16,22 @@ The existing 1 MB initial source cap stays unchanged. The test now samples cold 
 - Preserve full-quality original masters; responsive delivery by real display size and DPR. Only decode the visible scene; maintain fallback text and navigation.
 - Reuse lightweight models and pointer handling for direct manipulation. Check continuous drag/brush frame pacing, cancel/undo, rotation and save/reopen, including long sessions. Never evict user work when pruning derived asset cache; bound artwork cache only with a tested offline strategy.
 - Measure actual cold/warm startup, chapter opening, input response, frame times, peak memory and disk/cache growth on the same device and conditions before and after structural changes. No hardware/child observation obtained yet. Proposed targets are engineering objectives, not measured results.
+
+
+## R16 · 1.5.193 cold-home icon deferral (candidate, 2026-11-23)
+- Baseline 1.5.192 exact SHA `b739224b15c88364b82c8fdcda345720577b6574`: five source files **999,951 B**; Chromium cold-home maximum **1,191,975 B**; WebKit maximum **1,192,307 B** (local browser tests, NOT hardware).
+- Root cause: `#otherArt` on home inserted `fairyArt('spelling')`, which applied the entire `learning-sprite-1536.webp` CSS background to a 27px icon. The full educational atlas weighed **78,056 B** and loaded before any learning activity.
+- Candidate: reuse existing `childArt('learn')` at a square 27px viewBox for this small secondary home icon. The original learning sprite and styling remain intact for math, logic and language screens; its service-worker precache entry remains intact to support offline use. No asset edits, additional requests, storage migrations or child data modifications.
+- Acceptance: `tests/browser-smoke.cjs` asserts the learning sprite is **not** in cold-home resources and the replacement SVG is >=24×24 CSS px, while existing learning checks still require the real learning sprite and usable learning routes. Keep independent cold-home <1,200,000 B and source <=1,000,000 B. Final measurement and exact SHA CI must be recorded separately; not a claim about actual iPad RAM.
+
+
+## 1.5.194 guardrail
+- This patch targets P0 cross-tab data safety, not source-size optimization. Catalog data cannot be trivially deferred because `readyAuthorBooks` is referenced while constructing the primary author shelf; a simple separate script would add an asynchronous dependency to the child's main story pathway. Do not claim catalog deferral or 800–850 KB achieved. Keep both existing performance budgets and instrument future refactors before moving content.
+
+- 1.5.194 requires an additional storage-event listener despite the existing 1 MB HTML budget. Removed only explanatory inline source comments (copied rationale into QUALITY/SECTION_ACCEPTANCE) to maintain the unchanged 1,000,000-byte gate. No CSS declarations, runtime APIs, educational text, data, or artwork were removed. Confirm exact UTF-8 bytes in CI; comments are not a substitute for architectural chunking.
+
+
+## R16 · 1.5.195 combined R14 + lazy world scenes
+- Baseline: 1.5.194 cross-tab draft PR #159 includes tested P0 data-conflict protection. Candidate preserves it and removes 15,748 characters of eager world SVG data from the HTML, moving exact same assets to on-demand `world-scenes-194.js` with versioned `?v=1.5.195` and Service Worker precache.
+- Prior isolated R16 test SHA `9d90c35f74ecdf7a5be1c4ab863e31fe56ff6903` in PR #160: 985,298/1,000,000 startup bytes; Chromium 1,099,266 and WebKit 1,100,807 cold-home bytes at 768×1024. The combined candidate requires *fresh* measurements; do not reuse old green CI as proof.
+- First-install SW precache still downloads the module; only the page's eager script parsing and cold-home requests are deferred. Real iPad memory/latency remain unmeasured.
