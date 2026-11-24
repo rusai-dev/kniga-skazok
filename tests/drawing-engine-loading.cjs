@@ -24,8 +24,10 @@ module.exports = async function verifyDrawingEngineLoading(browser, url) {
     await click('homeNewStory');
     await page.locator('#storyBody').fill('Лиса смотрит на маяк.');
     assert.equal(requests, 0, 'home, math and text editing do not request the renderer');
+    assert.equal(await page.locator('#drawingPanel').count(), 0, 'text editing does not mount a hidden drawing studio');
     await click('drawStory');
     await page.locator('#toast').filter({hasText: 'Мастерская не открылась'}).waitFor({state: 'visible'});
+    assert.equal(await page.locator('#drawingPanel').count(), 0, 'a failed load leaves the text-only editor intact');
     assert.equal(await page.locator('#storyBody').inputValue(), 'Лиса смотрит на маяк.');
     await click('drawStory');
     await page.evaluate(() => { $('drawStory').click(); $('drawStory').click(); });
@@ -44,5 +46,5 @@ module.exports = async function verifyDrawingEngineLoading(browser, url) {
     allowSecond();
     await context.close();
   }
-  console.log('PASS G05/G07 lazy drawing module, failed load, deduplicated retry and editor exit');
+  console.log('PASS G05/G07 lazy drawing module and markup, failed load, deduplicated retry and editor exit');
 };

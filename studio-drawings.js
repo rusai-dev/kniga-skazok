@@ -192,10 +192,6 @@ function storyStudio(form, from, host) {
     card.append(note);
   }
 
-  const tools = form.querySelector('.studio-tools');
-  addButton(tools, 'К сказке', () => form.querySelector('#drawingCancel').click());
-  tools.lastElementChild.id = 'studioBackFull';
-
   return {
     projectScope: host.scope,
     projectReceipts: slots => state.originals.flatMap((item, i) => item?.project && item.previewKey === previewKey(i) ? [slots ? {...item.project, slot: i} : item.project] : []),
