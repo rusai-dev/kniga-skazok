@@ -103,6 +103,32 @@ module.exports = async function verifyStudioProjects(browser, url) {
     assert.deepEqual(await storedCounts(first), beforeAbort, 'abort rolls back both the revision and the pixel blob');
     assert.ok(await first.locator('#drawingCanvas').isVisible());
     const retriedPng = await png(first);
+    await first.evaluate(async () => {
+      const store = await studioProjectStore(), commit = store.commit;
+      store.commit = () => new Promise((_, reject) => {
+        window.__rejectProjectSave = () => {
+          store.commit = commit;
+          reject(new DOMException('fixture delayed abort', 'AbortError'));
+        };
+      });
+    });
+    await first.locator('#drawingSave').click();
+    await first.waitForFunction(() => typeof window.__rejectProjectSave === 'function');
+    assert.equal(await first.locator('#drawingPanel').getAttribute('aria-busy'), 'true');
+    await first.locator('#drawingCanvas').evaluate(sheet => {
+      const bounds = sheet.getBoundingClientRect();
+      for (const [type, x] of [['pointerdown', .65], ['pointermove', .80], ['pointerup', .80]]) {
+        sheet.dispatchEvent(new PointerEvent(type, {bubbles: true, cancelable: true, pointerId: 35, pointerType: 'pen',
+          isPrimary: true, clientX: bounds.left + x*bounds.width, clientY: bounds.top + .75*bounds.height, pressure: .65}));
+      }
+      $('drawingUndo').click();
+    });
+    assert.equal(await png(first), retriedPng, 'new strokes and undo cannot change the canvas during explicit save and exit');
+    await first.evaluate(() => window.__rejectProjectSave());
+    await first.waitForFunction(() => $('drawingPanel').getAttribute('aria-busy') === null);
+    await first.locator('#drawingStatus').filter({hasText: 'Не удалось сохранить проект'}).waitFor({state: 'visible'});
+    assert.deepEqual(await storedCounts(first), beforeAbort, 'a delayed save failure leaves the previous revision intact');
+    assert.equal(await png(first), retriedPng, 'a delayed save failure keeps the editable canvas open');
     await first.locator('#drawingSave').click();
     await first.locator('#projectShelf').waitFor({state: 'visible'});
     const retried = (await projects(first)).find(item => item.documentId === created.documentId);

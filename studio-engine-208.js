@@ -1482,7 +1482,7 @@ if(art){
   back.onclick=()=>$('drawingCancel').click();
   panel.querySelector('.studio-tools').append(back);
 }
-let project=openedProject?.detail,projectWrite=null,projectGeneration=0;
+let project=openedProject?.detail,projectWrite=null,projectGeneration=0,projectReturning=false;
 let projectTimer,projectDeadline=0,projectStroke,stroke,pendingTouchTool;
 const projectUndoLimit=128,projectUndoBytes=48*1024*1024;
 let layers=openedProject?.layers,activeLayerId=project?.activeLayerId||layers?.[0].id;
@@ -2171,16 +2171,22 @@ function endStroke(){
 }
 
 async function returnFromProject(){
-  if(!await flushProject()||!onProjectCanvas())return;
-  clearTimeout(projectTimer);cancelAnimationFrame(previewFrame);
-  filterPanel.release();selectionPanel.release();drawLayers.release();
-  const frames=[...undo,...redo],buffers=new Set([canvas,inkBuffer?.canvas,outlineLayer]);
-  for(const layer of [...layers,...frames.flatMap(frame=>frame.layers)]){
-    buffers.add(layer.canvas);buffers.add(layer.mask);
+  if(projectReturning)return;
+  projectReturning=true;panel.setAttribute('aria-busy','true');
+  try{
+    if(!await flushProject()||!onProjectCanvas())return;
+    clearTimeout(projectTimer);cancelAnimationFrame(previewFrame);
+    filterPanel.release();selectionPanel.release();drawLayers.release();
+    const frames=[...undo,...redo],buffers=new Set([canvas,inkBuffer?.canvas,outlineLayer]);
+    for(const layer of [...layers,...frames.flatMap(frame=>frame.layers)]){
+      buffers.add(layer.canvas);buffers.add(layer.mask);
+    }
+    undo=[];redo=[];outlineBarrier=null;releaseColoringPreviews();
+    for(const buffer of buffers)if(buffer){invalidateLayer(buffer);buffer.width=buffer.height=0}
+    (openedProject.onReturn||artProjects)();
+  }finally{
+    projectReturning=false;panel.removeAttribute('aria-busy');
   }
-  undo=[];redo=[];outlineBarrier=null;releaseColoringPreviews();
-  for(const buffer of buffers)if(buffer){invalidateLayer(buffer);buffer.width=buffer.height=0}
-  (openedProject.onReturn||artProjects)();
 }
 function abandonTouchStroke(){
   if(stroke?.kind!=='touch')return;
@@ -2511,6 +2517,13 @@ function finish(event){
   endStroke();
 }
 for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,finish);
+if(project){
+  const blockWhileReturning=event=>{
+    if(!projectReturning)return;
+    event.preventDefault();event.stopImmediatePropagation();
+  };
+  for(const name of ['pointerdown','click','keydown','input','change'])panel.addEventListener(name,blockWhileReturning,true);
+}
 $('drawingUndo').onclick=()=>exchangeHistory(undo,redo);
 $('drawingRedo').onclick=()=>exchangeHistory(redo,undo);
 canvas.tabIndex=0;
