@@ -2,7 +2,7 @@
 'use strict';
 const REV='1.5.207',ART_CACHE='skazki-book-art-v1';
 // BEGIN GENERATED SHELL INTEGRITY
-const SHELL_FINGERPRINT='f33f0359090de69d14092364';
+const SHELL_FINGERPRINT='2ec3865477b5f6e78a1bde38';
 const SHELL_SHA256={
   "index.html": "965469bb82ea9cc38c394d507878f9963bd287d83942143509e47b407d076d75",
   "classic-art-153.js?v=1.5.207": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
@@ -10,7 +10,7 @@ const SHELL_SHA256={
   "andersen-art-156.js?v=1.5.207": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b",
   "learning-art-1536.css?v=1.5.207": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7",
   "world-scenes-194.js?v=1.5.207": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4",
-  "studio-drawings.js?v=1.5.207": "d5df24459ce1bd64618f2881ffc6221eeccdc949beb30a2b54d70b497b29854c",
+  "studio-drawings.js?v=1.5.207": "56b17984e191a188b390229dfdff2ce48ae5dae3c28906ea0103cf8f2339b052",
   "studio-layout.css?v=1.5.207": "acddc9e0a1decaa03d53be13a52db8932fc4088840cd3208e518c1d86039daeb",
   "studio-friends.js?v=1.5.207": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858",
   "studio-engine-208.js?v=1.5.207": "632c6ac9c4af15be66add78f86a2ed7a0a1913cae52d791176800c45856bdd43",

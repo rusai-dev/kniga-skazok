@@ -26,10 +26,16 @@ function storyStudio(form, from, host) {
     const { before = '', after = '' } = sheet.position || {};
     const context = before + after;
     const saved = sheet.anchor;
-    if (context && text.slice(saved - before.length, saved + after.length) === context) return saved;
+    if (!Number.isInteger(saved)) return { offset: body.selectionStart, stale: false };
+    if (context && text.slice(saved - before.length, saved + after.length) === context) return { offset: saved, stale: false };
     const match = context && text.indexOf(context);
-    if (context && match >= 0 && text.indexOf(context, match + 1) < 0) return match + before.length;
-    return body.selectionStart;
+    if (context && match >= 0 && text.indexOf(context, match + 1) < 0) return { offset: match + before.length, stale: false };
+    return { offset: body.selectionStart, stale: Boolean(context || text) };
+  }
+
+  function rememberAnchor(sheet, offset) {
+    sheet.anchor = offset;
+    sheet.position = { before: body.value.slice(Math.max(0, offset - 32), offset), after: body.value.slice(offset, offset + 32) };
   }
 
   async function open(sheet = state.sheets.find(item => item.slot === undefined)) {
@@ -43,10 +49,9 @@ function storyStudio(form, from, host) {
       current = sheet ? { ...sheet } : { id: host.id() };
       form.loadDrawing(current.src, current.outline);
     }
-    current.anchor = anchorFor(current);
-    const pos = current.anchor;
-    current.position = { before: body.value.slice(Math.max(0, pos - 32), pos), after: body.value.slice(pos, pos + 32) };
-    host.open(current);
+    const anchor = anchorFor(current);
+    if (!anchor.stale) rememberAnchor(current, anchor.offset);
+    host.open({ ...current, anchor: anchor.offset });
   }
 
   function addButton(root, title, action) {
@@ -95,8 +100,11 @@ function storyStudio(form, from, host) {
   }
 
   function finish(preview, src) {
+    if (!current) return false;
+    const anchor = anchorFor(current);
+    if (current.slot === undefined && anchor.stale && !confirm('Текст рядом с рисунком изменился. Вставить рисунок рядом с текущим положением курсора?')) return false;
     const slot = current.slot ?? host.free();
-    if (slot >= 5) return host.insert(preview);
+    if (slot >= 5) return host.insert(preview, false, anchor.offset);
     const originals = state.originals.slice();
     const prior = originals[slot];
     const id = current.slot === undefined ? current.id : (prior?.id || current.id);
@@ -109,7 +117,7 @@ function storyStudio(form, from, host) {
       previousPreview: host.preview(slot) || undefined
     };
     const next = { originals, sheets: state.sheets.filter(sheet => sheet.id !== current.id) };
-    const saved = write(next, () => current.slot === undefined ? host.insert(preview) : host.replace(slot, preview));
+    const saved = write(next, () => current.slot === undefined ? host.insert(preview, false, anchor.offset) : host.replace(slot, preview));
     if (saved) current = null;
     host.paint();
     return saved;
@@ -178,11 +186,11 @@ function storyStudio(form, from, host) {
   return {
     get data() {
       const caret = [body.selectionStart, body.selectionEnd, body.scrollTop];
-      return state.sheets.length || state.originals.some(Boolean) || caret.some(Boolean) ? { ...state, caret } : undefined;
+      return state.sheets.length || state.originals.some(Boolean) || caret.some(Boolean) ? { ...state, caret, direction: body.selectionDirection } : undefined;
     },
     restoreCaret() {
       if (!from?.caret) return;
-      body.setSelectionRange(from.caret[0], from.caret[1]);
+      body.setSelectionRange(from.caret[0], from.caret[1], from.direction || 'none');
       body.scrollTop = from.caret[2];
     },
     get pending() { return state.sheets.some(sheet => sheet.slot === undefined); },
@@ -197,6 +205,7 @@ function validStoryStudio(value) {
   const record = item => item && typeof item.id === 'string' && item.id.length <= 180 && image(item.src);
   return value && (value.caret === undefined || Array.isArray(value.caret) &&
     value.caret.length === 3 && value.caret.every(n => Number.isFinite(n) && n >= 0)) &&
+    (value.direction === undefined || ['none', 'forward', 'backward'].includes(value.direction)) &&
     Array.isArray(value.sheets) && value.sheets.length <= 8 &&
     value.sheets.every(sheet => record(sheet) && (sheet.slot === undefined ||
       Number.isInteger(sheet.slot) && sheet.slot >= 0 && sheet.slot < 5)) &&
