@@ -25,6 +25,9 @@ const initialBytes=initialFiles.reduce((n,name)=>n+fs.statSync(path.join(root,na
 assert.ok(initialBytes<=1000000,'initial source budget exceeded: '+initialBytes);
 console.log('INITIAL SOURCE BYTES',initialBytes);
 const release=JSON.parse(fs.readFileSync(path.join(root,'release.json'),'utf8')).version;
+const workerSource=fs.readFileSync(path.join(root,'sw.js'),'utf8');
+const {fingerprint}=require('../tools/shell-integrity.cjs').shellDefinition(workerSource);
+const verifiedShell='skazki-shell-'+release+'-'+fingerprint;
 assert.ok(fs.readFileSync(path.join(root,'index.html'),'utf8').includes('<footer>Книга сказок · версия '+release+'</footer>'),'manifest matches HTML');
 assert.ok(fs.readFileSync(path.join(root,'sw.js'),'utf8').includes("const REV='"+release+"'"),'manifest matches worker');
 const entry=fs.readFileSync(path.join(root,'index.html'),'utf8');
@@ -37,7 +40,7 @@ async function verifySpriteReuse(source){
  const slice=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)+1));
  const sprite='https://test/assets/ui/sprite-v1.webp',core='https://test/index.html',bad=new Response('bad',{headers:{'content-type':'text/plain'}}),valid=new Response('image',{headers:{'content-type':'image/webp'}}),freshResponse=new Response('fresh');
  const reads=[],fetches=[];
- const api=new Function('CACHE','UI_SPRITES','find','isImage','fresh',slice('function olderShellNames(','self.addEventListener(\'install\'')+slice('function shellRevision(','function obsoleteShells(')+'return {olderShellNames,installCore}')('skazki-shell-1.5.123',[sprite],async(name,url)=>{reads.push([name,url]);return name==='skazki-shell-1.5.122'?bad:name==='skazki-shell-1.5.121'?valid:undefined},r=>r.ok&&(r.headers.get('content-type')||'').toLowerCase().startsWith('image/'),async url=>{fetches.push(url);return freshResponse});
+ const api=new Function('CACHE','UI_SPRITES','find','verifiedResource','fresh',slice('function olderShellNames(','self.addEventListener(\'install\'')+slice('function shellRevision(','function obsoleteShells(')+'return {olderShellNames,installCore}')('skazki-shell-1.5.123',[sprite],async(name,url)=>{reads.push([name,url]);return name==='skazki-shell-1.5.122'?bad:name==='skazki-shell-1.5.121'?valid:undefined},async(url,r)=>url===sprite&&r===valid,async url=>{fetches.push(url);return freshResponse});
  const older=api.olderShellNames(['unrelated','skazki-shell-1.5.124','skazki-shell-1.5.123','skazki-shell-1.5.121','skazki-shell-1.5.122']);
  assert.deepEqual(older,['skazki-shell-1.5.122','skazki-shell-1.5.121']);
  assert.equal(await api.installCore(sprite,older),valid);assert.equal(fetches.length,0);assert.equal(reads.length,2);
@@ -79,7 +82,7 @@ const server=http.createServer((req,res)=>{
  res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
 });
 (async()=>{
- await verifySpriteReuse(fs.readFileSync(path.join(root,'sw.js'),'utf8'));
+ await verifySpriteReuse(workerSource);
  assert.ok(await verifyWriterRetry(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext('))+entry.slice(entry.indexOf('function ghDecision('),entry.indexOf('function ghCachedRevision('))+entry.slice(entry.indexOf('async function ghWriterTick('),entry.indexOf('function ghWriterStart('))));
  await verifyOtherTransportRaces(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext(')),entry.slice(entry.indexOf('function fsend('),entry.indexOf('function ftick(')),entry.slice(entry.indexOf('async function cloudTick('),entry.indexOf('function cloudStart(')));
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -585,14 +588,15 @@ const server=http.createServer((req,res)=>{
  console.log('PASS full cover reuse, capacity refusal and failed-save retry');
  }
 
+ await require('./shell-update.cjs')(browser);
  // Chromium: verify real service-worker caching with an isolated profile.
  if(engine===chromium){
   const ctx=await browser.newContext({serviceWorkers:'allow'}),page=await ctx.newPage();
   try{
    await page.goto(new URL('release.json',url).href);
    const parts=release.split('.').map(Number),rev=offset=>[parts[0],parts[1],parts[2]+offset].join('.'),shell=offset=>'skazki-shell-'+rev(offset);
-   const obsolete=[-5,-4,-3].map(shell),keep=[-2,-1,0,1].map(shell).concat(['skazki-shell-v2','unrelated-cache']),previousCore='./classic-art-153.js?v='+rev(-1);
-   await page.evaluate(async({names,oldName,previousCore})=>{for(const name of names)await caches.open(name);const old=await caches.open(oldName);await old.put(new URL(previousCore,location.href).href,new Response('/* previous core */'));},{names:obsolete.concat(keep.filter(n=>n!==shell(0))),oldName:shell(-1),previousCore});
+   const obsolete=[-5,-4,-3].map(shell),keep=[-2,-1,1].map(shell).concat([verifiedShell,'skazki-shell-v2','unrelated-cache']),previousCore='./classic-art-153.js?v='+rev(-1);
+   await page.evaluate(async({names,oldName,previousCore})=>{for(const name of names)await caches.open(name);const old=await caches.open(oldName);await old.put(new URL(previousCore,location.href).href,new Response('/* previous core */'));},{names:obsolete.concat(keep.filter(n=>n!==verifiedShell)),oldName:shell(-1),previousCore});
    await page.evaluate(async path=>{
      const stale=await caches.open('skazki-book-art-v1');
      await stale.put(new URL(path,location.href),new Response('stale art',{headers:{'Content-Type':'image/webp'}}));
@@ -626,7 +630,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async name=>{const keys=await (await caches.open(name)).keys();return keys.length},shell(0)),15,'complete versioned core including the offline drawing engine and on-demand world scenes');
+   assert.equal(await page.evaluate(async name=>{const keys=await (await caches.open(name)).keys();return keys.length},verifiedShell),16,'verified cache marker and complete offline release closure');
    for(const [selector,asset] of [['.home-hero-watercolor',bannerManifest],['.home-feature-art img',catManifest]]){
      const image=await page.locator(selector).evaluate(async (img,name)=>{
        await img.decode();
@@ -635,10 +639,10 @@ const server=http.createServer((req,res)=>{
        const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',buffer));
        const sha256=Array.from(digest,byte=>byte.toString(16).padStart(2,'0')).join('');
        return {width:img.naturalWidth,height:img.naturalHeight,bytes:buffer.byteLength,sha256};
-     },shell(0));
+     },verifiedShell);
      assert.deepEqual(image,{width:asset.width,height:asset.height,bytes:asset.bytes,sha256:asset.sha256},'verified home artwork survives offline with stale legacy artwork cache');
    }
-   const uiSprites=await page.evaluate(async name=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp','./assets/ui/writer-squirrel-144-v1.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open(name);return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))},shell(0));assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   const uiSprites=await page.evaluate(async name=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp','./assets/ui/writer-squirrel-144-v1.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open(name);return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))},verifiedShell);assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    await page.evaluate(()=>worldRoom(4));await page.waitForFunction(()=>[...document.querySelectorAll('.world-cover img')].length===2&&[...document.querySelectorAll('.world-cover img')].every(img=>!img.hidden&&img.naturalWidth===128&&img.naturalHeight===128));assert.ok(await page.locator('.world-cover img').evaluateAll(imgs=>imgs.every(img=>img.getBoundingClientRect().width<=64.1&&img.getBoundingClientRect().height>=40&&img.alt==='')));assert.ok(await page.locator('[data-world="egypt-nile"]').isVisible());await page.waitForFunction(()=>{const img=document.querySelector('.world-scene img');return img&&!img.hidden&&img.complete&&img.naturalWidth>=320});assert.ok(await page.locator('.world-scene img').evaluate(img=>img.getBoundingClientRect().width<=320.1&&img.getBoundingClientRect().height>100&&img.currentSrc.includes('-v1.webp')));await page.evaluate(()=>nightRead(2));await page.waitForFunction(()=>{const img=document.querySelector('.world-scene img');return img&&!img.hidden&&img.naturalWidth>=320&&img.currentSrc.includes('night-roost-scene')});await page.evaluate(()=>nightRead(7));await page.waitForFunction(()=>{const img=document.querySelector('.world-scene img');return img&&!img.hidden&&img.complete&&img.naturalWidth>=320});assert.ok(await page.locator('.world-scene img').evaluate(img=>img.getBoundingClientRect().width<=320.1&&img.getBoundingClientRect().height>100&&img.currentSrc.includes('-v1.webp')));assert.ok(await page.locator('.night-layout>div:first-child svg').isVisible());
    assert.equal(await page.evaluate(()=>readingBooksCache===undefined),true,'catalog remains lazy offline before first reading');
    const sourceCatalog=JSON.parse(fs.readFileSync(path.join(root,'content','reading-catalog.json'),'utf8'));

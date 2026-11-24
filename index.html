@@ -2723,6 +2723,9 @@ if(!newerRelease(version,APP_RELEASE))return;
 if($('modal').hasAttribute('open')){toast('Сначала сохрани сказку и закрой окно.');return}
 if(!storageOK){toast('Сначала сделай резервную копию библиотеки.');return}
 if(!manual&&(!canAutoUpdate()||releaseAlreadyAttempted(version)))return;
+if(window.navigator?.serviceWorker?.controller){
+$('releaseText').textContent='Сохрани работу, закрой все вкладки «Книги сказок» и открой её снова, чтобы загрузить версию '+version+'.';return;
+}
 const next=new URL(location.href);next.searchParams.set('_release',version);if(manual)next.searchParams.set('_retry',String(Date.now()));location.replace(next.href);
 }
 function releaseFromManifest(value){return value&&typeof value.version==='string'&&/^\d+\.\d+\.\d+$/.test(value.version)?value.version:''}
