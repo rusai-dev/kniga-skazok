@@ -1105,3 +1105,7 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - The drawing workspace provides 100%, 140%, 180% and 220% zoom in normal and expanded modes. Zoom uses the viewport only. Browser checks compare the canvas bitmap before and after zoom and retain the existing pixel, save-failure, undo, redo and reopen checks.
 - Personal shelf cards use the child's chosen cover when present. For other books the existing watercolor is lazy-loaded over the shelf's vector fallback. The personal reader derives contents from the stored chapter headings and inline illustrations. Existing reading bookmarks still use the same scene and text offset.
 - Studio comparison captures the writer drawer, canvas with zoom, shelf, chapter and illustration against the 1.5.206 base. Chromium and WebKit use synthetic profiles at tablet and phone viewport sizes. Physical iPad Safari, Pencil and authenticated family delivery are separate acceptance gates.
+
+
+## Release Ready — контроль выпуска 1.5.208
+Предыдущий кандидат `4d46ea1`: WebKit exact 207→208 и полный smoke PASS; regression и visual PASS. Chromium exact upgrade отменён по лимиту времени, корневая причина пока не доказана. В новом срезе upgrade вынесен в параллельные задания, добавлены дедлайны и журнал фаз; код приложения не изменён. Результаты нового SHA ожидают проверки. См. `docs/RELEASE_READY.md`. Реальная резервная копия и физический iPad не подтверждены.

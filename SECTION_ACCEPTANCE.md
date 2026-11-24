@@ -396,3 +396,7 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - The visible zoom controls reach all four scales and retain the canvas bitmap. Brush, palette, undo, redo, PNG rescue and save behavior continue through the original drawing engine.
 - The personal reader opens at the selected chapter or illustration. A previously selected personal cover and the story record survive reading and a reload. The book, chapter syntax and drawing storage formats are unchanged.
 - The before/after browser evidence covers the editor, drawing workspace, personal shelf and book in landscape and portrait tablet sizes. Physical iPad screenshots and Pencil confirmation are pending.
+
+
+## Release Ready — контроль выпуска 1.5.208
+Предыдущий кандидат `4d46ea1`: WebKit exact 207→208 и полный smoke PASS; regression и visual PASS. Chromium exact upgrade отменён по лимиту времени, корневая причина пока не доказана. В новом срезе upgrade вынесен в параллельные задания, добавлены дедлайны и журнал фаз; код приложения не изменён. Результаты нового SHA ожидают проверки. См. `docs/RELEASE_READY.md`. Реальная резервная копия и физический iPad не подтверждены.
