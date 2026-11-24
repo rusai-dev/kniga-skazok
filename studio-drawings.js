@@ -262,6 +262,93 @@ function drawingStorage(legacyKey, outlineKey, story, fingerprint) {
   };
 }
 
+function readImageBytes(blob) {
+  if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(Error('read'));
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
+function jpegDimensions(view) {
+  let start = 2;
+  while (start + 3 < view.byteLength) {
+    if (view.getUint8(start++) !== 0xff) break;
+    while (start < view.byteLength && view.getUint8(start) === 0xff) start++;
+    if (start + 2 >= view.byteLength) break;
+    const marker = view.getUint8(start++);
+    if (marker === 0 || marker === 0xda || marker === 0xd9) break;
+    if (marker === 1) continue;
+    const length = view.getUint16(start);
+    if (length < 2 || start + length > view.byteLength) break;
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker) && length >= 8) {
+      return {type: 'image/jpeg', width: view.getUint16(start + 5), height: view.getUint16(start + 3)};
+    }
+    start += length;
+  }
+}
+
+function rasterImageHeader(view, size) {
+  if (view.byteLength >= 2 && view.getUint16(0) === 0xffd8) return jpegDimensions(view);
+  if (view.byteLength < 20) return;
+  if (view.byteLength >= 33 && view.getUint32(0) === 0x89504e47 && view.getUint32(4) === 0x0d0a1a0a &&
+      view.getUint32(8) === 13 && view.getUint32(12) === 0x49484452) {
+    return {type: 'image/png', width: view.getUint32(16), height: view.getUint32(20)};
+  }
+  const riffEnd = view.getUint32(4, true) + 8;
+  if (view.getUint32(0) !== 0x52494646 || view.getUint32(8) !== 0x57454250 || riffEnd > size) return;
+  const chunk = view.getUint32(12), length = view.getUint32(16, true), type = 'image/webp';
+  if (length + 20 > riffEnd) return;
+  if (chunk === 0x56503858 && length === 10 && view.byteLength >= 30) {
+    const dimension = offset => 1 + view.getUint16(offset, true) + (view.getUint8(offset + 2) << 16);
+    return {type, width: dimension(24), height: dimension(27)};
+  }
+  if (chunk === 0x5650384c && length >= 5 && view.byteLength >= 25 && view.getUint8(20) === 0x2f) {
+    const bits = view.getUint32(21, true);
+    return {type, width: 1 + (bits & 0x3fff), height: 1 + ((bits >>> 14) & 0x3fff)};
+  }
+  if (chunk === 0x56503820 && length >= 10 && view.byteLength >= 30 && view.getUint8(23) === 0x9d && view.getUint16(24) === 0x012a) {
+    return {type, width: view.getUint16(26, true) & 0x3fff, height: view.getUint16(28, true) & 0x3fff};
+  }
+}
+
+function allowedImageDimensions(width, height) {
+  return width > 0 && height > 0 && Math.max(width, height) <= 8192 && width * height <= 16777216;
+}
+
+function imageMime(file) {
+  return file.type.split(';', 1)[0].trim().toLowerCase();
+}
+
+async function inspectStoryImage(file) {
+  if (!file || !file.size || file.size > 15000000) throw Error('size');
+  const prefix = new DataView(await readImageBytes(file.slice(0, 65536)));
+  let info = rasterImageHeader(prefix, file.size);
+  if (!info && file.size > prefix.byteLength && prefix.getUint16(0) === 0xffd8) {
+    info = rasterImageHeader(new DataView(await readImageBytes(file)), file.size);
+  }
+  const mime = imageMime(file);
+  const type = ({'image/jpg': 'image/jpeg', 'image/pjpeg': 'image/jpeg', 'image/x-png': 'image/png'})[mime] || mime;
+  if (!info || (type && type !== info.type)) throw Error('unsupported');
+  if (!allowedImageDimensions(info.width, info.height)) throw Error('dimensions');
+  return file.type === info.type ? file : file.slice(0, file.size, info.type);
+}
+
+const approvedStoryVectors = {
+  'library-lantern': '44ee2f65f973b1b542022b525c99c76455e6fe07e71b2ab4e7dd0bbfea8a670b',
+  'star-journey': 'a164908915041480242c15d8f62e311ccde77c0fb421a9fd386b5b13227ac37c'
+};
+
+async function inspectStoryVector(cover, file) {
+  if (!approvedStoryVectors[cover] || imageMime(file) !== 'image/svg+xml' || file.size > 6000) throw Error('cover');
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', await readImageBytes(file)));
+  const hex = Array.from(hash, byte => byte.toString(16).padStart(2, '0')).join('');
+  if (hex !== approvedStoryVectors[cover]) throw Error('cover');
+  return file;
+}
+
 // Approved watercolors replace the decorative navigation art, never the work surface.
 // Keep the original vector underneath until the new thumbnail really decodes.
 document.addEventListener('DOMContentLoaded', () => {

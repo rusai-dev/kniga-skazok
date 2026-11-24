@@ -99,6 +99,7 @@ const server=http.createServer((req,res)=>{
  await require("./drawing-engine-loading.cjs")(browser,url);
  await require("./drawing-recovery.cjs")(browser,url);
  await require("./drawing-input.cjs")(browser,url);
+ await require("./image-import.cjs")(browser,url);
  await require("./family-cloud-routing.cjs")(browser,url);
  await require("./family-peer-fallback.cjs")(browser,url);
  await require("./family-disconnect.cjs")(browser,url);
