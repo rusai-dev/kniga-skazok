@@ -27,6 +27,17 @@ const abortJournalWrite = (page, phase) => page.evaluate(phase => {
   };
 }, phase);
 
+const refuseLibraryWrite = page => page.evaluate(() => {
+  const set = Storage.prototype.setItem;
+  Storage.prototype.setItem = function (key, value) {
+    if (key === KEY) {
+      Storage.prototype.setItem = set;
+      throw new DOMException('Synthetic quota', 'QuotaExceededError');
+    }
+    return set.call(this, key, value);
+  };
+});
+
 module.exports = async function verifyStoryProjectLink(browser, url) {
   const page = await browser.newPage({viewport: {width: 1024, height: 768}, serviceWorkers: 'block'});
   try {
@@ -67,16 +78,7 @@ module.exports = async function verifyStoryProjectLink(browser, url) {
     assert.equal(await manuscript(page), before);
     assert.equal((await journal(page)).length, 0);
 
-    await page.evaluate(() => {
-      const set = Storage.prototype.setItem;
-      Storage.prototype.setItem = function (key, value) {
-        if (key === KEY) {
-          Storage.prototype.setItem = set;
-          throw new DOMException('Synthetic quota', 'QuotaExceededError');
-        }
-        return set.call(this, key, value);
-      };
-    });
+    await refuseLibraryWrite(page);
     await insert.click();
     await status.filter({hasText: 'Не удалось вставить рисунок'}).waitFor();
     assert.equal(await manuscript(page), before);
@@ -108,8 +110,42 @@ module.exports = async function verifyStoryProjectLink(browser, url) {
     await page.getByRole('button', {name: 'К сказке', exact: true}).click();
     assert.equal(await body.inputValue(), inserted);
     assert.deepEqual((await page.evaluate(async () => (await studioProjectStore()).list()))[0], original);
+
+    const picture = page.locator('#imageTray img').first();
+    const firstPreview = await picture.getAttribute('src');
+    await page.locator('#imageTray').getByRole('button', {name: 'Открыть слои', exact: true}).click();
+    await page.locator('#drawingCanvas').click({position: {x: 165, y: 130}});
+    await page.getByRole('button', {name: 'К сказке', exact: true}).click();
+    assert.equal(await picture.getAttribute('src'), firstPreview, 'saving project layers does not automatically replace illustration');
+    const [updated] = await page.evaluate(async () => (await studioProjectStore()).list());
+    assert.notEqual(updated.revision, original.revision);
+
+    await prepare();
+    assert.equal(await insert.textContent(), 'Обновить в сказке');
+    const previousState = await manuscript(page);
+    await refuseLibraryWrite(page);
+    await insert.click();
+    await status.filter({hasText: 'Не удалось обновить иллюстрацию'}).waitFor();
+    assert.equal(await manuscript(page), previousState);
+    assert.equal(await picture.getAttribute('src'), firstPreview);
+
+    await insert.click();
+    await page.locator('#writerArtShelf').waitFor({state: 'hidden'});
+    const secondPreview = await picture.getAttribute('src');
+    assert.notEqual(secondPreview, firstPreview);
+    assert.equal(await body.inputValue(), inserted);
+    assert.equal(await page.locator('#imageTray img').count(), 1);
+    const final = await journal(page);
+    assert.equal(final.length, 2);
+    assert.ok(final.some(link => link.revision === updated.revision && link.phase === 'committed'));
+    const revert = page.locator('#imageTray').getByRole('button', {name: 'Вернуть прежний рисунок', exact: true});
+    await revert.click();
+    assert.equal(await picture.getAttribute('src'), firstPreview);
+    await revert.click();
+    assert.equal(await picture.getAttribute('src'), secondPreview);
+    assert.equal(await body.inputValue(), inserted);
   } finally {
     await page.close();
   }
-  console.log('PASS DATA02 linked illustration journal, three failure points, reopening, no duplicate and original project');
+  console.log('PASS DATA02 linked illustration journal, failure recovery, in-place update and reversible illustration versions');
 };

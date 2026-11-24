@@ -165,12 +165,8 @@ function storyStudio(form, from, host) {
     });
   }
 
-  function attachProject(receipt, src, offset) {
-    const slot = host.free();
-    if (slot >= 5) return false;
-    const originals = state.originals.slice();
-    originals[slot] = {id: receipt.id, revision: receipt.revision, src, previewKey: drawingFingerprint(src), project: receipt};
-    return write({ ...state, originals }, () => host.insert(src, false, offset));
+  function attachProject(receipt, src, offset, prior) {
+    return writeStoryProject(state, host, write, previewKey, receipt, src, offset, prior);
   }
 
   function result(bookId) {
@@ -202,7 +198,7 @@ function storyStudio(form, from, host) {
 
   return {
     projectScope: host.scope,
-    projectReceipts: () => state.originals.flatMap((item, i) => item?.project && item.previewKey === previewKey(i) ? [item.project] : []),
+    projectReceipts: slots => state.originals.flatMap((item, i) => item?.project && item.previewKey === previewKey(i) ? [slots ? {...item.project, slot: i} : item.project] : []),
     attachProject,
     get data() {
       const caret = [body.selectionStart, body.selectionEnd, body.scrollTop];

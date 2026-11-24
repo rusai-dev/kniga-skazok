@@ -1189,14 +1189,27 @@ function openProjectHistory(store,item){
   entries();
 }
 
+function writeStoryProject(state,host,write,previewKey,receipt,src,offset,prior){
+  const slot=prior?.slot??host.free();
+  if(slot>=5)return false;
+  const originals=state.originals.slice(),previous=originals[slot];
+  if(prior&&(!previous||previous.project?.id!==prior.id||previous.project.revision!==prior.revision||previous.previewKey!==previewKey(slot)))return false;
+  originals[slot]={id:prior?previous.id:receipt.id,revision:receipt.revision,src,previewKey:drawingFingerprint(src),project:receipt};
+  if(prior)Object.assign(originals[slot],{previous:previous.src,previousPreview:host.preview(slot),previousProject:previous.project});
+  const saved=write({...state,originals},()=>prior?host.replace(slot,src):host.insert(src,false,offset));
+  if(prior)host.paint();
+  return saved;
+}
+
 async function showStoryProjects(form,root){
   if(root.querySelector('#storyProjectPicker'))return;
   const pane=document.createElement('section'),art=form.storyArt;
   pane.id='storyProjectPicker';
-  pane.innerHTML='<p id="storyProjectStatus" role="status">Открываем проекты…</p><label class="field" id="storyProjectChoice" hidden>Проект рисунка<select id="storyProjectSelect"></select></label><button type="button" id="storyProjectPreviewButton" hidden>Посмотреть проект</button><div id="storyProjectPreview" hidden><img alt="Предпросмотр иллюстрации"><button type="button" id="attachStoryProject">Вставить в сказку</button><button type="button" id="cancelStoryProject">Отмена</button></div>';
+  pane.innerHTML='<p id="storyProjectStatus" role="status">Открываем проекты…</p><label class="field" id="storyProjectChoice" hidden>Проект рисунка<select id="storyProjectSelect"></select></label><button type="button" id="storyProjectPreviewButton" hidden>Посмотреть проект</button><div id="storyProjectPreview" hidden><img alt="Предпросмотр иллюстрации"><div id="storyProjectReplacements" hidden><label class="field">Какую иллюстрацию обновить<select id="storyProjectReplacement"></select></label></div><button type="button" id="attachStoryProject">Вставить в сказку</button><button type="button" id="cancelStoryProject">Отмена</button></div>';
   root.append(pane);
   const status=$('storyProjectStatus'),choice=$('storyProjectSelect'),show=$('storyProjectPreviewButton'),preview=$('storyProjectPreview');
   const insert=$('attachStoryProject'),cancel=$('cancelStoryProject'),body=form.querySelector('#storyBody');
+  const replacement=$('storyProjectReplacement'),links=doc=>art.projectReceipts(true).filter(receipt=>receipt.documentId===doc);
   const visible=()=>pane.isConnected&&!$('writerArtShelf').hidden&&$('modal').hasAttribute('open');
   let selection,attempt=0,busy=false;
   const reset=()=>{attempt++;selection=null;preview.hidden=true;show.disabled=false};
@@ -1217,7 +1230,11 @@ async function showStoryProjects(form,root){
       try{
         const data=await storyProjectPreview(store,choice.value);
         if(!visible()||request!==attempt)return;
-        selection={...data,text,offset};preview.querySelector('img').src=data.src;
+        const related=links(data.documentId);
+        selection={...data,text,offset,related};preview.querySelector('img').src=data.src;
+        replacement.replaceChildren(...related.map(receipt=>new Option('Иллюстрация '+(receipt.slot+1),receipt.id)));
+        $('storyProjectReplacements').hidden=related.length<2;
+        insert.textContent=related.length?'Обновить в сказке':'Вставить в сказку';
         status.textContent='«'+data.title+'»';preview.hidden=false;insert.focus();
       }catch(error){if(visible()&&request===attempt)status.textContent='Не удалось открыть выбранный проект.'}
       finally{if(request===attempt)show.disabled=false}
@@ -1225,27 +1242,32 @@ async function showStoryProjects(form,root){
     insert.onclick=async()=>{
       if(busy||!selection||!visible())return;
       const selected=selection,scope=art.projectScope(),text=body.value;
-      const same=receipt=>receipt.documentId===selected.documentId&&receipt.revision===selected.revision;
-      if(art.projectReceipts().some(same)){status.textContent='Эта редакция уже в сказке.';return}
+      const prior=selected.related.find(item=>item.id===replacement.value);
+      const same=receipt=>receipt.revision===selected.revision;
+      if(links(selected.documentId).some(same)){status.textContent='Эта редакция уже в сказке.';return}
       const offset=text===selected.text?selected.offset:body.selectionStart;
-      if(text!==selected.text&&!confirm('Текст изменился. Вставить рисунок рядом с текущим положением курсора?'))return;
+      if(!prior&&text!==selected.text&&!confirm('Текст изменился. Вставить рисунок рядом с текущим положением курсора?'))return;
       let receipt,lease,attached=false;
-      busy=true;choice.disabled=insert.disabled=cancel.disabled=show.disabled=true;
+      busy=true;choice.disabled=insert.disabled=cancel.disabled=show.disabled=replacement.disabled=true;
       try{
         const entry=await store.beginStoryLink(scope,selected.documentId,selected.revision);
         ({lease}=entry);
         const {id,documentId,revision}=entry;receipt={id,scope,documentId,revision};
         if(!visible())return;
         if(body.value!==text||art.projectScope()!==scope){status.textContent='Текст изменился. Проверь место и повтори.';return}
-        attached=art.attachProject(receipt,selected.src,offset);
-        if(!attached){status.textContent='Не удалось вставить рисунок. Проверь, есть ли свободное место, и повтори.';return}
+        const current=links(selected.documentId);
+        if(prior?!current.some(item=>item.id===prior.id&&item.slot===prior.slot&&item.revision===prior.revision):current.length){
+          status.textContent='Иллюстрация изменилась. Открой предпросмотр ещё раз.';return;
+        }
+        attached=art.attachProject(receipt,selected.src,offset,prior);
+        if(!attached){status.textContent=prior?'Не удалось обновить иллюстрацию. Прежняя редакция осталась в сказке.':'Не удалось вставить рисунок. Проверь, есть ли свободное место, и повтори.';return}
         // The receipt was saved with the text. A failed final write is repaired on reopen.
         await store.finishStoryLink(receipt).catch(()=>{});
-        if(visible()){$('writerArtShelf').hidden=true;$('writerGallery').setAttribute('aria-expanded','false');form.returnToWords(1);toast('Рисунок добавлен в сказку.')}
+        if(visible()){$('writerArtShelf').hidden=true;$('writerGallery').setAttribute('aria-expanded','false');form.returnToWords(1);toast(prior?'Иллюстрация обновлена.':'Рисунок добавлен в сказку.')}
       }catch(error){if(visible())status.textContent=error.message==='link-busy'?'В другой вкладке идёт вставка. Подожди и повтори.':'Вставка не сохранилась. Попробуй ещё раз.'}
       finally{
         if(receipt&&!attached)await store.releaseStoryLink(receipt,lease).catch(()=>{});
-        busy=false;choice.disabled=insert.disabled=cancel.disabled=show.disabled=false;
+        busy=false;choice.disabled=insert.disabled=cancel.disabled=show.disabled=replacement.disabled=false;
       }
     };
   }catch(error){if(visible())status.textContent='Локальные проекты сейчас недоступны.'}
