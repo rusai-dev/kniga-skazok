@@ -122,6 +122,39 @@ module.exports = async function verifyDrawingGestures(browser, url) {
         assert.equal(await pixels(), painted, 'text editing does not undo drawing actions');
         await hex.press('Escape');
         await page.locator('#studioProPane').waitFor({state: 'hidden'});
+
+        const toolsSide = () => page.evaluate(() => {
+          const workspace=document.querySelector('.studio-workspace').getBoundingClientRect();
+          const tools=document.querySelector('.studio-tools').getBoundingClientRect();
+          return {left:tools.right<=workspace.left,right:tools.left>=workspace.right};
+        });
+        assert.deepEqual(await toolsSide(), {left:true,right:false});
+        const options=page.locator('#studioMore summary');
+        await options.click();
+        await page.getByLabel('Рабочая рука').selectOption('left');
+        await page.getByLabel('Рисование', {exact:true}).selectOption('pen');
+        assert.deepEqual(await toolsSide(), {left:false,right:true});
+        assert.equal(await pixels(), painted, 'mirroring controls preserves project pixels');
+        assert.deepEqual(await page.evaluate(()=>[localStorage.getItem('skazki-drawing-hand-v1'),localStorage.getItem('skazki-drawing-input-v1')]), ['left','pen']);
+        await options.click();
+        const simulate = (type,id) => canvas.evaluate((sheet,{type,id}) => {
+          const rect=sheet.getBoundingClientRect();
+          for(const [name,x] of [['pointerdown',.61],['pointermove',.70],['pointerup',.77]]){
+            sheet.dispatchEvent(new PointerEvent(name,{bubbles:true,cancelable:true,isPrimary:true,pointerType:type,pointerId:id,
+              clientX:rect.left+x*rect.width,clientY:rect.top+.74*rect.height,pressure:.65}));
+          }
+        },{type,id});
+        await simulate('touch',61);
+        await simulate('mouse',62);
+        assert.equal(await pixels(), painted, 'finger and mouse cannot draw in pen-only mode');
+        await simulate('pen',63);
+        const penPixels=await pixels();
+        assert.notEqual(penPixels, painted);
+        await options.click();
+        await page.getByLabel('Рисование', {exact:true}).selectOption('any');
+        await options.click();
+        await canvas.tap({position:{x:24,y:24}});
+        assert.notEqual(await pixels(), penPixels, 'the fallback restores finger input');
       }
       if (route==='free') {
         await page.locator('#studioMore summary').click();
@@ -135,5 +168,5 @@ module.exports = async function verifyDrawingGestures(browser, url) {
   } finally {
     await page.close();
   }
-  console.log('PASS IN01–IN04 touch rollback, pen isolation, keyboard shortcuts, mouse panning and native project zoom');
+  console.log('PASS IN01–IN04 touch rollback, pen-only fallback, mirrored tools, keyboard shortcuts, mouse panning and native project zoom');
 };

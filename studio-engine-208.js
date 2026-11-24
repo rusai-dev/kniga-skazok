@@ -1467,6 +1467,9 @@ let ctx=composite;
 if(!ctx||!window.drawingStorage){start.disabled=true;return}
 const palette=[["#25272a","Чёрный"],["#344b3d","Лесной"],["#79564a","Коричневый"],["#a97755","Карамель"],["#d6ab82","Песочный"],["#fffdf7","Белый"],["#bd3948","Красный"],["#e76f60","Коралловый"],["#f18eaa","Розовый"],["#f8bfd3","Нежно-розовый"],["#c24e83","Малиновый"],["#8e416f","Ягодный"],["#e48641","Оранжевый"],["#f1bc48","Золотой"],["#f8df71","Лимонный"],["#f9eabb","Сливочный"],["#f1b297","Персиковый"],["#ba7956","Терракота"],["#609a58","Травяной"],["#a5c76f","Салатовый"],["#d1e7a6","Мятный"],["#2d7b6e","Изумрудный"],["#70bfbd","Бирюзовый"],["#2c92a5","Морской"],["#87bee7","Небесный"],["#487ec3","Синий"],["#375378","Тёмно-синий"],["#b1b9ed","Лавандовый"],["#9b83b9","Сиреневый"],["#785098","Фиолетовый"],["#a7b1b5","Серебристый"],["#687480","Серый"],["#f6c2a5","Светлый персик"],["#a94e39","Кирпичный"],["#f8a24b","Мандариновый"],["#c47127","Медовый"],["#fff4b7","Светлый лимон"],["#d3a82b","Горчичный"],["#ff6981","Клубничный"],["#8c253b","Вишнёвый"],["#ffd9e4","Розовая дымка"],["#ce76b7","Орхидея"],["#6f365d","Сливовый"],["#e3ceff","Светлая сирень"],["#5e4497","Черничный"],["#d7eaff","Ледяной голубой"],["#204e83","Сапфировый"],["#3ba7df","Лазурный"],["#a7e4ed","Аквамарин"],["#106d83","Глубокий бирюзовый"],["#bdecd7","Светлая мята"],["#397f47","Тёмная трава"],["#8eaa42","Оливковый"],["#56713c","Хвойный"],["#eaf5c5","Светлый салат"],["#c6b09b","Светлый беж"],["#9c714c","Ореховый"],["#51382b","Шоколадный"],["#e8d3b0","Ванильный"],["#b1a1a5","Тауп"],["#e4e5e3","Светлый серый"],["#494f5b","Графитовый"],["#fef0e9","Фарфоровый"],["#fae2d0","Телесный светлый"],["#dc966f","Телесный тёплый"],["#af6f51","Телесный глубокий"],["#f6edaa","Бледно-золотой"],["#accbe4","Джинсовый"],["#c1acae","Пыльная роза"],["#86aeb0","Морская дымка"],["#b9b7d9","Сумеречный"],["#39475f","Ночной"]];
 let picked=false,color=palette[1][0],inkAlpha=255,width=brushWidths()[1],pointer=null,last=null,dirty=false,undo=[],redo=[],seed=1,fillMode=false,eraser=false,restoring=false,stored=false,lessonStep=0,effect='solid',distance=0,hue=0,opacity=1;
+const handKey='skazki-drawing-hand-v1',inputKey='skazki-drawing-input-v1';
+let penOnly=fget(inputKey)==='pen';
+panel.classList.toggle('studio-left-hand',fget(handKey)==='left');
 let workingMaterial,lastMaterial,brushControls,inkBuffer,lastTilt=0;
 const paper=profile?.background||'#fffdf7';
 const art=form.storyArt,storage=openedProject?null:drawingStorage(DRAWING_DRAFT,DRAWING_OUTLINE,art,drawingFingerprint);
@@ -2423,6 +2426,10 @@ function applyPointTool(p){
 }
 canvas.addEventListener('pointerdown',e=>{
   if(!pro.hidden||layerPanel&&!layerPanel.hidden||selectionPanel&&!selectionPanel.hidden||filterPanel&&!filterPanel.hidden||modal.classList.contains('canvas-pan')||restoring||e.button>0)return;
+  if(penOnly&&e.pointerType!=='pen'){
+    $('drawingStatus').textContent='Включён режим «Только перо». Его можно отключить в настройках рабочего места.';
+    return;
+  }
   if(pointer!==null){if(!e.isPrimary)return;endStroke()}
   e.preventDefault();
   if(e.pointerType==='mouse')canvas.focus({preventScroll:true});
@@ -2494,7 +2501,20 @@ $('drawingUndo').setAttribute('aria-keyshortcuts','Control+Z Meta+Z');
 $('drawingRedo').setAttribute('aria-keyshortcuts','Control+Shift+Z Meta+Shift+Z');
 const keyHelp=document.createElement('small');
 keyHelp.textContent='B — кисть, E — ластик, I — пипетка. + и − меняют масштаб. Ctrl или ⌘ + Z отменяет действие. Добавь Shift для повтора. Пробел и перетаскивание двигают увеличенный лист.';
-$('studioMore').append(keyHelp);
+const preferences=document.createElement('fieldset');
+preferences.innerHTML='<legend>Рабочее место</legend><label for="studioHand">Рабочая рука</label><select id="studioHand"><option value="right">Правая</option><option value="left">Левая</option></select><label for="studioInput">Рисование</label><select id="studioInput"><option value="any">Любое устройство ввода</option><option value="pen">Только перо</option></select>';
+$('studioMore').append(preferences,keyHelp);
+const hand=$('studioHand'),input=$('studioInput');
+hand.value=panel.classList.contains('studio-left-hand')?'left':'right';
+input.value=penOnly?'pen':'any';
+hand.onchange=()=>{
+  panel.classList.toggle('studio-left-hand',hand.value==='left');
+  fput(handKey,hand.value);
+};
+input.onchange=()=>{
+  endStroke();penOnly=input.value==='pen';fput(inputKey,input.value);
+  $('drawingStatus').textContent=penOnly?'Рисование только пером. Этот режим можно отключить здесь же.':'Можно рисовать пальцем, мышью и пером.';
+};
 panel.addEventListener('keydown',event=>{
   if(event.defaultPrevented||event.isComposing||event.altKey||restoring||!modal.classList.contains('drawing-focus'))return;
   if(event.key==='Escape'&&!pro.hidden){event.preventDefault();showPro(false);return}
