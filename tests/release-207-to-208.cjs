@@ -102,10 +102,17 @@ async function main() {
     assert.equal(await page.evaluate(()=>APP_RELEASE),oldVersion);
     assert.equal(await canvas.evaluate(c=>c.toDataURL()),oldPixels);
     assert.deepEqual(contents(draft(await snapshot(page))),contents(before));
+    // Retain the actual waiting worker before closing the old editor. Merely
+    // observing an activated worker can accept the old worker during handover.
+    await control.evaluate(async scope=>{
+      const reg=await navigator.serviceWorker.getRegistration(scope);
+      if(!reg?.waiting)throw Error('Expected new waiting worker before closing editor');
+      window.qaNextWorker=reg.waiting;
+    },url);
     await page.close();
     await control.waitForFunction(async scope=>{
       const reg=await navigator.serviceWorker.getRegistration(scope);
-      return reg?.active?.state==='activated'&&!reg.waiting&&!reg.installing;
+      return window.qaNextWorker?.state==='activated'&&reg?.active===window.qaNextWorker&&!reg.waiting&&!reg.installing;
     },url,{timeout:30000});
     const persisted=await snapshot(control);
     assert.deepEqual(contents(draft(persisted)),contents(before));
