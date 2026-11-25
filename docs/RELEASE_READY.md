@@ -1,30 +1,38 @@
-# Release Ready — один контроль, одна команда
+# Release Guard · выпуск «Книги сказок»
 
-## Три состояния
-- **BLOCKED** — есть ошибка, отсутствует результат, изменились SHA, нет подтверждения резервной копии или приёмки. Не публиковать.
-- **READY** — точный кандидат и актуальная база main зафиксированы; Quality checks (регрессия, оба полных smoke, оба exact upgrade и release-ready) и Studio screen comparison (оба браузера) успешны; резервная ветка кода и проверенная независимая копия работ, аппаратная приёмка подтверждены. Никаких новых тестов по команде публикации, если SHA и основания приёмки не изменились.
-- **PUBLISHED** — владелец явно разрешил выпуск, PR объединён с ожидаемым SHA, GitHub Pages подтвердил развёртывание нового main, manifest/HTML/ресурсы проверены. Обновление на устройстве отдельно, только без прерывания работы.
+## Одна команда выпуска
 
-## Одна команда владельца: «Публикуй»
-Сверить статус READY → обычный merge с expected head SHA → проверить Pages. Если BLOCKED, назвать точную причину, не обходить ворота. Цель инициирования merge ≤30 секунд при доступном API; время Pages и активации на iPad не гарантируется. Не очищать кэши/пользовательское хранилище для ускорения. Не переносить детские данные в репозиторий. Откат кода не заменяет резервирование данных.
+На вкладке GitHub Actions открой **Release Guard**, оставь ветку `main` и выбери **Публикуй**. То же действие в терминале:
 
-## Реализация
-Оставить существующие workflows: проверки идут параллельно, без дублирования отдельным «быстрым» набором. Job release-ready означает только техническую готовность Quality checks; визуальная проверка и ручные ворота остаются обязательными. Не добавлять сервисов, новых агентов, платных средств. Правила защиты main не проверены (API 403); не менять существующие имена проверок и настройки защиты. Для будущих выпусков exact upgrade должен проверять фактическую опубликованную базу, а не пропускаться из-за жёстко заданных версий.
+```sh
+gh workflow run release.yml -f operation=Публикуй
+```
 
-## Кандидат 1.5.208
-База 1.5.207: 6fe6bcc0ad285176c93ab045e94328cf1de9bed5. PR #180. WebKit exact upgrade PASS на 0a6c33e; Chromium FAIL: не получены байты нового worker, прежний worker ещё installing, кэш пуст. Исправлена проверка готовности старой оболочки: явное ожидание активного контроллера и фактического кэша до обновления, без снятия защитных условий. Первопричина возможной незавершённой установки Chromium ещё не подтверждена. Новые проверки требуются для нового SHA. Реальная копия работ и аппаратная приёмка не подтверждены.
+Для проверки готовности используй `operation=Проверить`. Она доступна и на ветке кандидата. Для рабочего выпуска нужен GitHub Pages со способом публикации **GitHub Actions**. Ограничение среды `github-pages` допускает только `main`. Проверь наличие правила `release-ready` в защите `main`. У владельца должна быть возможность осознанно проверить визуальные изменения, физический iPad и независимую копию работ.
 
+Регламент подготовки нового релиза. Измени версию в `release.json`, затем запусти `node tools/shell-integrity.cjs --sync-version`. Она выводит согласованные версии в UI, URL оболочки и Service Worker. Для проверки используй `node tools/shell-integrity.cjs --check`. Слияние корректной ветки при источнике Pages **GitHub Actions** запускает подготовку, а опубликованный сайт сохраняет действующий релиз до команды владельца.
 
-### 25.11 — exact upgrade / Chromium
-На `3c56d82` шесть из семи технических проверок успешны, включая полный smoke обоих движков и exact upgrade WebKit. Chromium остановился до начала обновления: старый worker installing, пустой кэш, в журнале запросов только первые ресурсы старой оболочки. Гипотеза: конкурирующая загрузка страницы и/или транспорт HTTP/1.1 с непрочитанными телами ответов. Тестовый сервер теперь отправляет обычные gzip-ответы с Content-Length, Connection: close и журналом завершения, устанавливает точный старый worker со страницы release.json до открытия интерфейса, проверяет SHA-256 старого HTML и worker. Исходные worker, приложение и условия сохранности не изменены. Результат нового SHA ещё не подтверждён. Физический iPad и независимая резервная копия работ остаются открытыми.
+## Как проходит выпуск
 
-### 25.11 — transport isolation (second diagnosis)
-On `6062f8d` Chromium still failed before upgrade: old worker installing, old cache empty; server finished sending index and first two scripts only, no other resource requests arrived. WebKit exact upgrade and visual checks passed. Chromium fixture now serves the exact old and new bytes over local multiplexed HTTPS/HTTP2, with a temporary test-only certificate, verifies the old worker used HTTP/2, and retains all previous cache/byte/data assertions. WebKit fixture unchanged. This is a transport hypothesis, not a proven fix. No runtime code changed.
+1. **ПОДГОТОВКА**. Quality checks берёт точный SHA и создаёт архивы приложения и последнего работающего релиза. SHA-256 учитывает каждый файл архива. Начальная версия 1.5.208 связывается с фактически опубликованным коммитом по HTML, версии, Worker и обязательным ресурсам. Последующие версии публикуют `release-proof.json` с SHA и идентификатором сборки.
+2. **ПРОВЕРКА**. Node, полные сценарии Chromium и WebKit, снимки обоих движков и точный переход с работающей версии. Браузерные сценарии разнесены на независимые задачи, каждый проход сохраняет время выполнения. Устаревшие прогоны отменяются. Длительность ограничена, процессы браузера закрываются через Playwright и общий тайм-аут.
+3. **ГОТОВО К ПУБЛИКАЦИИ**. Обязательные задачи успешны для последнего прогона того же SHA. Истёкший архив, изменившийся `main`, другой опубликованный SHA и отсутствующий результат дают **ЗАБЛОКИРОВАНО**. Для рабочего выпуска используются прогоны `main`, для проверки черновика доступен явный прогон на его ветке. Перед командой владельца проверяются визуальные изменения, резервная копия работ и физическое устройство.
+4. **ПУБЛИКАЦИЯ**. В GitHub Pages передаются неизменённые байты проверенного архива из Quality checks. Контроль перед этим повторно сверяет текущий сайт и SHA. Процесс публикации сериализован.
+5. **ОПУБЛИКОВАНО**. Сайт отдал ожидаемые HTML, манифест, Worker и ресурсы, а браузер прошёл основные маршруты без критических JavaScript-ошибок. Длительность внешнего развёртывания GitHub измеряется отдельно.
+6. **ВОССТАНОВЛЕНО**. При двух браузерных отказах на подтверждённом выпуске допускается восстановление проверенного стабильного архива. Автооткат разрешён для пары 1.5.209 → 1.5.208 после синтетического сохранения, обновления и обратного перехода в обоих движках. Остальные пары остаются заблокированными до проверки совместимости. Для восстановления публикуются прежние файлы приложения. Раскладка локальных данных сохраняется, код их не очищает.
 
+Архив для нового выпуска хранится 30 дней. После истечения срока заново прогони Quality checks для того же SHA, дождись зелёного результата и вызови команду публикации один раз. Если другой релиз уже вышел, сначала подготовь новый кандидат от актуальной рабочей версии.
 
-### 25.11 — legacy Chromium install throttle / separate fixture and acceptance
-HTTP/2 run `056b237` reproduced exactly three resource requests and stopped before any upgrade. Historical 1.5.207 worker awaits all fetch headers before consuming bodies. Chromium source implements throttling during install (https://chromium.googlesource.com/chromium/src/+/5970f41e7be0a8b4b0876c56f0c8895a439c61c3/third_party/blink/renderer/modules/service_worker/service_worker_global_scope.cc); a historical worker-dev report describes this exact three-request deadlock (https://groups.google.com/a/chromium.org/g/worker-dev/c/y8b7V1waNK4). Transport changes did not resolve it. New isolated fixture bootstraps the exact old worker using a temporary Chromium profile with only the install-throttle feature disabled, verifies old worker/index SHA and cache, closes the browser and reopens the same profile in DEFAULT Chromium before writing data and attempting upgrade. All update, waiting, byte preservation and offline assertions then run with default settings. Additional clean default Chromium scenario uses synthetic legacy data generated by the real old editor, installs candidate normally and verifies offline reopening and original PNG. This does not claim to fix cold installation of the historical 1.5.207 worker or prove recovery of an already-stuck registration. No application bytes or production data changed. CI on this candidate, physical iPad and independent backup remain unverified.
+## Приёмка и дефекты
 
+Проверяй существующий профиль приложения на синтетических данных. Сказки, незавершённые работы, выбранные обложки, хэши иллюстраций и прогресс сверяй побайтно. Проверяемая резервная копия должна открываться в отдельном профиле или на отдельном устройстве. Резервная ветка кода сохраняет код приложения. Если iPad недоступен, оставляй аппаратную приёмку открытой.
 
-## 25.11 — visible version / 1.5.209 hotfix
-Confirmed defect: `body[data-home-screen=home] footer{display:none}` hides 1.5.208 version on home. Add static current-version label inside existing parent control, matching parent screen current and separately checked server version, bounded network check and manual SW update request; no forced activation, cache deletion or changes to storage formats. Exact upgrade gate uses published 1.5.208 SHA `3f24ecb06db8adc678fbbc2d91d1107e00bdca21` and candidate 1.5.209 in both engines, no legacy throttle override for 1.5.208. Browser navigation checks visible current/parent version. Integrity manifest regenerated. Physical iPad and public HTTP response remain unverified; GitHub Pages deployment of 1.5.208 succeeded. New candidate checks pending. No publication before required checks.
+Каждый исправленный дефект получает тест, воспроизводящий его причину. Перед выпуском проверяй PNG обоих движков. Для известных визуальных изменений фиксируй допустимое изменение по экрану и переходу версий с причиной и кадрами до и после. Превышение допуска блокирует выпуск. Допуски и стабильная основа изменяются вручную и проходят собственную проверку.
+
+Экранные и браузерные проверки используют изолированные профили. Рабочая версия сверяется по HTTP и хэшам; подготовка нового архива читает публичные файлы сайта. Разрешённые настольные эмуляции и аппаратные результаты фиксируются отдельно в `SECTION_ACCEPTANCE.md`.
+
+## База для задания 25.11.2026
+
+Рабочий сайт отдавал 1.5.208, SHA `3f24ecb06db8adc678fbbc2d91d1107e00bdca21`. Старая схема GitHub Pages публиковала из `main`. PR #181 содержит видимый статус версии и восстановление тематических обложек с приоритетом индивидуального рисунка. Проверки PR показали Node 17 с, Chromium 3 мин 22 с, WebKit 10 мин 05 с, снимки WebKit 4 мин 48 с. Pages сообщил 20,577 с на последнее построение 1.5.208. [Базовый Quality checks](https://github.com/rusai-dev/kniga-skazok/actions/runs/45562018856) · [Базовые снимки](https://github.com/rusai-dev/kniga-skazok/actions/runs/45562018908).
+
+Исторический Chromium 1.5.207 зависал на трёх запросах Worker при установке, поскольку ждал заголовки всего набора перед чтением тел. Для перехода с этой исторической версии прежний тест подготавливает временный профиль с отключённым ограничением только при инициализации старой оболочки. Обновление и приёмка идут с обычной конфигурацией браузера. Пара 1.5.208/1.5.209 проверяется целиком в обычных Chromium и WebKit.
