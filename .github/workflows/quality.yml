@@ -4,14 +4,16 @@ on:
     branches: [main, pdf-reference-1.5.50]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: quality-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  group: quality-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   prepare:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     outputs:
@@ -45,6 +47,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
   regression:
+    if: github.event.action != 'closed'
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
@@ -160,7 +163,7 @@ jobs:
           name: studio-${{ matrix.browser }}-${{ matrix.group }}
           path: screens
   release-ready:
-    if: always()
+    if: always() && github.event.action != 'closed'
     needs: [prepare, regression, browser, legacy-upgrade, screens]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
