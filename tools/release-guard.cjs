@@ -7,7 +7,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const SITE = 'https://rusai-dev.github.io/kniga-skazok/';
-const BOOTSTRAP = '3f24ecb06db8adc678fbbc2d91d1107e00bdca21';
+const LEGACY_RELEASES = Object.freeze({
+  '1.5.208': '3f24ecb06db8adc678fbbc2d91d1107e00bdca21',
+  '1.5.209': '42f85445ad9999baf274af6f4d23d2908958af83'
+});
 const PROOF = 'release-proof.json';
 const REQUIRED = ['index.html', 'release.json', 'sw.js', 'studio-layout.css', 'studio-engine-208.js', 'studio-project-store.js'];
 const SMOKE = ['studio', 'storage', 'offline', 'viewport', 'portrait', 'landscape'];
@@ -131,10 +134,11 @@ async function liveIdentity(site = SITE) {
   try {
     proof = validateProof(await (await fetchPublic(site, PROOF, stamp)).json());
   } catch (error) {
-    if (error.status !== 404 || release.version !== '1.5.208') throw error;
+    if (error.status !== 404) throw error;
+    assert.ok(Object.hasOwn(LEGACY_RELEASES, release.version), 'Live version '+release.version+' has no trusted build proof');
   }
   if (proof) assert.equal(proof.version, release.version, 'Published version and proof differ');
-  return {sha: proof?.sha || BOOTSTRAP, version: release.version, proof};
+  return {sha: proof?.sha || LEGACY_RELEASES[release.version], version: release.version, proof};
 }
 async function prepare(directory) {
   const sha = git('rev-parse', 'HEAD').toString().trim();
@@ -220,8 +224,9 @@ async function select(directory, runFile, jobsFile, sha, repository) {
   output('rollback', rollbackAllowed(receipt.candidate, receipt.stable));
 }
 function rollbackAllowed(candidate, stable) {
-  // The 208/209 pair shares the same project store and storage schema. Every later pair defaults to blocked.
-  return candidate.version === '1.5.209' && stable.version === '1.5.208'
+  // Each allowed pair must exercise the exact rollback in both browser jobs.
+  const pair = stable.version + '/' + candidate.version;
+  return ['1.5.208/1.5.209', '1.5.209/1.5.210'].includes(pair)
     && candidate.files['studio-project-store.js'] === stable.files['studio-project-store.js'];
 }
 async function recheck(directory, side) {

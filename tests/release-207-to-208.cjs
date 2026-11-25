@@ -280,7 +280,7 @@ async function main() {
     console.log('Exact upgrade offline activation probes:',JSON.stringify(observed));
     assert.equal(await updated.evaluate(()=>APP_RELEASE),newVersion);
     assert.equal(await updated.locator('footer').textContent(),'Книга сказок · версия '+newVersion);
-    if(newVersion==='1.5.209'){assert.equal(await updated.locator('#headerRelease').textContent(),'v'+newVersion);assert.ok(await updated.locator('#headerRelease').isVisible());}
+    if(await updated.locator('#headerRelease').count()){assert.equal(await updated.locator('#headerRelease').textContent(),'v'+newVersion);assert.ok(await updated.locator('#headerRelease').isVisible());}
     assert.deepEqual(await snapshot(updated),persisted,'opening the updated shell must not rewrite any saved data');
     mark('reopen and continue original draft');
     await updated.locator('#homeDrafts').click();
@@ -301,8 +301,8 @@ async function main() {
     await updated.reload();
     assert.deepEqual(contents(draft(await snapshot(updated))),contents(edited));
     console.log('PASS exact deployed '+oldVersion+' -> '+newVersion+': waiting editor, offline reopen, byte-exact legacy PNG/JPEG, continuation, text and progress preserved');
-    if(oldVersion==='1.5.208'&&newVersion==='1.5.209'){
-      mark('verified 209 -> 208 rollback with edited child-work fixture');
+    if(['1.5.208/1.5.209','1.5.209/1.5.210'].includes(oldVersion+'/'+newVersion)){
+      mark('verified '+newVersion+' -> '+oldVersion+' rollback with edited child-work fixture');
       await context.setOffline(false);
       const requestStart=requests.length;
       serving=oldVersion;
@@ -331,7 +331,7 @@ async function main() {
         assert.equal(loaded.version,newVersion,'unknown rollback shell');
         await probe.close();await new Promise(resolve=>setTimeout(resolve,350));
       }
-      assert.ok(rolledBack,'compatible 1.5.208 shell did not activate offline');
+      assert.ok(rolledBack,'compatible '+oldVersion+' shell did not activate offline');
       await rolledBack.locator('#homeDrafts').click();
       await rolledBack.locator('[data-own-draft]').filter({hasText:title}).click();
       assert.equal(await rolledBack.locator('#storyBody').inputValue(),edited.body);

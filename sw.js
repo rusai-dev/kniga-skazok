@@ -1,21 +1,21 @@
 /* Versioned offline shell; lazy artwork cache. Never modify user storage. */
 'use strict';
-const REV='1.5.209',ART_CACHE='skazki-book-art-v1';
+const REV='1.5.210',ART_CACHE='skazki-book-art-v1';
 // BEGIN GENERATED SHELL INTEGRITY
-const SHELL_FINGERPRINT='9e42ad030bc63b6b41a779cf';
+const SHELL_FINGERPRINT='75682de0833fde252a533c9c';
 const SHELL_SHA256={
-  "index.html": "8cc655ea29f03abb51519df5e49afd3c74ba62ae88863d6caae56eb819b2bd9c",
-  "classic-art-153.js?v=1.5.209": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
-  "classic-art-155.js?v=1.5.209": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8",
-  "andersen-art-156.js?v=1.5.209": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b",
-  "learning-art-1536.css?v=1.5.209": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7",
-  "world-scenes-194.js?v=1.5.209": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4",
-  "studio-drawings.js?v=1.5.209": "2c2526e692405225796c497af02e5cf7503e36fbcdac75a1d4a0b5ff54fec48a",
-  "studio-layout.css?v=1.5.209": "c183dee38f5867cfe1c9dcdd634ba1533152f23635da261fd2c3eb83143c04d0",
-  "studio-friends.js?v=1.5.209": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858",
-  "studio-engine-208.js?v=1.5.209": "23f736b4ae617c56e3857f89a64b6364d3561835fe495be30618e630c0048093",
-  "studio-project-store.js?v=1.5.209": "17ed503326e5dcc8f677be0be7ff8978ce88eccfa760b07e368c8a1f7662b9e1",
-  "studio-filters-208.js?v=1.5.209": "876af4646662f37098a88230a22d337eaf32ca962819cf7a180b8cd3129b4625",
+  "index.html": "4d632a6d9a29672f0be143663c7a8c51e4587ce62f5e1b3509d9fff00538ad36",
+  "classic-art-153.js?v=1.5.210": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
+  "classic-art-155.js?v=1.5.210": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8",
+  "andersen-art-156.js?v=1.5.210": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b",
+  "learning-art-1536.css?v=1.5.210": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7",
+  "world-scenes-194.js?v=1.5.210": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4",
+  "studio-drawings.js?v=1.5.210": "2c2526e692405225796c497af02e5cf7503e36fbcdac75a1d4a0b5ff54fec48a",
+  "studio-layout.css?v=1.5.210": "c183dee38f5867cfe1c9dcdd634ba1533152f23635da261fd2c3eb83143c04d0",
+  "studio-friends.js?v=1.5.210": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858",
+  "studio-engine-208.js?v=1.5.210": "23f736b4ae617c56e3857f89a64b6364d3561835fe495be30618e630c0048093",
+  "studio-project-store.js?v=1.5.210": "17ed503326e5dcc8f677be0be7ff8978ce88eccfa760b07e368c8a1f7662b9e1",
+  "studio-filters-208.js?v=1.5.210": "876af4646662f37098a88230a22d337eaf32ca962819cf7a180b8cd3129b4625",
   "assets/ui/home-sprite-1548.webp": "1e974ad768ec11b50d63b52675b99621b6d28667e22f06bbcb318bcb687a3ed8",
   "assets/ui/learning-sprite-1536.webp": "e4b8ec07f3417b50023021aa542de958db0a4df397864b5687da50584e9208fd",
   "assets/ui/writer-squirrel-144-v1.webp": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee",
