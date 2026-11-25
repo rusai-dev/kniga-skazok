@@ -55,6 +55,7 @@ module.exports = async function verifyShellUpdate(browser) {
       const bytes = name === 'sw.js' ? serving.worker : serving.read(name);
       const type = types[path.extname(name)] || 'application/octet-stream';
       res.setHeader('Content-Type', type);
+      if (name === 'release.json' && fault === 'manifest') return res.end(previous.read(name));
       if (name === 'sw.js' && fault === 'quota') return res.end(bytes + `
         const putForFixture = Cache.prototype.put;
         Cache.prototype.put = async function(request, response) {
@@ -117,31 +118,33 @@ module.exports = async function verifyShellUpdate(browser) {
     });
     await page.waitForFunction(() => !!navigator.serviceWorker.controller);
     await expectRevision(page, previous);
+    const sibling = await context.newPage();
+    await sibling.goto(url);
+    await sibling.locator('#homeBooks').click();
+    await sibling.locator('#libraryHome').waitFor({state:'visible'});
     await page.locator('#homeNewStory').click();
     await page.locator('#storyBody').fill('Синтетическая сказка для проверки обновления.');
     await page.locator('#drawStory').click();
     await page.locator('#drawingCanvas').click();
     await page.evaluate(() => {
       window.switches = 0;
+      window.updateVotes = 0;
       navigator.serviceWorker.addEventListener('controllerchange', () => window.switches++);
+      navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='skazki-release-reserve')window.updateVotes++});
     });
     const original = await storedDraft(page);
 
     serving = next;
-    for (fault of ['bytes', 'mime', 'network', 'quota']) {
+    for (fault of ['manifest', 'bytes', 'mime', 'network', 'quota']) {
       await update(page, 'redundant');
       assert.equal(await page.evaluate(name => caches.has(name), next.cache), false);
     }
     assert.ok(brokenRequests >= 3);
     fault = undefined;
     await update(page, 'installed');
-    const sibling = await context.newPage();
-    await sibling.goto(url);
     await expectRevision(sibling, previous);
     assert.equal(await page.evaluate(() => window.switches), 0);
     assert.equal(await page.locator('#storyBody').inputValue(), original.body);
-    await sibling.evaluate(() => checkRelease(true));
-    assert.match(await sibling.locator('#releaseText').textContent(), /закрой все вкладки/);
 
     // A missing file of the running version must fail closed while the server has newer bytes.
     const oldCss = './studio-layout.css?v=' + previous.version;
@@ -152,13 +155,20 @@ module.exports = async function verifyShellUpdate(browser) {
     // The fixture restores the verified old entry to exercise rollback without redownloading it.
     await sibling.evaluate(async ({name, url, body}) => (await caches.open(name)).put(new URL(url, location.href), new Response(body, {headers: {'Content-Type': 'text/css'}})), {name: previous.cache, url: oldCss, body: intactCss});
 
+    await sibling.locator('#home').click();
+    await page.waitForFunction(()=>window.updateVotes>0);
+    await expectRevision(sibling, previous);
+    assert.equal(await page.evaluate(()=>window.switches),0,'one open editor blocks worker activation for every window');
+    assert.ok(await page.locator('#drawingCanvas').isVisible());
+    await page.locator('#drawingCancel').click();
+    await page.locator('#saveStoryNow').click();
+    await page.locator('#modal').waitFor({state:'hidden'});
+    await sibling.waitForFunction(version=>typeof APP_RELEASE==='string'&&APP_RELEASE===version,next.version);
+    assert.equal(await sibling.evaluate(async url => (await fetch(url)).text(), oldCss),intactCss);
     await page.close();
-    assert.ok(await sibling.evaluate(async () => !!(await navigator.serviceWorker.getRegistration()).waiting));
-    await sibling.close();
-    await expectActive(control);
     await context.setOffline(true);
-    const updated = await context.newPage();
-    await updated.goto(url);
+    const updated = sibling;
+    await updated.reload();
     await expectRevision(updated, next);
     assert.equal(await updated.evaluate(async url => (await fetch(url)).text(), oldCss), intactCss);
     assert.deepEqual(await storedDraft(updated), original);
@@ -180,5 +190,5 @@ module.exports = async function verifyShellUpdate(browser) {
     await context.close();
     await new Promise(resolve => server.close(resolve));
   }
-  console.log('PASS G25–G28 two releases, install failures, waiting editor, verified assets, offline update and rollback');
+  console.log('PASS G25–G28 verified update, manifest and shell failures, all windows idle, offline and safe rollback');
 };

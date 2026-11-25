@@ -1,4 +1,5 @@
 name: Release Guard
+run-name: ${{ inputs.operation }} · Release Guard
 on:
   workflow_dispatch:
     inputs:
@@ -7,12 +8,20 @@ on:
         required: true
         type: choice
         options:
-          - Проверить
           - Публикуй
+          - Проверь
+          - Восстанови
+      expected_sha:
+        description: Проверенный SHA для автоматического запуска
+        required: false
+        type: string
 permissions:
   contents: read
   actions: read
   pages: read
+defaults:
+  run:
+    shell: bash
 concurrency:
   group: pages-production
   cancel-in-progress: false
@@ -32,52 +41,77 @@ jobs:
           OWNER: ${{ github.repository_owner }}
           ACTOR: ${{ github.actor }}
           TRIGGER: ${{ github.triggering_actor }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
           set -eu
-          if [ "$COMMAND" = 'Публикуй' ]; then
+          [ -z "$EXPECTED_SHA" ] || [ "$EXPECTED_SHA" = "$GITHUB_SHA" ] ||
+            { echo 'ЗАБЛОКИРОВАНО: ветка изменилась после команды владельца'; exit 1; }
+          if [ "$COMMAND" = 'Публикуй' ] || [ "$COMMAND" = 'Восстанови' ]; then
             [ "$GITHUB_REF" = refs/heads/main ] && [ "$ACTOR" = "$OWNER" ] && [ "$TRIGGER" = "$OWNER" ] ||
-              { echo 'ЗАБЛОКИРОВАНО: публикация доступна владельцу из main'; exit 1; }
+              { echo 'ЗАБЛОКИРОВАНО: выпуск и восстановление доступны владельцу из main'; exit 1; }
           fi
           echo "ПОДГОТОВКА $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
+      - if: inputs.operation == 'Проверь' && github.ref_name == 'main'
+        name: Проверить рабочий сайт
+        run: node tools/release-guard.cjs diagnose | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Найти обязательный прогон точного коммита
+        if: inputs.operation != 'Проверь' || github.ref_name != 'main'
         id: run
         env:
           GH_TOKEN: ${{ github.token }}
           COMMAND: ${{ inputs.operation }}
         run: |
           set -eu
-          if [ "$COMMAND" = 'Публикуй' ]; then
+          target=$GITHUB_SHA
+          if [ "$COMMAND" = 'Публикуй' ] || [ "$COMMAND" = 'Восстанови' ]; then
             [ "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA" ] ||
-              { echo 'ЗАБЛОКИРОВАНО: main изменился, запустите команду заново'; exit 1; }
+              { echo 'ЗАБЛОКИРОВАНО: main изменился'; exit 1; }
             [ "$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .build_type)" = workflow ] ||
               { echo 'ЗАБЛОКИРОВАНО: источник Pages должен быть GitHub Actions'; exit 1; }
           fi
+          if [ "$COMMAND" = 'Восстанови' ]; then target=$(node tools/release-guard.cjs live-sha); fi
           gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/quality.yml/runs" \
-            -f head_sha="$GITHUB_SHA" -f branch="$GITHUB_REF_NAME" -F per_page=30 > /tmp/quality-runs.json
-          jq -e --arg ref "$GITHUB_REF_NAME" '[.workflow_runs[] |
-            select(.event=="workflow_dispatch" or (.event=="push" and $ref=="main"))] | first |
-            select(.status=="completed" and .conclusion=="success")' /tmp/quality-runs.json > /tmp/quality-run.json ||
+            -f head_sha="$target" -f branch="$GITHUB_REF_NAME" -F per_page=30 > /tmp/quality-runs.json
+          jq --arg ref "$GITHUB_REF_NAME" --arg command "$COMMAND" '[.workflow_runs[] |
+            select(.event=="workflow_dispatch" or (.event=="push" and $ref=="main") or (.event=="pull_request" and $command=="Проверь"))]' /tmp/quality-runs.json > /tmp/eligible.json
+          if [ "$COMMAND" = 'Восстанови' ]; then
+            for run in $(jq -r '.[]|select(.conclusion=="success").id' /tmp/eligible.json); do
+              if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/artifacts?name=release-packages" --jq '.artifacts[]|select(.expired==false).id' | grep -q '[0-9]'; then
+                jq --argjson run "$run" '.[]|select(.id==$run)' /tmp/eligible.json > /tmp/quality-run.json
+                break
+              fi
+            done
+          else
+            jq '.[0] | select(.status=="completed" and .conclusion=="success")' /tmp/eligible.json > /tmp/quality-run.json
+          fi
+          [ -s /tmp/quality-run.json ] ||
             { echo 'ЗАБЛОКИРОВАНО: последний обязательный прогон этого SHA отсутствует или не завершился успешно'; exit 1; }
           run_id=$(jq -er .id /tmp/quality-run.json)
           attempt=$(jq -er .run_attempt /tmp/quality-run.json)
           gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/attempts/$attempt/jobs?per_page=100" \
             --jq '.jobs' | jq -s 'add' > /tmp/quality-jobs.json
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
+        if: steps.run.outputs.run_id != ''
         with:
           github-token: ${{ github.token }}
           run-id: ${{ steps.run.outputs.run_id }}
           name: release-packages
           path: /tmp/release
       - name: Контроль SHA, архива и текущего сайта
+        if: steps.run.outputs.run_id != ''
         id: guard
+        env:
+          COMMAND: ${{ inputs.operation }}
+          TARGET: ${{ steps.run.outputs.target }}
         run: |
-          node tools/release-guard.cjs select /tmp/release /tmp/quality-run.json /tmp/quality-jobs.json "$GITHUB_SHA" "$GITHUB_REPOSITORY"
-          echo "ГОТОВО К ПУБЛИКАЦИИ $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+          node tools/release-guard.cjs select /tmp/release /tmp/quality-run.json /tmp/quality-jobs.json "$TARGET" "$GITHUB_REPOSITORY" "$COMMAND" | tee -a "$GITHUB_STEP_SUMMARY"
   publish:
     if: inputs.operation == 'Публикуй'
     needs: preflight
@@ -128,7 +162,7 @@ jobs:
     container: mcr.microsoft.com/playwright:v1.65.1-noble
     timeout-minutes: 5
     outputs:
-      critical: ${{ steps.smoke.outputs.critical }}
+      critical: ${{ steps.integrity.outputs.critical || steps.smoke.outputs.critical }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -141,6 +175,7 @@ jobs:
           name: release-packages
           path: /tmp/release
       - name: Доступность версии и хэшей ресурсов
+        id: integrity
         run: node tools/release-guard.cjs published /tmp/release candidate
       - uses: actions/cache@v4
         with:
@@ -156,7 +191,8 @@ jobs:
         run: |
           if timeout --kill-after=5s 50s node tests/live-navigation.cjs ||
              timeout --kill-after=5s 50s node tests/live-navigation.cjs; then
-            echo "ОПУБЛИКОВАНО $EXPECTED_LIVE_RELEASE $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "ОПУБЛИКОВАНО НА СЕРВЕРЕ $EXPECTED_LIVE_RELEASE $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo 'ОБНОВЛЕНИЕ НА iPad: требуется подтверждение из установленного приложения.' | tee -a "$GITHUB_STEP_SUMMARY"
           else
             node tools/release-guard.cjs recheck /tmp/release stable
             echo 'critical=true' >> "$GITHUB_OUTPUT"
@@ -164,7 +200,7 @@ jobs:
             exit 1
           fi
   restore:
-    if: always() && needs.verify.outputs.critical == 'true' && needs.preflight.outputs.rollback == 'true'
+    if: always() && needs.preflight.result == 'success' && needs.preflight.outputs.rollback == 'true' && (inputs.operation == 'Восстанови' || needs.verify.outputs.critical == 'true')
     needs: [preflight, verify]
     runs-on: ubuntu-24.04
     timeout-minutes: 8
@@ -205,7 +241,7 @@ jobs:
           artifact_name: github-pages-rollback
       - run: |
           node tools/release-guard.cjs published /tmp/release stable
-          echo 'ВОССТАНОВЛЕНО: точный стабильный архив снова доступен' | tee -a "$GITHUB_STEP_SUMMARY"
+          echo 'ВОССТАНОВЛЕНО НА СЕРВЕРЕ: точный стабильный архив снова доступен' | tee -a "$GITHUB_STEP_SUMMARY"
   report:
     if: always()
     needs: [preflight, publish, verify, restore]
@@ -219,11 +255,11 @@ jobs:
           RESTORE: ${{ needs.restore.result }}
         run: |
           if [ "$RESTORE" = success ]; then
-            echo 'ВОССТАНОВЛЕНО' | tee -a "$GITHUB_STEP_SUMMARY"
+            echo 'ВОССТАНОВЛЕНО НА СЕРВЕРЕ. ОБНОВЛЕНИЕ НА iPad ОЖИДАЕТ ПОДТВЕРЖДЕНИЯ.' | tee -a "$GITHUB_STEP_SUMMARY"
           elif [ "$VERIFY" = success ]; then
-            echo 'ОПУБЛИКОВАНО' | tee -a "$GITHUB_STEP_SUMMARY"
-          elif [ "$PREPARE" = success ] && [ "$COMMAND" = 'Проверить' ]; then
-            echo 'ГОТОВО К ПУБЛИКАЦИИ' | tee -a "$GITHUB_STEP_SUMMARY"
+            echo 'ОПУБЛИКОВАНО НА СЕРВЕРЕ. ОБНОВЛЕНИЕ НА iPad ОЖИДАЕТ ПОДТВЕРЖДЕНИЯ.' | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [ "$PREPARE" = success ] && [ "$COMMAND" = 'Проверь' ]; then
+            echo 'ПРОВЕРЕНО. ДЕЙСТВУЮЩАЯ СБОРКА СОХРАНЕНА.' | tee -a "$GITHUB_STEP_SUMMARY"
           else
             echo 'ЗАБЛОКИРОВАНО: смотрите завершившийся с ошибкой этап. Автоматический откат требует совместимой проверенной сборки.' | tee -a "$GITHUB_STEP_SUMMARY"
             exit 1

@@ -28,8 +28,11 @@ async function capture(browser,site,output,width,height) {
       localStorage.setItem('skazki-studio-motif','0');
     }
   });
-  const take = async (name,options={}) => {
-    const geometry=await page.evaluate(async()=>{
+  const take = async (name,{editorTop=false,...options}={}) => {
+    const geometry=await page.evaluate(async editorTop=>{
+      // The open dialog is the subject. Compare the background from the same
+      // scroll position, even when click() scrolled its opener into view.
+      if(document.querySelector('#modal[open]'))document.scrollingElement.scrollTop=0;
       await document.fonts.ready;
       const visible=[...document.images].filter(img=>{
         if(!img.currentSrc||!img.getClientRects().length)return false;
@@ -47,12 +50,26 @@ async function capture(browser,site,output,width,height) {
         }finally{clearTimeout(timeout)}
       }));
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      if(editorTop){
+        // WebKit can scroll the short editor while settling autofocus.
+        // Compare the opening view with its heading and controls in frame.
+        document.getElementById('modal').scrollTop=0;
+        document.getElementById('modalBody').scrollTop=0;
+      }
       return {width:innerWidth,scroll:document.documentElement.scrollWidth};
-    });
+    },editorTop);
     assert.ok(geometry.scroll<=geometry.width+1, 'Horizontal page overflow at '+name);
     await page.screenshot({path:path.join(dir,name+'.png'),animations:'disabled',caret:'hide',...options});
   };
   const click = id => page.locator('#'+id).click();
+  const openFromHome = async id => {
+    // Keep the same visible backdrop for modal comparisons. Real touch
+    // reachability of these entry points is exercised by browser-smoke.
+    await page.locator('#'+id).evaluate(button=>{
+      window.scrollTo(0,0);
+      button.click();
+    });
+  };
   const record = {viewport:[width,height],entries:[]};
   try {
     await page.clock.setFixedTime(new Date("2026-01-15T12:00:00Z"));
@@ -90,16 +107,20 @@ async function capture(browser,site,output,width,height) {
     await page.locator('.friends-grid img').first().evaluate(img=>img.decode());
     await take('friends');
     await page.locator('[data-close]').click();
-    await click('homeBooks');await take('personal-library');await click('home');
+    await openFromHome('homeBooks');
+    const libraryArt=page.locator('#heroArt img');
+    await libraryArt.waitFor({state:'visible'});
+    await libraryArt.evaluate(img=>img.decode());
+    await take('personal-library');await click('home');
     await click('adultEntry');await page.locator('#adultHome').waitFor({state:'visible'});
     if(await page.locator('#remoteReleaseStatus').count()){
       await page.locator('#remoteReleaseStatus').filter({hasText:'Версия на сервере:'}).waitFor({timeout:12000});
     }
+    await page.locator('#toast').waitFor({state:'hidden'});
     await take('parent-version');await click('home');
     await page.locator('#storybookHome').waitFor({state:'visible'});
-    await page.evaluate(()=>window.scrollTo(0,0));
-    await click('homeNewStory');
-    await take('empty');
+    await openFromHome('homeNewStory');
+    await take('empty',{editorTop:true});
     const paragraph='Сова раскрыла атлас. На краю страницы поблёскивала река, а на другом берегу уже ждал зайчонок.';
     await page.locator('#storyTitle').fill('Атлас серебряной реки');
     const body=page.locator('#storyBody');
@@ -117,9 +138,18 @@ async function capture(browser,site,output,width,height) {
     await click('coverGalleryToggle');
     await page.locator('#coverGallery').scrollIntoViewIfNeeded();
     await take('cover-selection');
+    await click('coverGalleryToggle');
     await page.locator('#writerExtras > summary').click();
     await click('writerGallery');
-    await page.locator('#writerArtShelf').scrollIntoViewIfNeeded();
+    const artShelf=page.locator('#writerArtShelf');
+    await artShelf.waitFor({state:'visible'});
+    await artShelf.evaluate(async shelf=>{
+      // The artwork tools must start from an explicit scroll position after
+      // collapse, focus and the viewport-fit callback have finished.
+      await document.fonts.ready;
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      shelf.closest('.writer-artbar').scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+    });
     await take('writer-gallery');
     await click('writerGallery');
     record.typedFrameMs=await page.evaluate(async()=>{const body=$('storyBody');body.focus();const t=performance.now();body.setRangeText(' ',95,95,'end');body.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return performance.now()-t});
@@ -178,7 +208,7 @@ async function capture(browser,site,output,width,height) {
     }
     await click('ownReadBack');await click('home');
     for(const [id,name] of [['readingEntry','reading'],['homeMath','math'],['homeLogic','logic'],['childWorld','world']]){
-      await click(id);await take(name);await page.goto(site);
+      await openFromHome(id);await take(name);await page.goto(site);
     }
     await click('homeNewStory');
     await page.locator('#storyBody').fill(paragraph);

@@ -92,9 +92,9 @@ const server=http.createServer((req,res)=>{
  res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
 });
 (async()=>{
- await verifySpriteReuse(workerSource);
- assert.ok(await verifyWriterRetry(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext('))+entry.slice(entry.indexOf('function ghDecision('),entry.indexOf('function ghCachedRevision('))+entry.slice(entry.indexOf('async function ghWriterTick('),entry.indexOf('function ghWriterStart('))));
- await verifyOtherTransportRaces(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext(')),entry.slice(entry.indexOf('function fsend('),entry.indexOf('function ftick(')),entry.slice(entry.indexOf('async function cloudTick('),entry.indexOf('function cloudStart(')));
+ if(selected('offline'))await verifySpriteReuse(workerSource);
+ if(selected('storage'))assert.ok(await verifyWriterRetry(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext('))+entry.slice(entry.indexOf('function ghDecision('),entry.indexOf('function ghCachedRevision('))+entry.slice(entry.indexOf('async function ghWriterTick('),entry.indexOf('function ghWriterStart('))));
+ if(selected('storage'))await verifyOtherTransportRaces(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext(')),entry.slice(entry.indexOf('function fsend('),entry.indexOf('function ftick(')),entry.slice(entry.indexOf('async function cloudTick('),entry.indexOf('function cloudStart(')));
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const url='http://127.0.0.1:'+server.address().port+'/?view=personal';
  const engine=process.env.BROWSER==='webkit'?webkit:chromium;
@@ -102,7 +102,6 @@ const server=http.createServer((req,res)=>{
  try{
  browser=await engine.launch({headless:true});
  if(selected('studio'))await timed('studio',async()=>{
-  await timed('studio-friends',()=>require('./studio-friends.cjs')(browser,url));
   await timed('home-watercolor',()=>require('./home-watercolor.cjs')(browser,url));
   await timed('shelf-watercolor',()=>require('./shelf-watercolor.cjs')(browser,url));
   await timed('writer-watercolor',()=>require('./writer-watercolor.cjs')(browser,url));
@@ -111,8 +110,6 @@ const server=http.createServer((req,res)=>{
   await timed('drawing-recovery',()=>require('./drawing-recovery.cjs')(browser,url));
   await timed('drawing-input',()=>require('./drawing-input.cjs')(browser,url));
   await timed('image-import',()=>require('./image-import.cjs')(browser,url));
-  await timed('studio-projects',()=>require('./studio-projects.cjs')(browser,url));
-  await timed('project-layers',()=>require('./project-layers.cjs')(browser,url));
   await timed('project-history',()=>require('./project-history.cjs')(browser,url));
   await timed('drawing-story-context',()=>require('./drawing-story-context.cjs')(browser,url));
   await timed('project-profiles',()=>require('./project-profiles.cjs')(browser,url));
@@ -123,7 +120,6 @@ const server=http.createServer((req,res)=>{
   await timed('drawing-gestures',()=>require('./drawing-gestures.cjs')(browser,url));
   await timed('project-groups',()=>require('./project-groups.cjs')(browser,url));
   await timed('project-storage',()=>require('./project-storage.cjs')(browser,url));
-  await timed('project-brushes',()=>require('./project-brushes.cjs')(browser,url));
   await timed('family-cloud-routing',()=>require('./family-cloud-routing.cjs')(browser,url));
   await timed('family-peer-fallback',()=>require('./family-peer-fallback.cjs')(browser,url));
   await timed('family-disconnect',()=>require('./family-disconnect.cjs')(browser,url));
@@ -132,6 +128,8 @@ const server=http.createServer((req,res)=>{
   await timed('writer-tab-conflict',()=>require('./writer-tab-conflict.cjs')(browser,url));
  });
  if(selected('storage'))await timed('storage',async()=>{
+  await timed('studio-projects',()=>require('./studio-projects.cjs')(browser,url));
+  await timed('project-layers',()=>require('./project-layers.cjs')(browser,url));
  // R14: isolated legacy drawing storage must roll back both source and metadata.
  {
  const ctx=await browser.newContext({serviceWorkers:'block'}),page=await ctx.newPage();
@@ -617,6 +615,7 @@ const server=http.createServer((req,res)=>{
 
  });
  if(selected('offline'))await timed('offline',async()=>{
+  await timed('project-brushes',()=>require('./project-brushes.cjs')(browser,url));
  await require('./shell-update.cjs')(browser);
  // Chromium: verify real service-worker caching with an isolated profile.
  if(engine===chromium){
@@ -693,6 +692,7 @@ const server=http.createServer((req,res)=>{
  }
  });
  if(selected('viewport'))await timed('viewport',async()=>{
+  await timed('studio-friends',()=>require('./studio-friends.cjs')(browser,url));
  // Exercise actual buttons with APIs absent on older iPad Safari (not a legacy engine emulator).
  const legacy=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'});
  try{

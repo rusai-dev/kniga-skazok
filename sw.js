@@ -1,21 +1,22 @@
 /* Versioned offline shell; lazy artwork cache. Never modify user storage. */
 'use strict';
-const REV='1.5.209',ART_CACHE='skazki-book-art-v1';
+const REV='1.5.210',ART_CACHE='skazki-book-art-v1';
 // BEGIN GENERATED SHELL INTEGRITY
-const SHELL_FINGERPRINT='0d849f95d68888da508dcd02';
+const SHELL_FINGERPRINT='0a9a0088d03b66f92485dda6';
 const SHELL_SHA256={
-  "index.html": "5bdbed404ba3abad0f3fd260e61e1e3af126dcdc486a9c657071a8d83a20df40",
-  "classic-art-153.js?v=1.5.209": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
-  "classic-art-155.js?v=1.5.209": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8",
-  "andersen-art-156.js?v=1.5.209": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b",
-  "learning-art-1536.css?v=1.5.209": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7",
-  "world-scenes-194.js?v=1.5.209": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4",
-  "studio-drawings.js?v=1.5.209": "2c2526e692405225796c497af02e5cf7503e36fbcdac75a1d4a0b5ff54fec48a",
-  "studio-layout.css?v=1.5.209": "c183dee38f5867cfe1c9dcdd634ba1533152f23635da261fd2c3eb83143c04d0",
-  "studio-friends.js?v=1.5.209": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858",
-  "studio-engine-208.js?v=1.5.209": "23f736b4ae617c56e3857f89a64b6364d3561835fe495be30618e630c0048093",
-  "studio-project-store.js?v=1.5.209": "17ed503326e5dcc8f677be0be7ff8978ce88eccfa760b07e368c8a1f7662b9e1",
-  "studio-filters-208.js?v=1.5.209": "876af4646662f37098a88230a22d337eaf32ca962819cf7a180b8cd3129b4625",
+  "index.html": "a29c44264c85c0b2959ee30ff0d1e9bc66ae381eccf10bfb82cba7eec67aa700",
+  "release.json": "651bf7c7d7245942f735ff9fd06c1ce96677c4a9e91e8e2e576e51b3b9e1c5e5",
+  "classic-art-153.js?v=1.5.210": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
+  "classic-art-155.js?v=1.5.210": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8",
+  "andersen-art-156.js?v=1.5.210": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b",
+  "learning-art-1536.css?v=1.5.210": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7",
+  "world-scenes-194.js?v=1.5.210": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4",
+  "studio-drawings.js?v=1.5.210": "2c2526e692405225796c497af02e5cf7503e36fbcdac75a1d4a0b5ff54fec48a",
+  "studio-layout.css?v=1.5.210": "c183dee38f5867cfe1c9dcdd634ba1533152f23635da261fd2c3eb83143c04d0",
+  "studio-friends.js?v=1.5.210": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858",
+  "studio-engine-208.js?v=1.5.210": "23f736b4ae617c56e3857f89a64b6364d3561835fe495be30618e630c0048093",
+  "studio-project-store.js?v=1.5.210": "17ed503326e5dcc8f677be0be7ff8978ce88eccfa760b07e368c8a1f7662b9e1",
+  "studio-filters-208.js?v=1.5.210": "876af4646662f37098a88230a22d337eaf32ca962819cf7a180b8cd3129b4625",
   "assets/ui/home-sprite-1548.webp": "1e974ad768ec11b50d63b52675b99621b6d28667e22f06bbcb318bcb687a3ed8",
   "assets/ui/learning-sprite-1536.webp": "e4b8ec07f3417b50023021aa542de958db0a4df397864b5687da50584e9208fd",
   "assets/ui/writer-squirrel-144-v1.webp": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee",
@@ -31,7 +32,7 @@ const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1
 for(const asset of ['studio-drawings.js','studio-layout.css','studio-friends.js'])LEGACY_CORE.push(new URL(asset,ROOT).href);
 const VERSIONED_CORE=[...LEGACY_CORE,...['studio-engine-208.js','studio-project-store.js','studio-filters-208.js'].map(name=>new URL(name,ROOT).href)];
 const CORE=[...VERSIONED_CORE.map(url=>url+'?v='+REV),...UI_SPRITES];
-const RELEASE_URLS=[INDEX,...CORE];
+const RELEASE_URLS=[INDEX,new URL('release.json',ROOT).href,...CORE];
 const ART=new Set(['andersen-pea-bed.webp','andersen-pea-journey.webp','andersen-pea-morning.webp','andersen-pea-rain.webp','classic-cinder-1.jpg','classic-cinder-11.jpg','classic-cinder-3.jpg','classic-cinder-7.jpg','historic-pea-morning.jpg','historic-sunny.jpg','historic-wind1.jpg','historic-wind2.jpg','premium-coloring.png','premium-storybook.webp'].map(name=>new URL('assets/books/'+name,ROOT).href));
 for(const name of ['egypt-nile-thumb-128-v1.webp','night-owl-thumb-128-v1.webp','night-bats-scene-320-v1.webp','night-bats-scene-504-v1.webp','night-roost-scene-320-v1.webp','night-roost-scene-504-v1.webp','night-owl-cover-320-v1.webp','night-owl-cover-504-v1.webp','egypt-nile-cover-320-v1.webp','egypt-nile-cover-504-v1.webp'])ART.add(new URL('assets/world/'+name,ROOT).href);
 for(const name of ['library-lantern','star-journey'])ART.add(new URL('assets/author/'+name+'-v1.svg',ROOT).href);
@@ -51,7 +52,7 @@ async function verifiedResource(url,response){
  if(!response?.ok)return false;
  const name=url.slice(ROOT.length),pathname=new URL(url).pathname;
  const contentType=response.headers.get('content-type')||'';
- const validType=pathname.endsWith('.html')?isHTML(response):pathname.endsWith('.css')?/^text\/css\b/i.test(contentType):
+ const validType=pathname.endsWith('.html')?isHTML(response):pathname.endsWith('.json')?/^application\/json\b/i.test(contentType):pathname.endsWith('.css')?/^text\/css\b/i.test(contentType):
   pathname.endsWith('.js')?/^(?:text|application)\/(?:x-)?(?:java|ecma)script\b/i.test(contentType):/^image\/webp\b/i.test(contentType);
  if(!validType||!SHELL_SHA256[name])return false;
  const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',await response.clone().arrayBuffer()));
@@ -89,8 +90,50 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   if(!alreadyVerified)await caches.delete(CACHE).catch(()=>false);
   throw error;
  }
- // Natural activation waits for all clients of the preceding worker to close.
+ // Wait by default. A compatible page may request activation from its home screen.
 })()));
+let activationVote;
+async function voteForActivation(){
+ const start=Date.now();
+ const scope=new URL(ROOT);
+ const appWindows=async()=> (await self.clients.matchAll({type:'window',includeUncontrolled:true})).filter(client=>{
+  const url=new URL(client.url);
+  return url.origin===scope.origin&&(url.pathname===scope.pathname||url.pathname===scope.pathname+'index.html');
+ });
+ const windows=await appWindows();
+ if(!windows.length)return;
+ const ports=[];
+ let activating=false;
+ try{
+  const votes=await Promise.all(windows.map(client=>new Promise(resolve=>{
+   const channel=new MessageChannel();
+   const timer=setTimeout(()=>resolve(false),1200);
+   ports.push(channel.port1);
+   channel.port1.onmessage=({data})=>{clearTimeout(timer);resolve(data===true)};
+   try{client.postMessage({type:'skazki-release-reserve'},[channel.port2])}catch(e){clearTimeout(timer);resolve(false)}
+  })));
+  if(!votes.every(Boolean))return;
+  const current=await appWindows();
+  if(Date.now()-start<1500&&current.length===windows.length&&current.every(client=>windows.some(item=>item.id===client.id))){
+   await self.skipWaiting();
+   activating=true;
+  }
+ }finally{
+  for(const port of ports){if(!activating)port.postMessage('release');port.close()}
+ }
+}
+self.addEventListener('message',event=>{
+ const message=event.data;
+ if(!event.source?.url?.startsWith(ROOT)||!['skazki-release-state','skazki-release-activate'].includes(message?.type))return;
+ event.waitUntil((async()=>{
+  if(!await sealed(CACHE))return;
+  if(message.type==='skazki-release-state')event.ports[0]?.postMessage({version:REV,shell:SHELL_FINGERPRINT});
+  else if(message.version===REV&&message.shell===SHELL_FINGERPRINT){
+   activationVote??=voteForActivation().finally(()=>{activationVote=null});
+   await activationVote;
+  }
+ })());
+});
 // Retain the current release and two nearest older releases; never delete an
 // unrelated cache, an artwork cache, legacy fallback, or an installing newer shell.
 function shellRevision(name){const match=/^skazki-shell-(\d+)\.(\d+)\.(\d+)(?:-[a-f0-9]{24})?$/.exec(name);return match?match.slice(1).map(Number):null}
@@ -103,7 +146,12 @@ function obsoleteShells(names,current=CACHE){
 async function pruneShells(){
  try{await Promise.all((obsoleteShells(await caches.keys())).map(name=>caches.delete(name).catch(()=>false)))}catch(e){/* Storage cleanup is best effort. */}
 }
-self.addEventListener('activate',event=>event.waitUntil((async()=>{await self.clients.claim();await pruneShells()})()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{
+ const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+ await self.clients.claim();
+ // Another window may still be editing with an older version and need its lazy resources.
+ if(windows.filter(client=>client.url.startsWith(ROOT)).length<=1)await pruneShells();
+})()));
 function unavailable(status=503){
  return new Response(status===503?'Не удалось открыть проверенную версию. Подключись к интернету, закрой все вкладки «Книги сказок» и открой её снова.':null,
   {status,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});
