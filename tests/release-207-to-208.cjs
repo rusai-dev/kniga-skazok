@@ -12,8 +12,9 @@ const {execFileSync} = require('node:child_process');
 const {chromium, webkit} = require('playwright');
 const {shellDefinition} = require('../tools/shell-integrity.cjs');
 const root = path.resolve(__dirname, '..');
-const oldSha = '6fe6bcc0ad285176c93ab045e94328cf1de9bed5';
-const oldVersion = '1.5.207', newVersion = '1.5.208';
+const oldSha = process.env.QA_BASE_SHA || '6fe6bcc0ad285176c93ab045e94328cf1de9bed5';
+const oldVersion = process.env.QA_BASE_VERSION || '1.5.207', newVersion = process.env.QA_TARGET_VERSION || '1.5.208';
+assert.match(oldSha,/^[a-f0-9]{40}$/);
 const key = 'skazki-library-v1';
 const extras = ['skazki-unfinished-drawing-v1','skazki-study-skills-v2','skazki-reading-progress-v1'];
 const mime = {'.html':'text/html; charset=utf-8','.js':'application/javascript','.css':'text/css','.json':'application/json','.webp':'image/webp','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml'};
@@ -25,7 +26,8 @@ function oldRead(name) {
 function newRead(name) { return fs.readFileSync(path.join(root,name)); }
 const release = JSON.parse(newRead('release.json')).version;
 if (release !== newVersion) {
-  console.log('SKIP exact 207->208 fixture: checkout is '+release);
+  if(process.env.QA_TARGET_VERSION)throw Error('Exact upgrade target mismatch: '+release);
+  console.log('SKIP historical exact 207->208 fixture: checkout is '+release);
   process.exit(0);
 }
 assert.equal(JSON.parse(oldRead('release.json')).version,oldVersion);
@@ -36,6 +38,9 @@ const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const expectedWorkerHash=hash(newRead('sw.js'));
 const expectedOldWorkerHash=hash(oldRead('sw.js'));
 const expectedOldIndexHash=hash(oldRead('index.html'));
+const oldDefinition=oldVersion==='1.5.207'?null:shellDefinition(oldRead('sw.js').toString());
+const oldCacheName='skazki-shell-'+oldVersion+(oldDefinition?'-'+oldDefinition.fingerprint:'');
+const oldEntryCount=oldDefinition?oldDefinition.resources.length+1:14;
 const compressed=new Map();
 const requests=[];
 let phase='startup', diagnosticPage;
@@ -52,6 +57,7 @@ let serving = oldVersion;
 // already-installed legacy profile with the throttle disabled; close that
 // browser completely and exercise the actual upgrade in default Chromium.
 const isChromium=process.env.BROWSER!=='webkit';
+const historicalBootstrap=isChromium&&oldVersion==='1.5.207';
 let profileDir;
 function serve(req,res) {
   const parsed = new URL(req.url,'http://127.0.0.1');
@@ -98,14 +104,14 @@ async function main() {
     const contextOptions={serviceWorkers:'allow',viewport:{width:1024,height:768}};
     const configure=ctx=>{ctx.setDefaultTimeout(15000);ctx.setDefaultNavigationTimeout(20000);};
     mark('launch browser');
-    if(isChromium){
+    if(historicalBootstrap){
       profileDir=fs.mkdtempSync(path.join(os.tmpdir(),'skazki-qa-installed-207-'));
       // Fixture preparation ONLY; default Chromium cannot reliably cold
       // install this exact historical worker. No flags in the upgrade.
       context=await bounded('bootstrap historical Chromium profile',()=>chromium.launchPersistentContext(profileDir,{...contextOptions,headless:true,timeout:20000,args:['--disable-features=ThrottleInstallingServiceWorker']}),25000);
       console.log('LEGACY FIXTURE ONLY: historical install throttle disabled');
     }else{
-      browser=await bounded('launch WebKit',()=>webkit.launch({headless:true,timeout:20000}),25000);
+      browser=await bounded('launch browser',()=>(isChromium?chromium:webkit).launch({headless:true,timeout:20000}),25000);
       context=await bounded('new WebKit context',()=>browser.newContext(contextOptions));
     }
     configure(context);
@@ -124,7 +130,7 @@ async function main() {
     // Explicit polling: an async waitForFunction predicate can return a truthy
     // Promise before the underlying boolean becomes true. Never start upgrade
     // before the exact old worker controls the page and its offline shell exists.
-    const oldCache='skazki-shell-'+oldVersion;
+    const oldCache=oldCacheName;
     const inspectOld=()=>page.evaluate(async ({name,expected})=>{
       const reg=await navigator.serviceWorker.getRegistration();
       const keys=await caches.keys();
@@ -135,7 +141,7 @@ async function main() {
       const digest=bytes?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join(''):null;
       return {digest,controller:navigator.serviceWorker.controller?.state||null,active:reg?.active?.state||null,waiting:reg?.waiting?.state||null,installing:reg?.installing?.state||null,cacheKeys:keys,entries:cache?(await cache.keys()).length:0,exactHTML:html.includes('<footer>Книга сказок · версия '+expected+'</footer>')};
     },{name:oldCache,expected:oldVersion});
-    const isOldReady=state=>state.controller==='activated'&&state.active==='activated'&&!state.waiting&&!state.installing&&state.exactHTML&&state.digest===expectedOldIndexHash&&state.entries>=14;
+    const isOldReady=state=>state.controller==='activated'&&state.active==='activated'&&!state.waiting&&!state.installing&&state.exactHTML&&state.digest===expectedOldIndexHash&&state.entries===oldEntryCount;
     let oldState=await bounded('inspect old verified shell',inspectOld,10000);
     const deadlineOld=Date.now()+35000;
     while(!isOldReady(oldState)&&Date.now()<deadlineOld){
@@ -145,7 +151,7 @@ async function main() {
     console.log('Exact old shell readiness',JSON.stringify(oldState));
     assert.ok(isOldReady(oldState),'old shell did not finish installation; do not attempt upgrade');
     assert.ok(requests.some(r=>r.name==='sw.js'&&r.version===oldVersion&&r.sha256===expectedOldWorkerHash&&r.finished),'exact old worker must be delivered');
-    if(isChromium){
+    if(historicalBootstrap){
       mark('restart installed legacy profile in unmodified Chromium');
       await bounded('close fixture browser',()=>context.close(),20000);context=null;diagnosticPage=null;
       context=await bounded('reopen installed profile with default Chromium',()=>chromium.launchPersistentContext(profileDir,{...contextOptions,headless:true,timeout:20000}),25000);
@@ -274,6 +280,7 @@ async function main() {
     console.log('Exact upgrade offline activation probes:',JSON.stringify(observed));
     assert.equal(await updated.evaluate(()=>APP_RELEASE),newVersion);
     assert.equal(await updated.locator('footer').textContent(),'Книга сказок · версия '+newVersion);
+    if(newVersion==='1.5.209'){assert.equal(await updated.locator('#headerRelease').textContent(),'v'+newVersion);assert.ok(await updated.locator('#headerRelease').isVisible());}
     assert.deepEqual(await snapshot(updated),persisted,'opening the updated shell must not rewrite any saved data');
     mark('reopen and continue original draft');
     await updated.locator('#homeDrafts').click();
@@ -293,7 +300,7 @@ async function main() {
     assert.deepEqual(after.extras,persisted.extras);
     await updated.reload();
     assert.deepEqual(contents(draft(await snapshot(updated))),contents(edited));
-    console.log('PASS exact deployed 1.5.207 -> 1.5.208: waiting editor, offline reopen, byte-exact legacy PNG/JPEG, continuation, text and progress preserved');
+    console.log('PASS exact deployed '+oldVersion+' -> '+newVersion+': waiting editor, offline reopen, byte-exact legacy PNG/JPEG, continuation, text and progress preserved');
     // Independent default Chromium path for an old online-only user whose
     // historical worker never installed. Import only the synthetic bytes
     // generated by the real old editor above, never a production profile.

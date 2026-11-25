@@ -12,6 +12,9 @@ async function verifyNavigation(browser,siteUrl=URL){
    const htmlStatus=response?.status(),location=page.url();
    const status=await page.evaluate(()=>({
     footer:document.querySelector('footer')?.textContent,
+    current:typeof APP_RELEASE==='string'?APP_RELEASE:null,
+    headerVersion:document.querySelector('#headerRelease')?.textContent,
+    headerVersionVisible:!!document.querySelector('#headerRelease')?.getClientRects().length,
     startNoticeHidden:document.querySelector('#startNotice')?.hidden,
     homeVisible:!!document.querySelector('#storybookHome')?.getClientRects().length,
     homeIds:['homeBooks','homeCreate','homeWrite','homeMath','homeLogic','childWorld','readingEntry'].map(id=>{
@@ -22,6 +25,13 @@ async function verifyNavigation(browser,siteUrl=URL){
    }));
    console.log('LIVE',JSON.stringify({browser:process.env.BROWSER,viewport,htmlStatus,location,status,errors,failed}));
    if(htmlStatus!==200||!status.homeVisible||!status.startNoticeHidden||errors.length)throw Error('Site load/JS initialization failure');
+   if(status.current==='1.5.209'){
+    if(!status.headerVersionVisible||status.headerVersion!=='v'+status.current)throw Error('Visible header version missing or incorrect');
+    await page.locator('#adultEntry').tap();await page.locator('#adultHome').waitFor({state:'visible'});
+    if(!(await page.locator('#currentRelease').innerText()).includes(status.current))throw Error('Parent version mismatch');
+    await page.locator('#remoteReleaseStatus').waitFor({state:'visible'});
+    await page.locator('#home').tap();await page.locator('#storybookHome').waitFor({state:'visible'});
+   }
    for(const [id,landed,back] of [
     ['homeBooks','#libraryHome','#home'],
     ['homeCreate','#creativeHome','#home'],
