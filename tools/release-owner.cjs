@@ -65,10 +65,11 @@ async function awaitPublication(run) {
     const retry = await waitFor(()=>runs('release-retry.yml', 'main', run.head_sha)
       .find(candidate=>candidate.display_title===title), 'проверка возможности безопасного повтора', 90000);
     await checkedRun('Release Guard retry', retry);
-    finished = await waitFor(()=>{
+    const restarted = await waitFor(()=>{
       const current = api(root + '/actions/runs/' + run.id);
-      return current.run_attempt===2 && current.status==='completed' && current;
-    }, 'повторная публикация', 12*60000);
+      return current.run_attempt===2 && current;
+    }, 'разрешённая повторная попытка (иначе выпуск заблокирован)', 45000);
+    finished = restarted.status==='completed' ? restarted : await checkedRun('Release Guard', restarted);
   }
   assert.equal(finished.conclusion, 'success', 'Выпуск заблокирован: ' + finished.html_url);
   return finished;
