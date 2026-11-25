@@ -101,7 +101,11 @@ async function capture(browser,site,output,width,height) {
     await page.locator('.friends-grid img').first().evaluate(img=>img.decode());
     await take('friends');
     await page.locator('[data-close]').click();
-    await openFromHome('homeBooks');await take('personal-library');await click('home');
+    await openFromHome('homeBooks');
+    const libraryArt=page.locator('#heroArt img');
+    await libraryArt.waitFor({state:'visible'});
+    await libraryArt.evaluate(img=>img.decode());
+    await take('personal-library');await click('home');
     await click('adultEntry');await page.locator('#adultHome').waitFor({state:'visible'});
     if(await page.locator('#remoteReleaseStatus').count()){
       await page.locator('#remoteReleaseStatus').filter({hasText:'Версия на сервере:'}).waitFor({timeout:12000});
@@ -128,9 +132,18 @@ async function capture(browser,site,output,width,height) {
     await click('coverGalleryToggle');
     await page.locator('#coverGallery').scrollIntoViewIfNeeded();
     await take('cover-selection');
+    await click('coverGalleryToggle');
     await page.locator('#writerExtras > summary').click();
     await click('writerGallery');
-    await page.locator('#writerArtShelf').scrollIntoViewIfNeeded();
+    const artShelf=page.locator('#writerArtShelf');
+    await artShelf.waitFor({state:'visible'});
+    await artShelf.evaluate(async shelf=>{
+      // The artwork tools must start from an explicit scroll position after
+      // collapse, focus and the viewport-fit callback have finished.
+      await document.fonts.ready;
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      shelf.closest('.writer-artbar').scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+    });
     await take('writer-gallery');
     await click('writerGallery');
     record.typedFrameMs=await page.evaluate(async()=>{const body=$('storyBody');body.focus();const t=performance.now();body.setRangeText(' ',95,95,'end');body.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return performance.now()-t});
