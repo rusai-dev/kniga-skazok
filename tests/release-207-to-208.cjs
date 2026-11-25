@@ -5,7 +5,6 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
-const http2 = require('node:http2');
 const os = require('node:os');
 const {gzipSync}=require('node:zlib');
 const path = require('node:path');
@@ -48,12 +47,12 @@ function bounded(label,task,ms=30000){
 // Hard watchdog also catches unresponsive Playwright protocol or cleanup.
 const watchdog=setTimeout(()=>{console.error('UPGRADE WATCHDOG',JSON.stringify({phase,requests}));process.exit(1);},210000);
 let serving = oldVersion;
-// Chromium's real legacy install uses Promise.all(fetch) before reading the
-// response bodies. Test it over multiplexed TLS, as on GitHub Pages, rather
-// than a connection-limited loopback HTTP/1.1 fixture. WebKit's proven HTTP
-// path stays unchanged. Certificate trust bypass is local synthetic QA only.
-const useH2=process.env.BROWSER!=='webkit';
-let tlsDir;
+// The historical worker has a fetch-all-headers-before-consuming-bodies
+// deadlock under Chromium's installation throttle. Bootstrap only the
+// already-installed legacy profile with the throttle disabled; close that
+// browser completely and exercise the actual upgrade in default Chromium.
+const isChromium=process.env.BROWSER!=='webkit';
+let profileDir;
 function serve(req,res) {
   const parsed = new URL(req.url,'http://127.0.0.1');
   const pathname=parsed.pathname;
@@ -85,15 +84,7 @@ function serve(req,res) {
     res.end(wire);
   } catch(error) {if(requests.length<250)requests.push({name,version:serving,error:String(error.message).slice(0,200)});res.statusCode=404;res.end();}
 }
-let server;
-const sessions=new Set();
-if(useH2){
-  tlsDir=fs.mkdtempSync(path.join(os.tmpdir(),'skazki-qa-tls-'));
-  const keyPath=path.join(tlsDir,'key.pem'),certPath=path.join(tlsDir,'cert.pem');
-  execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1','-keyout',keyPath,'-out',certPath],{timeout:10000,stdio:'ignore'});
-  server=http2.createSecureServer({key:fs.readFileSync(keyPath),cert:fs.readFileSync(certPath),allowHTTP1:true,settings:{maxConcurrentStreams:100}},serve);
-  server.on('session',session=>{sessions.add(session);session.on('close',()=>sessions.delete(session));session.on('error',error=>console.error('[h2 session]',String(error)));});
-}else server=http.createServer(serve);
+const server=http.createServer(serve);
 const title='QA exact legacy upgrade';
 const text='Сова нашла фонарь.\n\nЭто синтетический черновик, не работа ребёнка.';
 const snapshot = page => page.evaluate(({key,extras})=>({library:localStorage.getItem(key),extras:extras.map(k=>localStorage.getItem(k))}),{key,extras});
@@ -101,16 +92,26 @@ const draft = state => Object.values(JSON.parse(state.library).drafts).find(d=>d
 const contents = d => ({title:d.title,body:d.body,images:d.rich.images,originals:d.studio.originals,sheets:d.studio.sheets});
 async function main() {
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-  const origin=(useH2?'https':'http')+'://127.0.0.1:'+server.address().port, url=origin+'/book/?view=personal';
+  const origin='http://127.0.0.1:'+server.address().port, url=origin+'/book/?view=personal';
   let browser,context;
   try {
+    const contextOptions={serviceWorkers:'allow',viewport:{width:1024,height:768}};
+    const configure=ctx=>{ctx.setDefaultTimeout(15000);ctx.setDefaultNavigationTimeout(20000);};
     mark('launch browser');
-    browser=await bounded('launch browser',()=> (process.env.BROWSER==='webkit'?webkit:chromium).launch({headless:true,timeout:20000,...(useH2?{args:['--ignore-certificate-errors']}: {})}),25000);
-    context=await bounded('new browser context',()=>browser.newContext({serviceWorkers:'allow',viewport:{width:1024,height:768},ignoreHTTPSErrors:useH2}));
-    context.setDefaultTimeout(15000);context.setDefaultNavigationTimeout(20000);
+    if(isChromium){
+      profileDir=fs.mkdtempSync(path.join(os.tmpdir(),'skazki-qa-installed-207-'));
+      // Fixture preparation ONLY; default Chromium cannot reliably cold
+      // install this exact historical worker. No flags in the upgrade.
+      context=await bounded('bootstrap historical Chromium profile',()=>chromium.launchPersistentContext(profileDir,{...contextOptions,headless:true,timeout:20000,args:['--disable-features=ThrottleInstallingServiceWorker']}),25000);
+      console.log('LEGACY FIXTURE ONLY: historical install throttle disabled');
+    }else{
+      browser=await bounded('launch WebKit',()=>webkit.launch({headless:true,timeout:20000}),25000);
+      context=await bounded('new WebKit context',()=>browser.newContext(contextOptions));
+    }
+    configure(context);
     mark('open lightweight exact old release bootstrap');
-    const control=await bounded('control page',()=>context.newPage());await control.goto(origin+'/control.html');
-    const page=await bounded('old page',()=>context.newPage());diagnosticPage=page;
+    let control=await bounded('control page',()=>context.newPage());await control.goto(origin+'/control.html');
+    let page=await bounded('old page',()=>context.newPage());diagnosticPage=page;
     page.on('pageerror',error=>console.log('[page error]',String(error.message).slice(0,350)));
     // Start installation from the actual small published release.json, not
     // a busy editor loading artwork and scripts. It is within /book/ scope.
@@ -144,7 +145,18 @@ async function main() {
     console.log('Exact old shell readiness',JSON.stringify(oldState));
     assert.ok(isOldReady(oldState),'old shell did not finish installation; do not attempt upgrade');
     assert.ok(requests.some(r=>r.name==='sw.js'&&r.version===oldVersion&&r.sha256===expectedOldWorkerHash&&r.finished),'exact old worker must be delivered');
-    if(useH2)assert.ok(requests.some(r=>r.name==='sw.js'&&r.protocol==='2.0'),'Chromium must exercise HTTP/2');
+    if(isChromium){
+      mark('restart installed legacy profile in unmodified Chromium');
+      await bounded('close fixture browser',()=>context.close(),20000);context=null;diagnosticPage=null;
+      context=await bounded('reopen installed profile with default Chromium',()=>chromium.launchPersistentContext(profileDir,{...contextOptions,headless:true,timeout:20000}),25000);
+      configure(context);
+      // Persistent browser may open a blank tab; all pages created below are
+      // deliberate. No fixture feature flags survive the browser restart.
+      control=await bounded('reopen control page',()=>context.newPage());await control.goto(origin+'/control.html');
+      page=await bounded('reopen old application page',()=>context.newPage());diagnosticPage=page;
+      page.on('pageerror',error=>console.log('[page error]',String(error.message).slice(0,350)));
+      console.log('ACTUAL UPGRADE: default Chromium, previously installed exact 1.5.207');
+    }
     mark('open exact old application under activated worker');
     await page.goto(url);
     assert.equal(await page.evaluate(()=>APP_RELEASE),oldVersion);
@@ -282,6 +294,36 @@ async function main() {
     await updated.reload();
     assert.deepEqual(contents(draft(await snapshot(updated))),contents(edited));
     console.log('PASS exact deployed 1.5.207 -> 1.5.208: waiting editor, offline reopen, byte-exact legacy PNG/JPEG, continuation, text and progress preserved');
+    // Independent default Chromium path for an old online-only user whose
+    // historical worker never installed. Import only the synthetic bytes
+    // generated by the real old editor above, never a production profile.
+    if(isChromium){
+      mark('default Chromium fresh worker with authentic legacy data');
+      await bounded('close upgrade browser',()=>context.close(),20000);context=null;diagnosticPage=null;
+      browser=await bounded('launch default clean Chromium',()=>chromium.launch({headless:true,timeout:20000}),25000);
+      context=await bounded('clean context',()=>browser.newContext(contextOptions));configure(context);
+      const seed=await context.newPage();diagnosticPage=seed;await seed.goto(origin+'/control.html');
+      await seed.evaluate(({key,extras,state})=>{localStorage.setItem(key,state.library);extras.forEach((k,i)=>{if(state.extras[i]!==null)localStorage.setItem(k,state.extras[i]);});},{key,extras,state:persisted});
+      const clean=await context.newPage();diagnosticPage=clean;
+      await clean.goto(url);assert.equal(await clean.evaluate(()=>APP_RELEASE),newVersion);
+      assert.deepEqual(await snapshot(clean),persisted,'legacy data must remain exact on a clean online open');
+      await bounded('register clean candidate',()=>clean.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});}),25000);
+      const cleanState=()=>clean.evaluate(async ({name,key})=>{
+        const reg=await navigator.serviceWorker.getRegistration(),keys=await caches.keys(),cache=keys.includes(name)?await caches.open(name):null,marker=cache?await cache.match(key):null;
+        return {active:reg?.active?.state,controller:navigator.serviceWorker.controller?.state,marker:marker?await marker.text():null};
+      },{name:newCache,key:readyKey});
+      let cs=await bounded('inspect fresh worker',cleanState,10000);
+      const cd=Date.now()+35000,valid=x=>x.active==='activated'&&x.controller==='activated'&&x.marker===fingerprint;
+      while(!valid(cs)&&Date.now()<cd){await new Promise(resolve=>setTimeout(resolve,250));cs=await bounded('inspect fresh worker',cleanState,10000);}
+      assert.ok(valid(cs),'fresh candidate failed in default Chromium: '+JSON.stringify(cs));
+      await context.setOffline(true);await clean.reload();
+      assert.equal(await clean.evaluate(()=>APP_RELEASE),newVersion);assert.deepEqual(await snapshot(clean),persisted);
+      await clean.locator('#homeDrafts').click();await clean.locator('[data-own-draft]').filter({hasText:title}).click();
+      assert.equal(await clean.locator('#storyBody').inputValue(),before.body);
+      await clean.locator('#drawStory').click();await ready(clean);
+      assert.equal(await clean.locator('#drawingCanvas').evaluate(c=>c.toDataURL()),oldPixels);
+      console.log('PASS default Chromium clean candidate install with exact legacy data, offline reopen and original PNG');
+    }
   } catch(error) {
     console.error('Exact upgrade failure',JSON.stringify({phase,requests}));
     if(diagnosticPage&&!diagnosticPage.isClosed()){
@@ -292,9 +334,8 @@ async function main() {
     mark('cleanup');
     if(context)await bounded('close context',()=>context.close(),10000).catch(e=>console.error(String(e)));
     if(browser)await bounded('close browser',()=>browser.close(),10000).catch(e=>console.error(String(e)));
-    for(const session of sessions)session.destroy();
     server.closeAllConnections?.();
-    try{await bounded('close server',()=>new Promise(resolve=>server.close(resolve)),5000);}finally{if(tlsDir)fs.rmSync(tlsDir,{recursive:true,force:true});}
+    try{await bounded('close server',()=>new Promise(resolve=>server.close(resolve)),5000);}finally{if(profileDir)fs.rmSync(profileDir,{recursive:true,force:true});}
   }
 }
 main().then(()=>clearTimeout(watchdog)).catch(error=>{clearTimeout(watchdog);console.error(error);process.exit(1);});
