@@ -1,7 +1,7 @@
 'use strict';
 
-// Exact deployed 1.5.207 source -> checked-out 1.5.208, same isolated origin.
-// No production access, no real child data, no synthetic version renaming.
+// Upgrade the exact published source on an isolated origin, then use a
+// separate profile and a synthetic next release to exercise live activation.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
@@ -10,7 +10,7 @@ const {gzipSync}=require('node:zlib');
 const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 const {chromium, webkit} = require('playwright');
-const {shellDefinition} = require('../tools/shell-integrity.cjs');
+const {shellDefinition,releaseSources,buildShellIntegrity} = require('../tools/shell-integrity.cjs');
 const root = path.resolve(__dirname, '..');
 const oldSha = process.env.QA_BASE_SHA || '6fe6bcc0ad285176c93ab045e94328cf1de9bed5';
 const oldVersion = process.env.QA_BASE_VERSION || '1.5.207', newVersion = process.env.QA_TARGET_VERSION || '1.5.208';
@@ -52,6 +52,7 @@ function bounded(label,task,ms=30000){
 // Hard watchdog also catches unresponsive Playwright protocol or cleanup.
 const watchdog=setTimeout(()=>{console.error('UPGRADE WATCHDOG',JSON.stringify({phase,requests}));process.exit(1);},210000);
 let serving = oldVersion;
+let nextRelease;
 // The historical worker has a fetch-all-headers-before-consuming-bodies
 // deadlock under Chromium's installation throttle. Bootstrap only the
 // already-installed legacy profile with the throttle disabled; close that
@@ -68,7 +69,7 @@ function serve(req,res) {
   const name = pathname.slice('/book/'.length)||'index.html';
   if (!/^[A-Za-z0-9_./-]+$/.test(name)||name.split('/').some(part=>part==='..'||part==='.')) {res.statusCode=404;return res.end();}
   try {
-    const bytes=(serving===oldVersion?oldRead:newRead)(name);
+    const bytes=serving===nextRelease?.version?(nextRelease.files.get(name)||newRead(name)):(serving===oldVersion?oldRead:newRead)(name);
     // The old worker fetches all response headers before consuming bodies.
     // Avoid loopback HTTP/1.1 keep-alive contention and oversized unconsumed
     // text bodies; serve ordinary compressed static responses like a web host.
@@ -96,6 +97,81 @@ const text='Сова нашла фонарь.\n\nЭто синтетически
 const snapshot = page => page.evaluate(({key,extras})=>({library:localStorage.getItem(key),extras:extras.map(k=>localStorage.getItem(k))}),{key,extras});
 const draft = state => Object.values(JSON.parse(state.library).drafts).find(d=>d.title===title);
 const contents = d => ({title:d.title,body:d.body,images:d.rich.images,originals:d.studio.originals,sheets:d.studio.sheets});
+async function verifyAutomaticActivation(page,context,url,ready){
+  mark('automatic activation from home in the same installed window');
+  const parts=newVersion.split('.').map(Number);
+  const version=[parts[0],parts[1],parts[2]+1].join('.');
+  const synced=releaseSources(newRead('index.html').toString(),newRead('sw.js').toString(),version);
+  const files=new Map([['index.html',Buffer.from(synced.html)],['release.json',Buffer.from(JSON.stringify({version}))]]);
+  const worker=buildShellIntegrity(synced.worker,name=>files.get(name)||newRead(name));
+  const nextShell=shellDefinition(worker).fingerprint;
+  files.set('sw.js',Buffer.from(worker));
+  nextRelease={version,files};
+  const receipt=page.locator('#activationStatus');
+  await receipt.filter({hasText:'Подтверждено на iPad · '+newVersion+' · оболочка '+fingerprint}).waitFor({state:'attached'});
+  await page.locator('#homeBooks').tap();
+  await page.locator('#ownShelfDrafts').tap();
+  await page.locator('[data-own-draft]').filter({hasText:title}).tap();
+  const manuscript=text+'\nПродолжаю писать, пока загружается обновление.';
+  await page.locator('#storyBody').fill(manuscript);
+  await page.locator('#drawStory').tap();await ready(page);
+  const canvas=page.locator('#drawingCanvas');
+  await canvas.tap({position:{x:140,y:125}});
+  const painted=await canvas.evaluate(c=>c.toDataURL());
+  serving=version;
+  await page.evaluate(()=>window.dispatchEvent(new Event('online')));
+  const installed=()=>page.evaluate(async shell=>{
+    const reg=await navigator.serviceWorker.getRegistration();
+    const marker=await caches.match(new URL('__skazki_shell_verified__',location.href),{cacheName:shell.name});
+    return reg?.waiting?.state==='installed'&&await marker?.text()===shell.fingerprint;
+  },{name:'skazki-shell-'+version+'-'+nextShell,fingerprint:nextShell});
+  const deadline=Date.now()+30000;
+  let readyToActivate=await installed();
+  while(!readyToActivate&&Date.now()<deadline){
+    await new Promise(resolve=>setTimeout(resolve,250));
+    readyToActivate=await installed();
+  }
+  assert.ok(readyToActivate,'the integrity-checked next shell must finish installing while drawing');
+  assert.ok(requests.some(record=>record.name==='sw.js'&&record.version===version&&record.sha256===hash(Buffer.from(worker))));
+  assert.equal(await page.evaluate(()=>APP_RELEASE),newVersion,'installing the new shell cannot reload an open drawing');
+  assert.equal(await canvas.evaluate(c=>c.toDataURL()),painted);
+  assert.ok((await receipt.textContent()).includes(newVersion));
+  await page.locator('#drawingCancel').tap();
+  assert.equal(await page.locator('#storyBody').inputValue(),manuscript);
+  await page.evaluate(storageKey=>{
+    window.qaSetItem=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){if(key===storageKey)throw Error('QA quota');return window.qaSetItem.call(this,key,value)};
+  },key);
+  await page.locator('#storyBody').fill(manuscript+' Сохраняю ещё одну строку.');
+  await page.locator('#saveStoryNow').tap();
+  assert.ok(await page.locator('#modal').isVisible(),'failed save keeps the editor open');
+  assert.equal(await page.evaluate(()=>APP_RELEASE),newVersion);
+  await page.evaluate(()=>{Storage.prototype.setItem=window.qaSetItem});
+  await page.locator('#saveStoryNow').tap();
+  await page.locator('#modal').waitFor({state:'hidden'});
+  const saved=await snapshot(page);
+  const edited=draft(saved);
+  assert.equal(edited.body,manuscript+' Сохраняю ещё одну строку.');
+  assert.equal(edited.studio.sheets[0].src,painted);
+  await context.setOffline(true);
+  assert.ok(await page.locator('#libraryHome').isVisible());
+  assert.equal(await page.evaluate(()=>APP_RELEASE),newVersion,'closing the editor at the library does not activate the update');
+  await page.locator('#home').tap();
+  await page.waitForFunction(expected=>typeof APP_RELEASE==='string'&&APP_RELEASE===expected,version,{timeout:30000});
+  await page.locator('#adultEntry').tap();
+  await receipt.filter({hasText:'Подтверждено на iPad · '+version+' · оболочка '+nextShell}).waitFor({state:'visible'});
+  await page.locator('#remoteReleaseStatus').filter({hasText:'не удалось проверить'}).waitFor({state:'visible'});
+  assert.equal(new URL(page.url()).pathname,new URL(url).pathname);
+  assert.equal(new URL(page.url()).searchParams.has('_release'),false,'successful activation clears the retry marker');
+  assert.deepEqual(await snapshot(page),saved,'activation does not rewrite saved works or reading progress');
+  await page.locator('#home').tap();
+  await page.locator('#homeDrafts').tap();
+  await page.locator('[data-own-draft]').filter({hasText:title}).tap();
+  assert.equal(await page.locator('#storyBody').inputValue(),edited.body);
+  await page.locator('#drawStory').tap();await ready(page);
+  assert.equal(await canvas.evaluate(c=>c.toDataURL()),painted,'updated offline editor opens the same original PNG');
+  console.log('PASS verified automatic update on home, failed save deferred activation, offline and local device receipt');
+}
 async function main() {
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const origin='http://127.0.0.1:'+server.address().port, url=origin+'/book/?view=personal';
@@ -344,12 +420,17 @@ async function main() {
     // Independent default Chromium path for an old online-only user whose
     // historical worker never installed. Import only the synthetic bytes
     // generated by the real old editor above, never a production profile.
-    if(isChromium){
-      mark('default Chromium fresh worker with authentic legacy data');
+    if(isChromium||newRead('sw.js').includes('skazki-release-activate')){
+      mark('fresh worker with authentic legacy data');
       await bounded('close upgrade context',()=>context.close(),20000);context=null;diagnosticPage=null;
       if(browser){await bounded('close first browser',()=>browser.close(),20000);browser=null;}
-      browser=await bounded('launch default clean Chromium',()=>chromium.launch({headless:true,timeout:20000}),25000);
-      context=await bounded('clean context',()=>browser.newContext(contextOptions));configure(context);
+      browser=await bounded('launch clean browser',()=>(isChromium?chromium:webkit).launch({headless:true,timeout:20000}),25000);
+      context=await bounded('clean context',()=>browser.newContext({...contextOptions,hasTouch:true}));configure(context);
+      await context.addInitScript(()=>{
+        // Device classification only. This is a browser test, never an iPad receipt.
+        Object.defineProperty(navigator,'standalone',{value:true});
+        Object.defineProperty(navigator,'userAgent',{value:navigator.userAgent+' iPad'});
+      });
       const seed=await context.newPage();diagnosticPage=seed;await seed.goto(origin+'/control.html');
       await seed.evaluate(({key,extras,state})=>{localStorage.setItem(key,state.library);extras.forEach((k,i)=>{if(state.extras[i]!==null)localStorage.setItem(k,state.extras[i]);});},{key,extras,state:persisted});
       const clean=await context.newPage();diagnosticPage=clean;
@@ -370,7 +451,12 @@ async function main() {
       assert.equal(await clean.locator('#storyBody').inputValue(),before.body);
       await clean.locator('#drawStory').click();await ready(clean);
       assert.equal(await clean.locator('#drawingCanvas').evaluate(c=>c.toDataURL()),oldPixels);
-      console.log('PASS default Chromium clean candidate install with exact legacy data, offline reopen and original PNG');
+      console.log('PASS clean candidate install with exact legacy data, offline reopen and original PNG');
+      if(newRead('sw.js').includes('skazki-release-activate')){
+        await context.setOffline(false);
+        await clean.reload();
+        await verifyAutomaticActivation(clean,context,url,ready);
+      }
     }
   } catch(error) {
     console.error('Exact upgrade failure',JSON.stringify({phase,requests}));

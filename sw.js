@@ -2,9 +2,10 @@
 'use strict';
 const REV='1.5.210',ART_CACHE='skazki-book-art-v1';
 // BEGIN GENERATED SHELL INTEGRITY
-const SHELL_FINGERPRINT='4d1b63b40d81899fc9cff693';
+const SHELL_FINGERPRINT='dc15f1c400f11316d1d1952a';
 const SHELL_SHA256={
-  "index.html": "683b63b6eaf8475867fed5ca2c9913981927644780b3e1d7fd77525e96cdb47f",
+  "index.html": "2b7c3772a98fb8b6324a11f761f03cd29839bfa7c953a1f2eeef91f50171a52a",
+  "release.json": "651bf7c7d7245942f735ff9fd06c1ce96677c4a9e91e8e2e576e51b3b9e1c5e5",
   "classic-art-153.js?v=1.5.210": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
   "classic-art-155.js?v=1.5.210": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8",
   "andersen-art-156.js?v=1.5.210": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b",
@@ -31,7 +32,7 @@ const UI_SPRITES=['assets/ui/home-sprite-1548.webp','assets/ui/learning-sprite-1
 for(const asset of ['studio-drawings.js','studio-layout.css','studio-friends.js'])LEGACY_CORE.push(new URL(asset,ROOT).href);
 const VERSIONED_CORE=[...LEGACY_CORE,...['studio-engine-208.js','studio-project-store.js','studio-filters-208.js'].map(name=>new URL(name,ROOT).href)];
 const CORE=[...VERSIONED_CORE.map(url=>url+'?v='+REV),...UI_SPRITES];
-const RELEASE_URLS=[INDEX,...CORE];
+const RELEASE_URLS=[INDEX,new URL('release.json',ROOT).href,...CORE];
 const ART=new Set(['andersen-pea-bed.webp','andersen-pea-journey.webp','andersen-pea-morning.webp','andersen-pea-rain.webp','classic-cinder-1.jpg','classic-cinder-11.jpg','classic-cinder-3.jpg','classic-cinder-7.jpg','historic-pea-morning.jpg','historic-sunny.jpg','historic-wind1.jpg','historic-wind2.jpg','premium-coloring.png','premium-storybook.webp'].map(name=>new URL('assets/books/'+name,ROOT).href));
 for(const name of ['egypt-nile-thumb-128-v1.webp','night-owl-thumb-128-v1.webp','night-bats-scene-320-v1.webp','night-bats-scene-504-v1.webp','night-roost-scene-320-v1.webp','night-roost-scene-504-v1.webp','night-owl-cover-320-v1.webp','night-owl-cover-504-v1.webp','egypt-nile-cover-320-v1.webp','egypt-nile-cover-504-v1.webp'])ART.add(new URL('assets/world/'+name,ROOT).href);
 for(const name of ['library-lantern','star-journey'])ART.add(new URL('assets/author/'+name+'-v1.svg',ROOT).href);
@@ -51,7 +52,7 @@ async function verifiedResource(url,response){
  if(!response?.ok)return false;
  const name=url.slice(ROOT.length),pathname=new URL(url).pathname;
  const contentType=response.headers.get('content-type')||'';
- const validType=pathname.endsWith('.html')?isHTML(response):pathname.endsWith('.css')?/^text\/css\b/i.test(contentType):
+ const validType=pathname.endsWith('.html')?isHTML(response):pathname.endsWith('.json')?/^application\/json\b/i.test(contentType):pathname.endsWith('.css')?/^text\/css\b/i.test(contentType):
   pathname.endsWith('.js')?/^(?:text|application)\/(?:x-)?(?:java|ecma)script\b/i.test(contentType):/^image\/webp\b/i.test(contentType);
  if(!validType||!SHELL_SHA256[name])return false;
  const hash=new Uint8Array(await crypto.subtle.digest('SHA-256',await response.clone().arrayBuffer()));
@@ -89,8 +90,17 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   if(!alreadyVerified)await caches.delete(CACHE).catch(()=>false);
   throw error;
  }
- // Natural activation waits for all clients of the preceding worker to close.
+ // Wait by default. A compatible page may request activation from its home screen.
 })()));
+self.addEventListener('message',event=>{
+ const message=event.data;
+ if(!event.source?.url?.startsWith(ROOT)||!['skazki-release-state','skazki-release-activate'].includes(message?.type))return;
+ event.waitUntil((async()=>{
+  if(!await sealed(CACHE))return;
+  if(message.type==='skazki-release-state')event.ports[0]?.postMessage({version:REV,shell:SHELL_FINGERPRINT});
+  else if(message.version===REV&&message.shell===SHELL_FINGERPRINT)await self.skipWaiting();
+ })());
+});
 // Retain the current release and two nearest older releases; never delete an
 // unrelated cache, an artwork cache, legacy fallback, or an installing newer shell.
 function shellRevision(name){const match=/^skazki-shell-(\d+)\.(\d+)\.(\d+)(?:-[a-f0-9]{24})?$/.exec(name);return match?match.slice(1).map(Number):null}
@@ -103,7 +113,12 @@ function obsoleteShells(names,current=CACHE){
 async function pruneShells(){
  try{await Promise.all((obsoleteShells(await caches.keys())).map(name=>caches.delete(name).catch(()=>false)))}catch(e){/* Storage cleanup is best effort. */}
 }
-self.addEventListener('activate',event=>event.waitUntil((async()=>{await self.clients.claim();await pruneShells()})()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{
+ const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+ await self.clients.claim();
+ // Another window may still be editing with an older version and need its lazy resources.
+ if(windows.filter(client=>client.url.startsWith(ROOT)).length<=1)await pruneShells();
+})()));
 function unavailable(status=503){
  return new Response(status===503?'Не удалось открыть проверенную версию. Подключись к интернету, закрой все вкладки «Книги сказок» и открой её снова.':null,
   {status,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});

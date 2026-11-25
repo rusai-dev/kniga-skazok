@@ -158,7 +158,8 @@ jobs:
         run: |
           if timeout --kill-after=5s 50s node tests/live-navigation.cjs ||
              timeout --kill-after=5s 50s node tests/live-navigation.cjs; then
-            echo "ОПУБЛИКОВАНО $EXPECTED_LIVE_RELEASE $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "ОПУБЛИКОВАНО НА СЕРВЕРЕ $EXPECTED_LIVE_RELEASE $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo 'ОБНОВЛЕНИЕ НА iPad: требуется подтверждение из установленного приложения.' | tee -a "$GITHUB_STEP_SUMMARY"
           else
             node tools/release-guard.cjs recheck /tmp/release stable
             echo 'critical=true' >> "$GITHUB_OUTPUT"
@@ -223,7 +224,7 @@ jobs:
           if [ "$RESTORE" = success ]; then
             echo 'ВОССТАНОВЛЕНО' | tee -a "$GITHUB_STEP_SUMMARY"
           elif [ "$VERIFY" = success ]; then
-            echo 'ОПУБЛИКОВАНО' | tee -a "$GITHUB_STEP_SUMMARY"
+            echo 'ОПУБЛИКОВАНО НА СЕРВЕРЕ. ОБНОВЛЕНИЕ НА iPad ОЖИДАЕТ ПОДТВЕРЖДЕНИЯ.' | tee -a "$GITHUB_STEP_SUMMARY"
           elif [ "$PREPARE" = success ] && [ "$COMMAND" = 'Проверить' ]; then
             echo 'ГОТОВО К ПУБЛИКАЦИИ' | tee -a "$GITHUB_STEP_SUMMARY"
           else

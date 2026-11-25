@@ -60,7 +60,7 @@
 </nav>
 <div class="home-study-head"><strong>Ещё приключения</strong><button type="button" id="friendsOpen" hidden>Мои друзья</button><button type="button" id="childLearn"><span id="otherArt" aria-hidden="true"></span>Все занятия</button></div>
 <nav class="home-map" aria-label="Мой волшебный мир"><button type="button" id="readingEntry" data-home-art="read"><span class="home-art" aria-hidden="true"></span><b>Читаем</b></button><button type="button" id="homeMath" data-home-art="math"><span class="home-art" aria-hidden="true"></span><b>Математика</b></button><button type="button" id="homeLogic" data-home-art="logic"><span class="home-art" aria-hidden="true"></span><b>Логика</b></button><button type="button" id="childWorld" data-home-art="world"><span class="home-art" aria-hidden="true"></span><b>Познаём мир</b></button></nav>
-</section><section id="creativeHome" hidden><h1 class="home-heading">Творческая мастерская</h1><nav class="child-actions child-home" aria-label="Творчество"><button type="button" id="childWrite" data-child-art="write"><span class="child-picture" aria-hidden="true"></span><b>Пишу</b></button><button type="button" id="childDraw" data-child-art="draw"><span class="child-picture" aria-hidden="true"></span><b>Рисую</b></button><button type="button" id="childBooks" data-child-art="books"><span class="child-picture" aria-hidden="true"></span><b>Мои книги</b></button></nav></section><section id="adultHome" hidden><h1 class="home-heading">Для родителей</h1><p class="release-parent-status"><strong id="currentRelease">Версия на устройстве: 1.5.210</strong><span id="remoteReleaseStatus" role="status">Версия на сервере: ещё не проверена</span></p><div class="adult-actions"><button id="familyEnable" type="button">Семейная библиотека</button><button id="backup" type="button">Резервная копия</button><button id="releaseCheck" type="button" hidden>Проверить обновления</button></div><section id="familyBanner" class="family-banner" hidden><strong>Семейная полка</strong><p id="familyPublishedCount" aria-live="polite"></p><p id="familyStatus" role="status">Ожидаем подключение…</p><small>Родители видят только опубликованные для семьи книги.</small><div class="actions"><button id="familyInvite" type="button">Ссылка для семьи</button><button id="familyOwnShelf" type="button">Подготовленные сказки</button><button id="familySendNow" type="button">Отправить обновления</button><button id="familyStop" type="button">Отключить здесь</button></div></section><div id="adultProgress"></div><div class="notice" id="storageNote">🔒 Истории и отзывы хранятся только в этом браузере. Автокопии остаются на этом устройстве; между устройствами синхронизации пока нет. <span id="archiveState" aria-live="polite"></span></div></section><section id="libraryHome" hidden><div class="layout"><main><section class="hero"><div><div class="tag" id="heroTag">МОЯ ТВОРЧЕСКАЯ МАСТЕРСКАЯ</div><h2 id="heading" class="hero-title">Винни-Пух</h2><p id="subtitle">Открой чистый лист и сочини свою сказку.</p><details id="studioInspiration" hidden><summary>Вдохновение</summary><label>Сюжет <select id="studioMotif"><option value="rotate">Менять при входе</option><option value="off">Без рисунка</option><option value="0">Белочка пишет сказку</option><option value="1">Зайчик рисует</option><option value="2">Лунная библиотека</option><option value="3">Ёжик с книгой</option></select></label> <a id="studioOriginal" target="_blank" rel="noopener">Открыть иллюстрацию</a></details></div><div class="hero-art" id="heroArt" aria-hidden="true"></div></section><div class="shelf-head"><h2 id="shelfTitle">Мои сказки</h2><span class="count" id="count"></span></div><div id="ownShelfTools" hidden><button type="button" class="primary" id="ownShelfNew">Создать сказку</button><button type="button" id="ownShelfContinue">Продолжить</button><button type="button" id="ownShelfDrafts">Мои черновики</button></div><div class="library-tools"><input id="bookSearch" type="search" enterkeyhint="search" autocomplete="off" placeholder="Название своей сказки…" aria-label="Найти свою сказку"><button type="button" id="clearBookSearch" aria-label="Очистить поиск" hidden>×</button><button id="showAll">Все книги автора</button></div><p class="library-search-note" id="bookSearchNote" role="status" hidden></p><details id="libraryFilters" class="library-filters"><summary id="authorJump">Авторы и темы</summary><div class="library-filter-grid"><section class="topics"><div class="topics-head"><p class="section-kicker">Выбери тему сказки</p><button id="moreThemes" aria-controls="topics" aria-expanded="false">Все темы ▾</button></div><nav class="chips" id="topics" aria-label="Темы сказок"></nav></section><aside class="authors"><h2>Авторы</h2><div class="authors-list" id="authors"></div><button class="add-author" id="addAuthor">＋ Добавить автора</button></aside></div></details><div class="books" id="books"></div></main></div></section></div><footer>Книга сказок · версия 1.5.210</footer>
+</section><section id="creativeHome" hidden><h1 class="home-heading">Творческая мастерская</h1><nav class="child-actions child-home" aria-label="Творчество"><button type="button" id="childWrite" data-child-art="write"><span class="child-picture" aria-hidden="true"></span><b>Пишу</b></button><button type="button" id="childDraw" data-child-art="draw"><span class="child-picture" aria-hidden="true"></span><b>Рисую</b></button><button type="button" id="childBooks" data-child-art="books"><span class="child-picture" aria-hidden="true"></span><b>Мои книги</b></button></nav></section><section id="adultHome" hidden><h1 class="home-heading">Для родителей</h1><p class="release-parent-status"><strong id="currentRelease">Версия на устройстве: 1.5.210</strong><span id="remoteReleaseStatus" role="status">Версия на сервере: ещё не проверена</span><span id="activationStatus" role="status" hidden></span></p><div class="adult-actions"><button id="familyEnable" type="button">Семейная библиотека</button><button id="backup" type="button">Резервная копия</button><button id="releaseCheck" type="button" hidden>Проверить обновления</button></div><section id="familyBanner" class="family-banner" hidden><strong>Семейная полка</strong><p id="familyPublishedCount" aria-live="polite"></p><p id="familyStatus" role="status">Ожидаем подключение…</p><small>Родители видят только опубликованные для семьи книги.</small><div class="actions"><button id="familyInvite" type="button">Ссылка для семьи</button><button id="familyOwnShelf" type="button">Подготовленные сказки</button><button id="familySendNow" type="button">Отправить обновления</button><button id="familyStop" type="button">Отключить здесь</button></div></section><div id="adultProgress"></div><div class="notice" id="storageNote">🔒 Истории и отзывы хранятся только в этом браузере. Автокопии остаются на этом устройстве; между устройствами синхронизации пока нет. <span id="archiveState" aria-live="polite"></span></div></section><section id="libraryHome" hidden><div class="layout"><main><section class="hero"><div><div class="tag" id="heroTag">МОЯ ТВОРЧЕСКАЯ МАСТЕРСКАЯ</div><h2 id="heading" class="hero-title">Винни-Пух</h2><p id="subtitle">Открой чистый лист и сочини свою сказку.</p><details id="studioInspiration" hidden><summary>Вдохновение</summary><label>Сюжет <select id="studioMotif"><option value="rotate">Менять при входе</option><option value="off">Без рисунка</option><option value="0">Белочка пишет сказку</option><option value="1">Зайчик рисует</option><option value="2">Лунная библиотека</option><option value="3">Ёжик с книгой</option></select></label> <a id="studioOriginal" target="_blank" rel="noopener">Открыть иллюстрацию</a></details></div><div class="hero-art" id="heroArt" aria-hidden="true"></div></section><div class="shelf-head"><h2 id="shelfTitle">Мои сказки</h2><span class="count" id="count"></span></div><div id="ownShelfTools" hidden><button type="button" class="primary" id="ownShelfNew">Создать сказку</button><button type="button" id="ownShelfContinue">Продолжить</button><button type="button" id="ownShelfDrafts">Мои черновики</button></div><div class="library-tools"><input id="bookSearch" type="search" enterkeyhint="search" autocomplete="off" placeholder="Название своей сказки…" aria-label="Найти свою сказку"><button type="button" id="clearBookSearch" aria-label="Очистить поиск" hidden>×</button><button id="showAll">Все книги автора</button></div><p class="library-search-note" id="bookSearchNote" role="status" hidden></p><details id="libraryFilters" class="library-filters"><summary id="authorJump">Авторы и темы</summary><div class="library-filter-grid"><section class="topics"><div class="topics-head"><p class="section-kicker">Выбери тему сказки</p><button id="moreThemes" aria-controls="topics" aria-expanded="false">Все темы ▾</button></div><nav class="chips" id="topics" aria-label="Темы сказок"></nav></section><aside class="authors"><h2>Авторы</h2><div class="authors-list" id="authors"></div><button class="add-author" id="addAuthor">＋ Добавить автора</button></aside></div></details><div class="books" id="books"></div></main></div></section></div><footer>Книга сказок · версия 1.5.210</footer>
 <main id="familyViewer" class="family-viewer" hidden><div class="family-intro"><div class="family-eyebrow">СЕМЕЙНАЯ БИБЛИОТЕКА</div><h1>Сказки нашей семьи</h1><p>Наши маленькие истории и большие приключения.</p><p id="familyViewStatus" role="status" aria-live="polite">Открываем книжки…</p><button type="button" id="familyRefresh" class="primary">Обновить сказки</button> <a href="./?view=personal&amp;_nav=1.5.210">← В мою мастерскую</a><div class="family-recovery" id="familyRecovery" hidden><button type="button" class="primary" id="familyChangeLink" hidden>Подключить семейную библиотеку</button><button type="button" id="familyRetry" hidden>Попробовать снова</button></div></div><section id="familyThemes" class="family-themes" hidden aria-labelledby="familyThemesTitle"><h2 id="familyThemesTitle">Темы сказок</h2><div id="familyThemeButtons" class="family-theme-buttons" role="group" aria-label="Выбрать тему"></div></section><div id="familyShelf" class="family-shelf"></div><section id="familyReading" class="family-reading" hidden></section></main><dialog id="modal" aria-labelledby="modalTitle"><div class="dialog-head"><h2 id="modalTitle"></h2><button class="close" id="close" aria-label="Закрыть и вернуться назад">← Назад</button></div><div class="dialog-body" id="modalBody"></div></dialog><div class="toast" id="toast" role="status" hidden></div><input type="file" id="importFile" accept="application/json,.json" hidden>
 <div class="print-sheet" id="printSheet"></div><noscript><div class="js-note">Это предварительный просмотр файла. Чтобы кнопки работали, открой приложение в обычном браузере с JavaScript. На iPhone просмотр файлов может не запускать интерактивные приложения.</div></noscript><script defer src="studio-friends.js?v=1.5.210"></script><script defer src="studio-drawings.js?v=1.5.210"></script>
 <script defer src="classic-art-153.js?v=1.5.210"></script>
@@ -2720,17 +2720,63 @@ return m?m[1]:''
 }
 function releaseAlreadyAttempted(version,href=location.href){return new URL(href).searchParams.get('_release')===version}
 function canAutoUpdate(){
-return document.body.dataset.homeScreen==='home'&&storageOK&&!$('modal').hasAttribute('open')&&!query&&!document.hidden&&!$('familyReading')?.matches(':not([hidden])')&&!document.activeElement?.matches('input,textarea,select,[contenteditable=true]')&&!/^#(?:writer|cloudwriter)=/.test(location.hash)
+ return document.body.dataset.homeScreen==='home'&&storageOK&&!document.hidden&&
+  !$('modal').hasAttribute('open')&&$('familyViewer').hidden&&!$('familyReading')?.matches(':not([hidden])')&&
+  !document.activeElement?.matches('input,textarea,select,[contenteditable=true]')&&!/^#(?:writer|cloudwriter)=/.test(location.hash);
 }
-function applyRelease(version,manual){
-if(!newerRelease(version,APP_RELEASE))return;
-if($('modal').hasAttribute('open')){toast('Сначала сохрани сказку и закрой окно.');return}
-if(!storageOK){toast('Сначала сделай резервную копию библиотеки.');return}
-if(!manual&&(!canAutoUpdate()||releaseAlreadyAttempted(version)))return;
-if(window.navigator?.serviceWorker?.controller){
-$('releaseText').textContent='Сохрани работу, закрой все вкладки «Книги сказок» и открой её снова, чтобы загрузить версию '+version+'.';return;
+function readReleaseWorker(worker){
+ return new Promise(resolve=>{
+  const channel=new MessageChannel();
+  const finish=value=>{clearTimeout(timer);channel.port1.close();resolve(value)};
+  const timer=setTimeout(()=>finish(null),1500);
+  channel.port1.onmessage=({data})=>finish(releaseFromManifest(data)&&/^[a-f0-9]{24}$/.test(data.shell)?data:null);
+  try{worker.postMessage({type:'skazki-release-state'},[channel.port2])}catch(e){finish(null)}
+ });
 }
-const next=new URL(location.href);next.searchParams.set('_release',version);if(manual)next.searchParams.set('_retry',String(Date.now()));location.replace(next.href);
+function reportDeviceRelease(proof){
+ const status=$('activationStatus');
+ const standalone=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+ const ipad=standalone&&(/iPad/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1));
+ const mode=ipad?'на iPad':standalone?'в установленном приложении':'в браузере';
+ status.hidden=!proof&&!ipad;
+ status.textContent=proof?'Подтверждено '+mode+' · '+proof.version+' · оболочка '+proof.shell:'Обновление на iPad пока не подтверждено';
+ if(proof&&releaseAlreadyAttempted(proof.version))clearReleaseAttempt();
+}
+function clearReleaseAttempt(){
+ const url=new URL(location.href);
+ if(url.searchParams.has('_release')){url.searchParams.delete('_release');history.replaceState(null,'',url.href)}
+}
+function renderReleaseNotice(){
+ const pending=newerRelease(serverRelease,APP_RELEASE)&&canAutoUpdate();
+ $('releaseNotice').hidden=!pending;
+ if(pending)$('releaseText').textContent='Обновление '+serverRelease+' применится на главной после сохранения работы. Если версия не меняется, можно продолжить и попробовать позже.';
+}
+async function activateRelease(){
+ renderReleaseNotice();
+ if(!releaseRegistration||document.hidden)return;
+ if(releaseActivationBusy){releaseActivationAgain=true;return}
+ releaseActivationBusy=true;
+ try{
+  const worker=navigator.serviceWorker.controller;
+  const active=worker?.state==='activated'?(confirmedRelease?.worker===worker?confirmedRelease.proof:await readReleaseWorker(worker)):null;
+  if(worker!==navigator.serviceWorker.controller){releaseActivationAgain=true;return}
+  if(active?.version===APP_RELEASE){
+   if(confirmedRelease?.worker!==worker){confirmedRelease={worker,proof:active};reportDeviceRelease(active)}
+  }else if(confirmedRelease){confirmedRelease=null;reportDeviceRelease(null)}
+  if(!canAutoUpdate())return;
+  if(active&&newerRelease(active.version,APP_RELEASE)&&!releaseAlreadyAttempted(active.version)){
+   const url=new URL(location.href);url.searchParams.set('_release',active.version);location.replace(url.href);return;
+  }
+  const waiting=releaseRegistration.waiting;
+  if(!waiting||(waitingReleaseRequest?.worker===waiting&&Date.now()-waitingReleaseRequest.at<5000))return;
+  const next=await readReleaseWorker(waiting);
+  if(!next||!newerRelease(next.version,APP_RELEASE)||releaseRegistration.waiting!==waiting||!canAutoUpdate())return;
+  waitingReleaseRequest={worker:waiting,at:Date.now()};
+  try{waiting.postMessage({type:'skazki-release-activate',...next})}catch(e){waitingReleaseRequest=null}
+ }finally{
+  releaseActivationBusy=false;
+  if(releaseActivationAgain){releaseActivationAgain=false;queueMicrotask(activateRelease)}
+ }
 }
 function releaseFromManifest(value){return value&&typeof value.version==='string'&&/^\d+\.\d+\.\d+$/.test(value.version)?value.version:''}
 async function fetchReleaseVersion(current,fetcher=(url,opts)=>window.fetch(url,opts),signal){
@@ -2744,37 +2790,54 @@ const actual=releaseFromHtml(await response.text());if(!actual)throw Error('vers
 }
 async function checkRelease(manual=false,announce=manual){
 if(window.__nativeMode||!/^https?:$/.test(location.protocol)||typeof fetch!=='function')return;
-if(releaseChecking||(!manual&&(!canAutoUpdate()||Date.now()-releaseCheckedAt<60000)))return;
+if(releaseChecking||(!manual&&Date.now()-releaseCheckedAt<60000))return;
 releaseChecking=true;releaseCheckedAt=Date.now();const controller=new AbortController();releaseController=controller;
 const status=$('remoteReleaseStatus');if(status)status.textContent='Проверяем версию на сервере…';
 const timer=setTimeout(()=>controller.abort(),12000);
 try{
 const remote=await fetchReleaseVersion(APP_RELEASE,undefined,controller.signal);if(controller.signal.aborted)throw Error('cancelled');
 if(status)status.textContent='Версия на сервере: '+remote+(remote===APP_RELEASE?' · актуальна':newerRelease(remote,APP_RELEASE)?' · доступно обновление':' · устройство новее');
-if(manual&&navigator.serviceWorker){navigator.serviceWorker.getRegistration().then(reg=>reg?.update()).catch(()=>{});}
-if(newerRelease(remote,APP_RELEASE)){
-$('releaseNotice').hidden=false;$('releaseText').textContent='Доступна новая версия '+remote+'. Твои сказки останутся на устройстве.';
-$('releaseApply').onclick=()=>applyRelease(remote,true);
-if(releaseAlreadyAttempted(remote))$('releaseText').textContent='Обновление пока не загрузилось. Можно продолжать заниматься или повторить обновление.';else if(canAutoUpdate())applyRelease(remote,false);
-}else if(announce)toast(remote===APP_RELEASE?'У тебя актуальная версия '+APP_RELEASE+'.':'На сервере версия '+remote+'. Данные не изменены.');
+serverRelease=remote;renderReleaseNotice();
+if(announce&&!newerRelease(remote,APP_RELEASE))toast(remote===APP_RELEASE?'У тебя актуальная версия '+APP_RELEASE+'.':'На сервере версия '+remote+'. Данные не изменены.');
 }catch(e){if(status)status.textContent='Версия на сервере: не удалось проверить';if(announce)toast('Не удалось проверить обновления. Попробуй немного позже.')}
 finally{clearTimeout(timer);releaseChecking=false;if(releaseController===controller)releaseController=null}
+}
+function wakeRelease(manual=false,announce=manual){
+ if(document.hidden)return;
+ checkRelease(manual,announce);
+ activateRelease();
+ updateReleaseWorker(manual);
+}
+function updateReleaseWorker(force){
+ if(!releaseRegistration||document.hidden)return;
+ if(releaseWorkerUpdating){releaseWorkerRecheck||=force;return}
+ const now=Date.now();
+ if(!force&&now-releaseWorkerCheckedAt<60000)return;
+ releaseWorkerCheckedAt=now;releaseWorkerUpdating=true;
+ releaseRegistration.update().catch(()=>{}).finally(()=>{
+  releaseWorkerUpdating=false;activateRelease();
+  if(releaseWorkerRecheck){releaseWorkerRecheck=false;updateReleaseWorker(true)}
+ });
 }
 function flushDrawingDraft(){if($('modal').hasAttribute('open')&&(activeDialog==='editor'||activeDialog==='art')){($('storyForm')||$('standaloneDrawing'))?.flushDrawingDraft?.();if(activeDialog==='editor')$('storyForm')?.flushStoryDraft?.()}}
 window.addEventListener('pagehide',flushDrawingDraft);document.addEventListener('visibilitychange',()=>{if(document.hidden)flushDrawingDraft()});
 const APP_RELEASE='1.5.210';let releaseChecking=false,releaseCheckedAt=0,releaseController=null;
+let serverRelease='',releaseRegistration,confirmedRelease,waitingReleaseRequest;
+let releaseActivationBusy=false,releaseActivationAgain=false,releaseWorkerUpdating=false,releaseWorkerRecheck=false,releaseWorkerCheckedAt=-Infinity;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
-$('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);$('adultEntry').addEventListener('click',()=>checkRelease(true,false));
-window.addEventListener('focus',()=>checkRelease());
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkRelease()});
-setInterval(()=>{if(!document.hidden)checkRelease()},60000);
+reportDeviceRelease(null);
+$('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>wakeRelease(true);$('adultEntry').addEventListener('click',()=>wakeRelease(true,false));
+$('releaseApply').onclick=()=>{waitingReleaseRequest=null;clearReleaseAttempt();wakeRelease(true,false)};
+window.addEventListener('focus',()=>wakeRelease());
+document.addEventListener('visibilitychange',()=>wakeRelease());
+setInterval(wakeRelease,60000);
 window.addEventListener('pagehide',()=>releaseController?.abort());
-window.addEventListener('online',()=>{checkRelease();familyWake()});
+window.addEventListener('online',()=>{wakeRelease(true,false);familyWake()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)familyWake()});
 window.addEventListener('focus',familyWake);window.addEventListener('pageshow',familyWake);
-window.addEventListener('pageshow',()=>checkRelease());
+window.addEventListener('pageshow',()=>wakeRelease());
 window.addEventListener('pageshow',()=>{const m=$('modal');if(m&&!m.hasAttribute('open')){m.classList.remove('fallback');document.body.classList.remove('modal-open')}});
-setTimeout(()=>checkRelease(),2000);
+setTimeout(wakeRelease,2000);
 }
 function validSnapshot(raw){
 try{const b=JSON.parse(raw);return b&&b.version===1&&Array.isArray(b.stories)&&Array.isArray(b.authors)&&Array.isArray(b.themes)&&b.feedback&&typeof b.feedback==='object'&&!Array.isArray(b.feedback)&&b.stories.every(x=>x&&['id','author','title','body','theme','icon'].every(k=>typeof x[k]==='string'))}catch(e){return false}
@@ -2848,12 +2911,17 @@ if(commitLibrary(next)){render();toast('Библиотека восстанов�
 }catch(e){archiveOK=false;showArchiveState()}
 }
 startLocalArchive();
-if(!window.__nativeMode&&location.protocol==='https:'&&'serviceWorker' in navigator){
+if(!window.__nativeMode&&isSecureContext&&/^https?:$/.test(location.protocol)&&'serviceWorker' in navigator){
 navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).then(reg=>{
-let last=-Infinity,busy=false;const update=()=>{const now=Date.now();if(busy||now-last<60000)return;last=now;busy=true;reg.update().catch(()=>{}).finally(()=>{busy=false})};
-update();window.addEventListener('focus',update);document.addEventListener('visibilitychange',()=>{if(!document.hidden)update()});window.addEventListener('online',update);
+releaseRegistration=reg;
+const watch=()=>reg.installing?.addEventListener('statechange',activateRelease);
+reg.addEventListener('updatefound',watch);watch();
+wakeRelease();
 }).catch(()=>{});
-navigator.serviceWorker.addEventListener('controllerchange',()=>checkRelease());
+navigator.serviceWorker.addEventListener('controllerchange',activateRelease);
+const safeScreen=new MutationObserver(activateRelease);
+safeScreen.observe(document.body,{attributes:true,attributeFilter:['data-home-screen']});
+safeScreen.observe($('modal'),{attributes:true,attributeFilter:['open']});
 }
 if(!window.__nativeMode&&navigator.storage&&typeof navigator.storage.persist==='function'){
 navigator.storage.persist().catch(()=>{});
