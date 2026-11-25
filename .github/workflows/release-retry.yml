@@ -55,36 +55,10 @@ jobs:
           gh api "$api/actions/jobs/$job/logs" > /tmp/publish.log
           if grep -Fq 'Creating Pages deployment' /tmp/publish.log; then exit 0; fi
           if [ "$failed_step" = 'Дождаться регистрации точного архива Pages' ]; then
-            grep -Eq 'Z ЗАБЛОКИРОВАНО: точный архив не зарегистрирован в пределах 62 секунд
+            grep -Eq 'Z ЗАБЛОКИРОВАНО: точный архив не зарегистрирован в пределах 62 секунд$' /tmp/publish.log || exit 0
             if grep -F '##[error]' /tmp/publish.log | grep -Fv -e 'Process completed with exit code 1' >/tmp/other-errors; then exit 0; fi
           else
             [ "$failed_step" = 'Run actions/deploy-pages@v4' ] || exit 0
-            grep -Fq 'Found 0 artifact(s)' /tmp/publish.log || exit 0
-            grep -Fq 'Fetching artifact metadata failed' /tmp/publish.log || exit 0
-            grep -Fq 'No artifacts named "github-pages-1" were found for this workflow run' /tmp/publish.log || exit 0
-            # Reject any additional failure reason; never retry a possibly created deployment.
-            if grep -F '##[error]' /tmp/publish.log | grep -Fv -e 'Fetching artifact metadata failed' -e 'No artifacts named "github-pages-1" were found for this workflow run' -e 'Process completed with exit code 1' > /tmp/other-errors; then
-              echo 'Иная причина сбоя: автоматический повтор запрещён'
-              exit 0
-            fi
-          fi
-          artifact_ready=false
-          for delay in 0 2 4 8 12; do
-            sleep "$delay"
-            if gh api "$api/actions/runs/$FAILED_RUN/artifacts?name=github-pages-1" --jq '.artifacts' > /tmp/artifacts.json &&
-               jq -e 'length==1 and (.[0]|.name=="github-pages-1" and .expired==false and .size_in_bytes>0)' /tmp/artifacts.json >/dev/null; then
-              artifact_ready=true
-              break
-            fi
-          done
-          [ "$artifact_ready" = true ] || exit 1
-          [ "$(gh api "$api/git/ref/heads/main" --jq .object.sha)" = "$TARGET_SHA" ] || exit 0
-          [ "$(gh api "$api/actions/runs/$FAILED_RUN" --jq '[.run_attempt,.status,.conclusion]|join("/")')" = '1/completed/failure' ] || exit 0
-          gh api --method POST "$api/actions/jobs/$job/rerun"
-          echo "Повторена только публикация SHA $TARGET_SHA, максимум одна попытка" | tee -a "$GITHUB_STEP_SUMMARY"
- /tmp/publish.log || exit 0
-            if grep -F '##[error]' /tmp/publish.log | grep -Fv -e 'Process completed with exit code 1' >/tmp/other-errors; then exit 0; fi
-          else
             grep -Fq 'Found 0 artifact(s)' /tmp/publish.log || exit 0
             grep -Fq 'Fetching artifact metadata failed' /tmp/publish.log || exit 0
             grep -Fq 'No artifacts named "github-pages-1" were found for this workflow run' /tmp/publish.log || exit 0
