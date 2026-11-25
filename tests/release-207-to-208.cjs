@@ -5,6 +5,8 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
+const http2 = require('node:http2');
+const os = require('node:os');
 const {gzipSync}=require('node:zlib');
 const path = require('node:path');
 const {execFileSync} = require('node:child_process');
@@ -46,10 +48,16 @@ function bounded(label,task,ms=30000){
 // Hard watchdog also catches unresponsive Playwright protocol or cleanup.
 const watchdog=setTimeout(()=>{console.error('UPGRADE WATCHDOG',JSON.stringify({phase,requests}));process.exit(1);},210000);
 let serving = oldVersion;
-const server = http.createServer((req,res) => {
+// Chromium's real legacy install uses Promise.all(fetch) before reading the
+// response bodies. Test it over multiplexed TLS, as on GitHub Pages, rather
+// than a connection-limited loopback HTTP/1.1 fixture. WebKit's proven HTTP
+// path stays unchanged. Certificate trust bypass is local synthetic QA only.
+const useH2=process.env.BROWSER!=='webkit';
+let tlsDir;
+function serve(req,res) {
   const parsed = new URL(req.url,'http://127.0.0.1');
   const pathname=parsed.pathname;
-  res.setHeader('Connection','close');
+  if(req.httpVersionMajor===1)res.setHeader('Connection','close');
   if (pathname === '/control.html') {res.setHeader('Content-Type','text/html');return res.end('<!doctype html><title>QA control</title>');}
   if (!pathname.startsWith('/book/')) {res.statusCode=404;return res.end();}
   const name = pathname.slice('/book/'.length)||'index.html';
@@ -65,7 +73,7 @@ const server = http.createServer((req,res) => {
     const cacheKey=serving+':'+name;
     if(gzip&&!compressed.has(cacheKey))compressed.set(cacheKey,gzipSync(bytes));
     const wire=gzip?compressed.get(cacheKey):bytes;
-    const record={name,query:parsed.search,version:serving,bytes:bytes.length,wireBytes:wire.length,encoding:gzip?'gzip':'identity',finished:false,...(name==='sw.js'?{sha256:hash(bytes)}:{})};
+    const record={name,query:parsed.search,protocol:req.httpVersion,version:serving,bytes:bytes.length,wireBytes:wire.length,encoding:gzip?'gzip':'identity',finished:false,...(name==='sw.js'?{sha256:hash(bytes)}:{})};
     if(requests.length<250||name==='sw.js')requests.push(record);
     res.on('finish',()=>{record.finished=true;});
     res.on('close',()=>{record.closed=true;});
@@ -76,7 +84,16 @@ const server = http.createServer((req,res) => {
     if(gzip)res.setHeader('Content-Encoding','gzip');
     res.end(wire);
   } catch(error) {if(requests.length<250)requests.push({name,version:serving,error:String(error.message).slice(0,200)});res.statusCode=404;res.end();}
-});
+}
+let server;
+const sessions=new Set();
+if(useH2){
+  tlsDir=fs.mkdtempSync(path.join(os.tmpdir(),'skazki-qa-tls-'));
+  const keyPath=path.join(tlsDir,'key.pem'),certPath=path.join(tlsDir,'cert.pem');
+  execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1','-keyout',keyPath,'-out',certPath],{timeout:10000,stdio:'ignore'});
+  server=http2.createSecureServer({key:fs.readFileSync(keyPath),cert:fs.readFileSync(certPath),allowHTTP1:true,settings:{maxConcurrentStreams:100}},serve);
+  server.on('session',session=>{sessions.add(session);session.on('close',()=>sessions.delete(session));session.on('error',error=>console.error('[h2 session]',String(error)));});
+}else server=http.createServer(serve);
 const title='QA exact legacy upgrade';
 const text='Сова нашла фонарь.\n\nЭто синтетический черновик, не работа ребёнка.';
 const snapshot = page => page.evaluate(({key,extras})=>({library:localStorage.getItem(key),extras:extras.map(k=>localStorage.getItem(k))}),{key,extras});
@@ -84,12 +101,12 @@ const draft = state => Object.values(JSON.parse(state.library).drafts).find(d=>d
 const contents = d => ({title:d.title,body:d.body,images:d.rich.images,originals:d.studio.originals,sheets:d.studio.sheets});
 async function main() {
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-  const origin='http://127.0.0.1:'+server.address().port, url=origin+'/book/?view=personal';
+  const origin=(useH2?'https':'http')+'://127.0.0.1:'+server.address().port, url=origin+'/book/?view=personal';
   let browser,context;
   try {
     mark('launch browser');
-    browser=await bounded('launch browser',()=> (process.env.BROWSER==='webkit'?webkit:chromium).launch({headless:true,timeout:20000}),25000);
-    context=await bounded('new browser context',()=>browser.newContext({serviceWorkers:'allow',viewport:{width:1024,height:768}}));
+    browser=await bounded('launch browser',()=> (process.env.BROWSER==='webkit'?webkit:chromium).launch({headless:true,timeout:20000,...(useH2?{args:['--ignore-certificate-errors']}: {})}),25000);
+    context=await bounded('new browser context',()=>browser.newContext({serviceWorkers:'allow',viewport:{width:1024,height:768},ignoreHTTPSErrors:useH2}));
     context.setDefaultTimeout(15000);context.setDefaultNavigationTimeout(20000);
     mark('open lightweight exact old release bootstrap');
     const control=await bounded('control page',()=>context.newPage());await control.goto(origin+'/control.html');
@@ -127,6 +144,7 @@ async function main() {
     console.log('Exact old shell readiness',JSON.stringify(oldState));
     assert.ok(isOldReady(oldState),'old shell did not finish installation; do not attempt upgrade');
     assert.ok(requests.some(r=>r.name==='sw.js'&&r.version===oldVersion&&r.sha256===expectedOldWorkerHash&&r.finished),'exact old worker must be delivered');
+    if(useH2)assert.ok(requests.some(r=>r.name==='sw.js'&&r.protocol==='2.0'),'Chromium must exercise HTTP/2');
     mark('open exact old application under activated worker');
     await page.goto(url);
     assert.equal(await page.evaluate(()=>APP_RELEASE),oldVersion);
@@ -274,8 +292,9 @@ async function main() {
     mark('cleanup');
     if(context)await bounded('close context',()=>context.close(),10000).catch(e=>console.error(String(e)));
     if(browser)await bounded('close browser',()=>browser.close(),10000).catch(e=>console.error(String(e)));
+    for(const session of sessions)session.destroy();
     server.closeAllConnections?.();
-    await bounded('close server',()=>new Promise(resolve=>server.close(resolve)),5000);
+    try{await bounded('close server',()=>new Promise(resolve=>server.close(resolve)),5000);}finally{if(tlsDir)fs.rmSync(tlsDir,{recursive:true,force:true});}
   }
 }
 main().then(()=>clearTimeout(watchdog)).catch(error=>{clearTimeout(watchdog);console.error(error);process.exit(1);});
