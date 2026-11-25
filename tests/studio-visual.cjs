@@ -30,6 +30,9 @@ async function capture(browser,site,output,width,height) {
   });
   const take = async (name,options={}) => {
     const geometry=await page.evaluate(async()=>{
+      // The open dialog is the subject. Compare the background from the same
+      // scroll position, even when click() scrolled its opener into view.
+      if(document.querySelector('#modal[open]'))document.scrollingElement.scrollTop=0;
       await document.fonts.ready;
       const visible=[...document.images].filter(img=>{
         if(!img.currentSrc||!img.getClientRects().length)return false;
@@ -95,6 +98,7 @@ async function capture(browser,site,output,width,height) {
     if(await page.locator('#remoteReleaseStatus').count()){
       await page.locator('#remoteReleaseStatus').filter({hasText:'Версия на сервере:'}).waitFor({timeout:12000});
     }
+    await page.locator('#toast').waitFor({state:'hidden'});
     await take('parent-version');await click('home');
     await page.locator('#storybookHome').waitFor({state:'visible'});
     await page.evaluate(()=>window.scrollTo(0,0));

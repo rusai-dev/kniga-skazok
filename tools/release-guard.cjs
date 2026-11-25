@@ -158,6 +158,15 @@ async function prepare(directory) {
 }
 function visualLimit(before, after, screen, width, height) {
   const defaultLimit = screen === 'egypt-cat.png' ? 0 : 0.6;
+  if (before === '1.5.209' && after === '1.5.210') {
+    // Reviewed header geometry and in-panel version feedback. Other screens retain the common limit.
+    const resize = {
+      'parent-version.png': {'390x700': 1.2, '390x844': 1.2, '600x800': 1.2, '844x390': 1.2},
+      'home-1.png': {'844x390': 1},
+      'home-2.png': {'844x390': 1}
+    }[screen];
+    return resize?.[width + 'x' + height] ?? (width >= 768 && height > 480 ? resize?.tablet : undefined) ?? defaultLimit;
+  }
   if (before !== '1.5.208' || after !== '1.5.209') return defaultLimit;
   const limits = {
     // Reviewed new version/status controls in the parent panel.
