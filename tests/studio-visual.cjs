@@ -15,7 +15,7 @@ assert.ok(!group || Object.hasOwn(viewports,group),'Unknown visual group');
 const sizes = group ? viewports[group] : Object.values(viewports).flat();
 const baseline = process.env.VISUAL_BASELINE_URL;
 
-async function capture(browser,site,output,width,height) {
+async function capture(browser,site,output,width,height,galleryReference=null) {
   const dir = path.join(output,width+'x'+height);
   fs.mkdirSync(dir,{recursive:true});
   const page = await browser.newPage({viewport:{width,height},serviceWorkers:'block',reducedMotion:'reduce',deviceScaleFactor:1,locale:'ru-RU',timezoneId:'Europe/Minsk'});
@@ -29,31 +29,25 @@ async function capture(browser,site,output,width,height) {
     }
   });
   const take = async (name,{editorTop=false,galleryView=false,...options}={}) => {
-    const geometry=await page.evaluate(async ({editorTop,galleryView})=>{
+    const geometry=await page.evaluate(async ({editorTop,galleryView,galleryReference})=>{
       // The open dialog is the subject. Compare the background from the same
       // scroll position, even when click() scrolled its opener into view.
       if(document.querySelector('#modal[open]'))document.scrollingElement.scrollTop=0;
       await document.fonts.ready;
+      // Snapshot the same scroll offsets in both releases, rather than
+      // independently centering a gallery whose final scroll can vary in WebKit.
+      const galleryScrollers=()=>[document.scrollingElement,...[
+        'modal','modalBody','storyBody','writerArtShelf','writerGalleryItems'
+      ].map(id=>document.getElementById(id))];
+      const readGalleryScroll=()=>galleryScrollers().map(node=>node?[node.scrollLeft,node.scrollTop]:null);
+      const setGalleryScroll=positions=>galleryScrollers().forEach((node,i)=>{
+        if(node&&positions[i]){node.scrollLeft=positions[i][0];node.scrollTop=positions[i][1]}
+      });
       if(galleryView){
         const shelf=document.getElementById('writerArtShelf');
-        const toolbar=shelf.closest('.writer-artbar');
         document.getElementById('writerGallery').focus({preventScroll:true});
-        toolbar.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
-        // WebKit can adjust the nested dialog scroll after focus/viewport-fit.
-        // Require an unchanged layout for several consecutive animation frames.
-        let previous='', stable=0;
-        for(let i=0;i<60 && stable<5;i++){
-          await new Promise(resolve=>requestAnimationFrame(resolve));
-          const r=toolbar.getBoundingClientRect();
-          const sample=JSON.stringify([r.x,r.y,r.width,r.height,
-            document.getElementById('modal').scrollTop,
-            document.getElementById('modalBody').scrollTop,document.scrollingElement.scrollTop]);
-          stable=sample===previous?stable+1:0;previous=sample;
-        }
-        if(stable<5)throw Error('Writer gallery layout did not settle');
-        const box=shelf.getBoundingClientRect();
-        if(box.bottom<=0||box.top>=innerHeight||box.right<=0||box.left>=innerWidth)
-          throw Error('Writer gallery is not in the captured viewport');
+        shelf.closest('.writer-artbar').scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+        if(galleryReference)setGalleryScroll(galleryReference);
       }
       const visible=[...document.images].filter(img=>{
         if(!img.currentSrc||!img.getClientRects().length)return false;
@@ -77,10 +71,38 @@ async function capture(browser,site,output,width,height) {
         document.getElementById('modal').scrollTop=0;
         document.getElementById('modalBody').scrollTop=0;
       }
-      return {width:innerWidth,scroll:document.documentElement.scrollWidth};
-    },{editorTop,galleryView});
+      let galleryScroll=null;
+      if(galleryView){
+        const shelf=document.getElementById('writerArtShelf'),toolbar=shelf.closest('.writer-artbar');
+        // Decode visible images and settle focus first. The reference records
+        // absolute scroll offsets, not adjusted pixels or element positions.
+        // An actual candidate layout change must still show in the raw PNG.
+        if(galleryReference)setGalleryScroll(galleryReference);
+        let previous='', stable=0;
+        for(let i=0;i<90 && stable<8;i++){
+          await new Promise(resolve=>requestAnimationFrame(resolve));
+          const r=toolbar.getBoundingClientRect();
+          const sample=JSON.stringify([r.x,r.y,r.width,r.height,readGalleryScroll()]);
+          stable=sample===previous?stable+1:0;previous=sample;
+        }
+        if(stable<8)throw Error('Writer gallery layout did not settle');
+        galleryScroll=readGalleryScroll();
+        const box=shelf.getBoundingClientRect(),head=document.querySelector('#modal .dialog-head').getBoundingClientRect();
+        if(box.bottom<=Math.max(0,head.bottom)||box.top>=innerHeight||box.right<=0||box.left>=innerWidth)
+          throw Error('Writer gallery is not in the captured viewport');
+      }
+      return {width:innerWidth,scroll:document.documentElement.scrollWidth,galleryScroll};
+    },{editorTop,galleryView,galleryReference});
     assert.ok(geometry.scroll<=geometry.width+1, 'Horizontal page overflow at '+name);
+    if(galleryView&&galleryReference)assert.deepEqual(geometry.galleryScroll,galleryReference,'Gallery captures must use identical scroll offsets');
     await page.screenshot({path:path.join(dir,name+'.png'),animations:'disabled',caret:'hide',...options});
+    if(galleryView){
+      const actual=await page.evaluate(()=>[document.scrollingElement,...[
+        'modal','modalBody','storyBody','writerArtShelf','writerGalleryItems'
+      ].map(id=>document.getElementById(id))].map(node=>node?[node.scrollLeft,node.scrollTop]:null));
+      assert.deepEqual(actual,geometry.galleryScroll,'Gallery scroll moved during screenshot');
+      record.galleryScroll=actual;
+    }
   };
   const click = id => page.locator('#'+id).click();
   const openFromHome = async id => {
@@ -231,7 +253,7 @@ async function capture(browser,site,output,width,height) {
     assert.equal(await page.locator('#homeWrite strong').textContent(),'Продолжить сказку');
     await take('home-resume');
     fs.writeFileSync(path.join(dir,'entries.json'),JSON.stringify(record,null,2));
-    return {dir,release};
+    return {dir,release,galleryScroll:record.galleryScroll};
   } finally { await page.close(); }
 }
 async function compare(browser,before,after) {
@@ -277,7 +299,7 @@ async function waitForSite(site) {
   try {
     for(const [w,h] of sizes){
       const before=baseline&&await capture(browser,baseline,path.join(destination,'before'),w,h);
-      const after=await capture(browser,url,path.join(destination,'after'),w,h);
+      const after=await capture(browser,url,path.join(destination,'after'),w,h,before?before.galleryScroll:null);
       if(!before)continue;
       const metrics=await compare(browser,before,after);
       fs.writeFileSync(path.join(after.dir,'differences.json'),JSON.stringify(metrics,null,2)+'\n');
