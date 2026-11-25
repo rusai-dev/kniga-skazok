@@ -1,6 +1,10 @@
 name: Release Guard
-run-name: ${{ inputs.operation }} · Release Guard
+run-name: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }} · Release Guard
 on:
+  workflow_run:
+    workflows: [Quality checks]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       operation:
@@ -27,6 +31,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   preflight:
+    if: >-
+      github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_sha == github.sha && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.actor.login == github.repository_owner && github.event.workflow_run.triggering_actor.login == github.repository_owner && startsWith(github.event.workflow_run.head_commit.message, 'Публикуй: '))
     runs-on: ubuntu-24.04
     timeout-minutes: 4
     outputs:
@@ -37,11 +43,11 @@ jobs:
     steps:
       - name: Авторизованная команда
         env:
-          COMMAND: ${{ inputs.operation }}
+          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }}
           OWNER: ${{ github.repository_owner }}
-          ACTOR: ${{ github.actor }}
-          TRIGGER: ${{ github.triggering_actor }}
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          ACTOR: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.actor.login || github.actor }}
+          TRIGGER: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.triggering_actor.login || github.triggering_actor }}
+          EXPECTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_sha }}
         run: |
           set -eu
           [ -z "$EXPECTED_SHA" ] || [ "$EXPECTED_SHA" = "$GITHUB_SHA" ] ||
@@ -60,11 +66,11 @@ jobs:
         name: Проверить рабочий сайт
         run: node tools/release-guard.cjs diagnose | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Найти обязательный прогон точного коммита
-        if: inputs.operation != 'Проверь' || github.ref_name != 'main'
+        if: github.event_name == 'workflow_run' || inputs.operation != 'Проверь' || github.ref_name != 'main'
         id: run
         env:
           GH_TOKEN: ${{ github.token }}
-          COMMAND: ${{ inputs.operation }}
+          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }}
         run: |
           set -eu
           target=$GITHUB_SHA
@@ -108,12 +114,12 @@ jobs:
         if: steps.run.outputs.run_id != ''
         id: guard
         env:
-          COMMAND: ${{ inputs.operation }}
+          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }}
           TARGET: ${{ steps.run.outputs.target }}
         run: |
           node tools/release-guard.cjs select /tmp/release /tmp/quality-run.json /tmp/quality-jobs.json "$TARGET" "$GITHUB_REPOSITORY" "$COMMAND" | tee -a "$GITHUB_STEP_SUMMARY"
   publish:
-    if: inputs.operation == 'Публикуй'
+    if: github.event_name == 'workflow_run' || inputs.operation == 'Публикуй'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 8
@@ -243,13 +249,13 @@ jobs:
           node tools/release-guard.cjs published /tmp/release stable
           echo 'ВОССТАНОВЛЕНО НА СЕРВЕРЕ: точный стабильный архив снова доступен' | tee -a "$GITHUB_STEP_SUMMARY"
   report:
-    if: always()
+    if: always() && needs.preflight.result != 'skipped'
     needs: [preflight, publish, verify, restore]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - env:
-          COMMAND: ${{ inputs.operation }}
+          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }}
           PREPARE: ${{ needs.preflight.result }}
           VERIFY: ${{ needs.verify.result }}
           RESTORE: ${{ needs.restore.result }}
