@@ -5,6 +5,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
+const {gzipSync}=require('node:zlib');
 const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 const {chromium, webkit} = require('playwright');
@@ -32,6 +33,9 @@ const {fingerprint} = shellDefinition(newRead('sw.js').toString());
 const {createHash}=require('node:crypto');
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const expectedWorkerHash=hash(newRead('sw.js'));
+const expectedOldWorkerHash=hash(oldRead('sw.js'));
+const expectedOldIndexHash=hash(oldRead('index.html'));
+const compressed=new Map();
 const requests=[];
 let phase='startup', diagnosticPage;
 function mark(value){phase=value;console.log('[upgrade phase]',value);}
@@ -43,17 +47,34 @@ function bounded(label,task,ms=30000){
 const watchdog=setTimeout(()=>{console.error('UPGRADE WATCHDOG',JSON.stringify({phase,requests}));process.exit(1);},210000);
 let serving = oldVersion;
 const server = http.createServer((req,res) => {
-  const pathname = new URL(req.url,'http://127.0.0.1').pathname;
+  const parsed = new URL(req.url,'http://127.0.0.1');
+  const pathname=parsed.pathname;
+  res.setHeader('Connection','close');
   if (pathname === '/control.html') {res.setHeader('Content-Type','text/html');return res.end('<!doctype html><title>QA control</title>');}
   if (!pathname.startsWith('/book/')) {res.statusCode=404;return res.end();}
   const name = pathname.slice('/book/'.length)||'index.html';
   if (!/^[A-Za-z0-9_./-]+$/.test(name)||name.split('/').some(part=>part==='..'||part==='.')) {res.statusCode=404;return res.end();}
   try {
     const bytes=(serving===oldVersion?oldRead:newRead)(name);
-    if(requests.length<250||name==='sw.js')requests.push({name,version:serving,bytes:bytes.length,...(name==='sw.js'?{sha256:hash(bytes)}:{})});
-    res.setHeader('Content-Type',mime[path.extname(name)]||'application/octet-stream');
+    // The old worker fetches all response headers before consuming bodies.
+    // Avoid loopback HTTP/1.1 keep-alive contention and oversized unconsumed
+    // text bodies; serve ordinary compressed static responses like a web host.
+    // Decompressed resource bytes, version queries and worker SHA are unchanged.
+    const ext=path.extname(name);
+    const gzip=bytes.length>1024&&/^(?:\.html|\.js|\.css|\.json|\.svg)$/.test(ext)&&/\bgzip\b/i.test(req.headers['accept-encoding']||'');
+    const cacheKey=serving+':'+name;
+    if(gzip&&!compressed.has(cacheKey))compressed.set(cacheKey,gzipSync(bytes));
+    const wire=gzip?compressed.get(cacheKey):bytes;
+    const record={name,query:parsed.search,version:serving,bytes:bytes.length,wireBytes:wire.length,encoding:gzip?'gzip':'identity',finished:false,...(name==='sw.js'?{sha256:hash(bytes)}:{})};
+    if(requests.length<250||name==='sw.js')requests.push(record);
+    res.on('finish',()=>{record.finished=true;});
+    res.on('close',()=>{record.closed=true;});
+    res.setHeader('Content-Type',mime[ext]||'application/octet-stream');
     res.setHeader('Cache-Control','no-store');
-    res.end(bytes);
+    res.setHeader('Content-Length',wire.length);
+    res.setHeader('Vary','Accept-Encoding');
+    if(gzip)res.setHeader('Content-Encoding','gzip');
+    res.end(wire);
   } catch(error) {if(requests.length<250)requests.push({name,version:serving,error:String(error.message).slice(0,200)});res.statusCode=404;res.end();}
 });
 const title='QA exact legacy upgrade';
@@ -70,11 +91,14 @@ async function main() {
     browser=await bounded('launch browser',()=> (process.env.BROWSER==='webkit'?webkit:chromium).launch({headless:true,timeout:20000}),25000);
     context=await bounded('new browser context',()=>browser.newContext({serviceWorkers:'allow',viewport:{width:1024,height:768}}));
     context.setDefaultTimeout(15000);context.setDefaultNavigationTimeout(20000);
-    mark('open old shell');
+    mark('open lightweight exact old release bootstrap');
     const control=await bounded('control page',()=>context.newPage());await control.goto(origin+'/control.html');
     const page=await bounded('old page',()=>context.newPage());diagnosticPage=page;
     page.on('pageerror',error=>console.log('[page error]',String(error.message).slice(0,350)));
-    await page.goto(url);
+    // Start installation from the actual small published release.json, not
+    // a busy editor loading artwork and scripts. It is within /book/ scope.
+    await page.goto(origin+'/book/release.json');
+    assert.equal(JSON.parse(await page.locator('body').innerText()).version,oldVersion);
     mark('register exact old worker');
     // Do not await navigator.serviceWorker.ready: it never rejects if install fails.
     // The next bounded predicate proves that the old worker really activated.
@@ -88,10 +112,12 @@ async function main() {
       const keys=await caches.keys();
       const cache=keys.includes(name)?await caches.open(name):null;
       const cached=cache?await cache.match(new URL('index.html',location.href).href):null;
-      const html=cached?await cached.text():'';
-      return {controller:navigator.serviceWorker.controller?.state||null,active:reg?.active?.state||null,waiting:reg?.waiting?.state||null,installing:reg?.installing?.state||null,cacheKeys:keys,entries:cache?(await cache.keys()).length:0,exactHTML:html.includes('<footer>Книга сказок · версия '+expected+'</footer>')};
+      const bytes=cached?await cached.arrayBuffer():null;
+      const html=bytes?new TextDecoder().decode(bytes):'';
+      const digest=bytes?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join(''):null;
+      return {digest,controller:navigator.serviceWorker.controller?.state||null,active:reg?.active?.state||null,waiting:reg?.waiting?.state||null,installing:reg?.installing?.state||null,cacheKeys:keys,entries:cache?(await cache.keys()).length:0,exactHTML:html.includes('<footer>Книга сказок · версия '+expected+'</footer>')};
     },{name:oldCache,expected:oldVersion});
-    const isOldReady=state=>state.controller==='activated'&&state.active==='activated'&&!state.waiting&&!state.installing&&state.exactHTML&&state.entries>=14;
+    const isOldReady=state=>state.controller==='activated'&&state.active==='activated'&&!state.waiting&&!state.installing&&state.exactHTML&&state.digest===expectedOldIndexHash&&state.entries>=14;
     let oldState=await bounded('inspect old verified shell',inspectOld,10000);
     const deadlineOld=Date.now()+35000;
     while(!isOldReady(oldState)&&Date.now()<deadlineOld){
@@ -100,7 +126,11 @@ async function main() {
     }
     console.log('Exact old shell readiness',JSON.stringify(oldState));
     assert.ok(isOldReady(oldState),'old shell did not finish installation; do not attempt upgrade');
+    assert.ok(requests.some(r=>r.name==='sw.js'&&r.version===oldVersion&&r.sha256===expectedOldWorkerHash&&r.finished),'exact old worker must be delivered');
+    mark('open exact old application under activated worker');
+    await page.goto(url);
     assert.equal(await page.evaluate(()=>APP_RELEASE),oldVersion);
+    assert.ok(isOldReady(await bounded('confirm old shell still active',inspectOld,10000)));
     mark('create old-version draft with original and unfinished drawing');
     await page.evaluate(keys=>{
       const canvas=document.createElement('canvas');canvas.width=48;canvas.height=48;
