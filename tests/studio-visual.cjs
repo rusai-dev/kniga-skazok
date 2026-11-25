@@ -28,8 +28,8 @@ async function capture(browser,site,output,width,height) {
       localStorage.setItem('skazki-studio-motif','0');
     }
   });
-  const take = async (name,options={}) => {
-    const geometry=await page.evaluate(async()=>{
+  const take = async (name,{editorTop=false,...options}={}) => {
+    const geometry=await page.evaluate(async editorTop=>{
       // The open dialog is the subject. Compare the background from the same
       // scroll position, even when click() scrolled its opener into view.
       if(document.querySelector('#modal[open]'))document.scrollingElement.scrollTop=0;
@@ -50,8 +50,14 @@ async function capture(browser,site,output,width,height) {
         }finally{clearTimeout(timeout)}
       }));
       await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      if(editorTop){
+        // WebKit can scroll the short editor while settling autofocus.
+        // Compare the opening view with its heading and controls in frame.
+        document.getElementById('modal').scrollTop=0;
+        document.getElementById('modalBody').scrollTop=0;
+      }
       return {width:innerWidth,scroll:document.documentElement.scrollWidth};
-    });
+    },editorTop);
     assert.ok(geometry.scroll<=geometry.width+1, 'Horizontal page overflow at '+name);
     await page.screenshot({path:path.join(dir,name+'.png'),animations:'disabled',caret:'hide',...options});
   };
@@ -114,7 +120,7 @@ async function capture(browser,site,output,width,height) {
     await take('parent-version');await click('home');
     await page.locator('#storybookHome').waitFor({state:'visible'});
     await openFromHome('homeNewStory');
-    await take('empty');
+    await take('empty',{editorTop:true});
     const paragraph='Сова раскрыла атлас. На краю страницы поблёскивала река, а на другом берегу уже ждал зайчонок.';
     await page.locator('#storyTitle').fill('Атлас серебряной реки');
     const body=page.locator('#storyBody');
