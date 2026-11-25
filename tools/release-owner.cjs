@@ -98,7 +98,7 @@ function readPull() {
   return pull;
 }
 async function release() {
-  assert.ok(['Публикуй','Проверь','Восстанови'].includes(command) && !extra, 'Использование: Публикуй <PR>, Проверь [PR], Восстанови');
+  assert.ok(['Публикуй','Подготовь','Проверь','Восстанови'].includes(command) && !extra, 'Использование: Подготовь <PR>, Публикуй [PR], Проверь [PR], Восстанови');
   assert.ok(!pullNumber || /^[1-9]\d*$/.test(pullNumber), 'Укажи номер pull request');
   assert.ok(command !== 'Восстанови' || !pullNumber, 'Восстановление выбирает текущий рабочий выпуск');
   if (command === 'Проверь' && !pullNumber) return dispatch(command, 'main', mainSha());
@@ -107,7 +107,15 @@ async function release() {
     assert.equal(api(root + '/pages').build_type, 'workflow', 'Источник Pages должен быть GitHub Actions');
   }
   if (command === 'Восстанови') return dispatch(command, 'main', mainSha());
-  assert.ok(pullNumber, 'Для публикации укажи pull request кандидата');
+  if (command === 'Публикуй' && !pullNumber) {
+    const sha = mainSha();
+    await checkQuality(sha, 'main', false);
+    assert.equal(mainSha(), sha, 'main изменился после приёмки');
+    const commit = api(root + '/commits/' + sha);
+    if (commit.commit.message.startsWith('Публикуй: ')) return automaticPublication(sha);
+    return dispatch(command, 'main', sha);
+  }
+  assert.ok(pullNumber, 'Для подготовки укажи pull request кандидата');
   const pull = readPull();
   const {sha,ref} = pull.head;
   if (command === 'Проверь') {
@@ -129,7 +137,7 @@ async function release() {
     const version = JSON.parse(Buffer.from(manifest.content, 'base64').toString('utf8')).version;
     assert.match(version, /^\d+\.\d+\.\d+$/);
     const merge = api(root + '/pulls/' + pullNumber + '/merge', 'PUT', {
-      sha, merge_method:'merge', commit_title:'Публикуй: ' + version
+      sha, merge_method:'merge', commit_title:(command === 'Подготовь' ? 'Подготовка: ' : 'Публикуй: ') + version
     });
     assert.ok(merge.merged, merge.message);
     mergedSha = merge.sha;
@@ -137,6 +145,10 @@ async function release() {
   assert.equal(mainSha(), mergedSha, 'Итоговый SHA PR должен быть вершиной main');
   await checkQuality(mergedSha, 'main', false);
   assert.equal(mainSha(), mergedSha, 'Ветка main изменилась после тестирования');
+  if (command === 'Подготовь') {
+    console.log('ГОТОВО К ПУБЛИКАЦИИ', mergedSha);
+    return;
+  }
   const commit = api(root + '/commits/' + mergedSha);
   if (commit.commit.message.startsWith('Публикуй: ')) return automaticPublication(mergedSha);
   return dispatch(command, 'main', mergedSha);
