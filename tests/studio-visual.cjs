@@ -56,6 +56,14 @@ async function capture(browser,site,output,width,height) {
     await page.screenshot({path:path.join(dir,name+'.png'),animations:'disabled',caret:'hide',...options});
   };
   const click = id => page.locator('#'+id).click();
+  const openFromHome = async id => {
+    // Keep the same visible backdrop for modal comparisons. Real touch
+    // reachability of these entry points is exercised by browser-smoke.
+    await page.locator('#'+id).evaluate(button=>{
+      window.scrollTo(0,0);
+      button.click();
+    });
+  };
   const record = {viewport:[width,height],entries:[]};
   try {
     await page.clock.setFixedTime(new Date("2026-01-15T12:00:00Z"));
@@ -101,8 +109,7 @@ async function capture(browser,site,output,width,height) {
     await page.locator('#toast').waitFor({state:'hidden'});
     await take('parent-version');await click('home');
     await page.locator('#storybookHome').waitFor({state:'visible'});
-    await page.evaluate(()=>window.scrollTo(0,0));
-    await click('homeNewStory');
+    await openFromHome('homeNewStory');
     await take('empty');
     const paragraph='Сова раскрыла атлас. На краю страницы поблёскивала река, а на другом берегу уже ждал зайчонок.';
     await page.locator('#storyTitle').fill('Атлас серебряной реки');
@@ -182,7 +189,7 @@ async function capture(browser,site,output,width,height) {
     }
     await click('ownReadBack');await click('home');
     for(const [id,name] of [['readingEntry','reading'],['homeMath','math'],['homeLogic','logic'],['childWorld','world']]){
-      await click(id);await take(name);await page.goto(site);
+      await openFromHome(id);await take(name);await page.goto(site);
     }
     await click('homeNewStory');
     await page.locator('#storyBody').fill(paragraph);
