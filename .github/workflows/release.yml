@@ -153,15 +153,37 @@ jobs:
           mkdir /tmp/deploy
           mv /tmp/release/candidate.tar /tmp/deploy/artifact.tar
           echo "ПУБЛИКАЦИЯ $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
+      - id: upload
+        uses: actions/upload-artifact@v4
         with:
-          name: github-pages
+          name: github-pages-${{ github.run_attempt }}
           path: /tmp/deploy/artifact.tar
           compression-level: 0
           retention-days: 7
           if-no-files-found: error
+      - name: Дождаться регистрации точного архива Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_NAME: github-pages-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          for delay in 0 2 4 8 12 16 20; do
+            sleep "$delay"
+            if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$ARTIFACT_NAME" --jq '.artifacts' > /tmp/pages-artifacts.json &&
+               jq -e --arg id "$ARTIFACT_ID" --arg name "$ARTIFACT_NAME" 'length == 1 and (.[0] | (.id|tostring)==$id and .name==$name and .expired==false and .size_in_bytes>0)' /tmp/pages-artifacts.json >/dev/null; then
+              echo "Архив Pages зарегистрирован: $ARTIFACT_ID"
+              exit 0
+            fi
+            echo 'Ожидание регистрации архива Pages'
+          done
+          echo 'ЗАБЛОКИРОВАНО: точный архив не зарегистрирован в пределах 62 секунд'
+          exit 1
       - id: deploy
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_attempt }}
   verify:
     needs: [preflight, publish]
     runs-on: ubuntu-24.04
@@ -234,17 +256,37 @@ jobs:
           node tools/release-guard.cjs recheck /tmp/release stable
           mkdir /tmp/recovery
           mv /tmp/release/stable.tar /tmp/recovery/artifact.tar
-      - uses: actions/upload-artifact@v4
+      - id: upload
+        uses: actions/upload-artifact@v4
         with:
-          name: github-pages-rollback
+          name: github-pages-rollback-${{ github.run_attempt }}
           path: /tmp/recovery/artifact.tar
           compression-level: 0
           retention-days: 7
           if-no-files-found: error
+      - name: Дождаться регистрации точного архива Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_NAME: github-pages-rollback-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          for delay in 0 2 4 8 12 16 20; do
+            sleep "$delay"
+            if gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?name=$ARTIFACT_NAME" --jq '.artifacts' > /tmp/pages-artifacts.json &&
+               jq -e --arg id "$ARTIFACT_ID" --arg name "$ARTIFACT_NAME" 'length == 1 and (.[0] | (.id|tostring)==$id and .name==$name and .expired==false and .size_in_bytes>0)' /tmp/pages-artifacts.json >/dev/null; then
+              echo "Архив Pages зарегистрирован: $ARTIFACT_ID"
+              exit 0
+            fi
+            echo 'Ожидание регистрации архива Pages'
+          done
+          echo 'ЗАБЛОКИРОВАНО: точный архив не зарегистрирован в пределах 62 секунд'
+          exit 1
       - id: deploy
         uses: actions/deploy-pages@v4
         with:
-          artifact_name: github-pages-rollback
+          artifact_name: github-pages-rollback-${{ github.run_attempt }}
       - run: |
           node tools/release-guard.cjs published /tmp/release stable
           echo 'ВОССТАНОВЛЕНО НА СЕРВЕРЕ: точный стабильный архив снова доступен' | tee -a "$GITHUB_STEP_SUMMARY"
