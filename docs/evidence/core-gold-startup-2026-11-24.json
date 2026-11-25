@@ -1,0 +1,1729 @@
+{
+  "base": "6fe6bcc0ad285176c93ab045e94328cf1de9bed5",
+  "implementation": "94ffb72ce5c3f7a44cda183c48b35fa2c9e8d4b3",
+  "environment": "Playwright 1.65.1, Debian Linux, 1024×768 CSS px, DPR 1, локальный HTTP без сжатия. Задержки измерены одновременно с другими прогонами и требуют повторной проверки.",
+  "freshContexts": {
+    "chromium": {
+      "browserVersion": "159.0.8154.6",
+      "baseline": {
+        "coldHome": [
+          {
+            "loadMs": 428.5,
+            "readyMs": 408.4000000000233,
+            "encoded": 1192731,
+            "code": 1085809
+          },
+          {
+            "loadMs": 177.70000000006985,
+            "readyMs": 170.90000000002328,
+            "encoded": 1190321,
+            "code": 1085809
+          },
+          {
+            "loadMs": 250.59999999997672,
+            "readyMs": 235.80000000004657,
+            "encoded": 1192731,
+            "code": 1085809
+          },
+          {
+            "loadMs": 179.39999999990687,
+            "readyMs": 169.29999999993015,
+            "encoded": 1190321,
+            "code": 1085809
+          },
+          {
+            "loadMs": 354.0999999999767,
+            "readyMs": 344.39999999990687,
+            "encoded": 1192191,
+            "code": 1085809
+          },
+          {
+            "loadMs": 200.40000000002328,
+            "readyMs": 189,
+            "encoded": 1189303,
+            "code": 1085809
+          },
+          {
+            "loadMs": 202.90000000002328,
+            "readyMs": 195.19999999995343,
+            "encoded": 1191651,
+            "code": 1085809
+          },
+          {
+            "loadMs": 190.90000000002328,
+            "readyMs": 183.40000000002328,
+            "encoded": 1192731,
+            "code": 1085809
+          },
+          {
+            "loadMs": 204.09999999997672,
+            "readyMs": 193.5,
+            "encoded": 1194071,
+            "code": 1085809
+          },
+          {
+            "loadMs": 200.80000000004657,
+            "readyMs": 189.30000000004657,
+            "encoded": 1194071,
+            "code": 1085809
+          }
+        ],
+        "waterfall": [
+          {
+            "path": "/",
+            "initiator": "navigation",
+            "ms": 428.5,
+            "start": 0,
+            "encoded": 987250,
+            "decoded": 987250,
+            "transfer": 987550
+          },
+          {
+            "path": "/learning-art-1536.css",
+            "initiator": "link",
+            "ms": 6,
+            "start": 92.80000000004657,
+            "encoded": 129,
+            "decoded": 129,
+            "transfer": 429
+          },
+          {
+            "path": "/studio-layout.css",
+            "initiator": "link",
+            "ms": 6,
+            "start": 93,
+            "encoded": 69516,
+            "decoded": 69516,
+            "transfer": 69816
+          },
+          {
+            "path": "/assets/author/studio/home-storybook-banner-560.webp",
+            "initiator": "img",
+            "ms": 15.29999999993015,
+            "start": 94.70000000006985,
+            "encoded": 34892,
+            "decoded": 34892,
+            "transfer": 35192
+          },
+          {
+            "path": "/assets/author/studio/home-egypt-cat-320x120.webp",
+            "initiator": "img",
+            "ms": 15.20000000006985,
+            "start": 94.90000000002328,
+            "encoded": 5526,
+            "decoded": 5526,
+            "transfer": 5826
+          },
+          {
+            "path": "/studio-friends.js",
+            "initiator": "script",
+            "ms": 21.399999999906868,
+            "start": 95.10000000009313,
+            "encoded": 8471,
+            "decoded": 8471,
+            "transfer": 8771
+          },
+          {
+            "path": "/studio-drawings.js",
+            "initiator": "script",
+            "ms": 22.099999999976717,
+            "start": 95.10000000009313,
+            "encoded": 17156,
+            "decoded": 17156,
+            "transfer": 17456
+          },
+          {
+            "path": "/classic-art-153.js",
+            "initiator": "script",
+            "ms": 41.79999999993015,
+            "start": 95.10000000009313,
+            "encoded": 1072,
+            "decoded": 1072,
+            "transfer": 1372
+          },
+          {
+            "path": "/classic-art-155.js",
+            "initiator": "script",
+            "ms": 41.79999999993015,
+            "start": 95.10000000009313,
+            "encoded": 1106,
+            "decoded": 1106,
+            "transfer": 1406
+          },
+          {
+            "path": "/andersen-art-156.js",
+            "initiator": "script",
+            "ms": 41.89999999990687,
+            "start": 95.10000000009313,
+            "encoded": 1109,
+            "decoded": 1109,
+            "transfer": 1409
+          },
+          {
+            "path": "/assets/ui/writer-squirrel-144-v1.webp",
+            "initiator": "img",
+            "ms": 5.5,
+            "start": 245,
+            "encoded": 5232,
+            "decoded": 5232,
+            "transfer": 5532
+          },
+          {
+            "path": "/assets/ui/home-sprite-1548.webp",
+            "initiator": "css",
+            "ms": 39.10000000009313,
+            "start": 253.5,
+            "encoded": 4330,
+            "decoded": 4330,
+            "transfer": 4630
+          },
+          {
+            "path": "/assets/author/friends/hero-owl-scene01-288.webp",
+            "initiator": "img",
+            "ms": 7.299999999930151,
+            "start": 405.70000000006985,
+            "encoded": 28100,
+            "decoded": 28100,
+            "transfer": 28400
+          },
+          {
+            "path": "/assets/author/studio/art-n03-owl-library-entry184.webp",
+            "initiator": "img",
+            "ms": 10,
+            "start": 406.60000000009313,
+            "encoded": 15450,
+            "decoded": 15450,
+            "transfer": 15750
+          },
+          {
+            "path": "/assets/author/studio/art-n02-rabbit-painting-entry184.webp",
+            "initiator": "img",
+            "ms": 8.70000000006985,
+            "start": 408,
+            "encoded": 13370,
+            "decoded": 13370,
+            "transfer": 13670
+          },
+          {
+            "path": "/release.json",
+            "initiator": "fetch",
+            "ms": 10.599999999976717,
+            "start": 430.30000000004657,
+            "encoded": 22,
+            "decoded": 22,
+            "transfer": 322
+          }
+        ],
+        "warmWorkspace": [
+          {
+            "open": 22.600000000093132,
+            "feedback": 49.40000000002328
+          },
+          {
+            "open": 14.400000000023283,
+            "feedback": 40.40000000002328
+          },
+          {
+            "open": 11,
+            "feedback": 12
+          },
+          {
+            "open": 16.399999999906868,
+            "feedback": 15.79999999993015
+          },
+          {
+            "open": 19.599999999976717,
+            "feedback": 44.59999999997672
+          },
+          {
+            "open": 10.5,
+            "feedback": 6.799999999930151
+          },
+          {
+            "open": 22.099999999976717,
+            "feedback": 65
+          },
+          {
+            "open": 12.699999999953434,
+            "feedback": 37.199999999953434
+          },
+          {
+            "open": 16.300000000046566,
+            "feedback": 29.800000000046566
+          },
+          {
+            "open": 45.90000000002328,
+            "feedback": 30.599999999976717
+          },
+          {
+            "open": 63,
+            "feedback": 3.800000000046566
+          },
+          {
+            "open": 22.79999999993015,
+            "feedback": 13.5
+          },
+          {
+            "open": 16.800000000046566,
+            "feedback": 44.39999999990687
+          },
+          {
+            "open": 24.199999999953434,
+            "feedback": 12.70000000006985
+          },
+          {
+            "open": 23.400000000023283,
+            "feedback": 51.70000000006985
+          },
+          {
+            "open": 16.099999999976717,
+            "feedback": 18.400000000023283
+          },
+          {
+            "open": 47.699999999953434,
+            "feedback": 13.699999999953434
+          },
+          {
+            "open": 12.900000000023283,
+            "feedback": 14.79999999993015
+          },
+          {
+            "open": 14,
+            "feedback": 54.20000000006985
+          },
+          {
+            "open": 12.399999999906868,
+            "feedback": 17.800000000046566
+          }
+        ],
+        "warmOpen": {
+          "p50": 16.399999999906868,
+          "p95": 47.699999999953434,
+          "max": 63,
+          "variance": 184.36440000004777
+        },
+        "warmControlFeedback": {
+          "p50": 18.400000000023283,
+          "p95": 54.20000000006985,
+          "max": 65,
+          "variance": 315.6711000003
+        }
+      },
+      "candidate": {
+        "coldHome": [
+          {
+            "loadMs": 192.80000000004657,
+            "readyMs": 184.80000000004657,
+            "encoded": 1095193,
+            "code": 990051
+          },
+          {
+            "loadMs": 347.30000000004657,
+            "readyMs": 340.5,
+            "encoded": 1096973,
+            "code": 990051
+          },
+          {
+            "loadMs": 191,
+            "readyMs": 185.20000000006985,
+            "encoded": 1096433,
+            "code": 990051
+          },
+          {
+            "loadMs": 184.70000000006985,
+            "readyMs": 163.10000000009313,
+            "encoded": 1094563,
+            "code": 990051
+          },
+          {
+            "loadMs": 151.09999999997672,
+            "readyMs": 92.5,
+            "encoded": 1096973,
+            "code": 990051
+          },
+          {
+            "loadMs": 173.89999999990687,
+            "readyMs": 129.5,
+            "encoded": 1096973,
+            "code": 990051
+          },
+          {
+            "loadMs": 183.79999999993015,
+            "readyMs": 140.90000000002328,
+            "encoded": 1097037,
+            "code": 990051
+          },
+          {
+            "loadMs": 160.60000000009313,
+            "readyMs": 155.80000000004657,
+            "encoded": 1095893,
+            "code": 990051
+          },
+          {
+            "loadMs": 208.89999999990687,
+            "readyMs": 194.59999999997672,
+            "encoded": 1096433,
+            "code": 990051
+          },
+          {
+            "loadMs": 189.5,
+            "readyMs": 183.20000000006985,
+            "encoded": 1093545,
+            "code": 990051
+          }
+        ],
+        "waterfall": [
+          {
+            "path": "/",
+            "initiator": "navigation",
+            "ms": 192.80000000004657,
+            "start": 0,
+            "encoded": 891366,
+            "decoded": 891366,
+            "transfer": 891666
+          },
+          {
+            "path": "/learning-art-1536.css",
+            "initiator": "link",
+            "ms": 11.70000000006985,
+            "start": 52.5,
+            "encoded": 129,
+            "decoded": 129,
+            "transfer": 429
+          },
+          {
+            "path": "/studio-layout.css",
+            "initiator": "link",
+            "ms": 12.100000000093132,
+            "start": 52.59999999997672,
+            "encoded": 69516,
+            "decoded": 69516,
+            "transfer": 69816
+          },
+          {
+            "path": "/assets/author/studio/home-storybook-banner-560.webp",
+            "initiator": "img",
+            "ms": 12.29999999993015,
+            "start": 52.70000000006985,
+            "encoded": 34892,
+            "decoded": 34892,
+            "transfer": 35192
+          },
+          {
+            "path": "/assets/author/studio/home-egypt-cat-320x120.webp",
+            "initiator": "img",
+            "ms": 12.099999999976717,
+            "start": 52.800000000046566,
+            "encoded": 5526,
+            "decoded": 5526,
+            "transfer": 5826
+          },
+          {
+            "path": "/studio-friends.js",
+            "initiator": "script",
+            "ms": 19.699999999953434,
+            "start": 52.90000000002328,
+            "encoded": 8471,
+            "decoded": 8471,
+            "transfer": 8771
+          },
+          {
+            "path": "/classic-art-153.js",
+            "initiator": "script",
+            "ms": 26.400000000023283,
+            "start": 52.90000000002328,
+            "encoded": 1072,
+            "decoded": 1072,
+            "transfer": 1372
+          },
+          {
+            "path": "/classic-art-155.js",
+            "initiator": "script",
+            "ms": 27,
+            "start": 52.90000000002328,
+            "encoded": 1106,
+            "decoded": 1106,
+            "transfer": 1406
+          },
+          {
+            "path": "/andersen-art-156.js",
+            "initiator": "script",
+            "ms": 27.099999999976717,
+            "start": 52.90000000002328,
+            "encoded": 1109,
+            "decoded": 1109,
+            "transfer": 1409
+          },
+          {
+            "path": "/studio-drawings.js",
+            "initiator": "script",
+            "ms": 26.699999999953434,
+            "start": 52.90000000002328,
+            "encoded": 17282,
+            "decoded": 17282,
+            "transfer": 17582
+          },
+          {
+            "path": "/assets/ui/writer-squirrel-144-v1.webp",
+            "initiator": "img",
+            "ms": 6.699999999953434,
+            "start": 138.20000000006985,
+            "encoded": 5232,
+            "decoded": 5232,
+            "transfer": 5532
+          },
+          {
+            "path": "/assets/ui/home-sprite-1548.webp",
+            "initiator": "css",
+            "ms": 1.599999999976717,
+            "start": 147,
+            "encoded": 4330,
+            "decoded": 4330,
+            "transfer": 4630
+          },
+          {
+            "path": "/assets/author/friends/hero-dragon-scene01-288.webp",
+            "initiator": "img",
+            "ms": 6,
+            "start": 178.59999999997672,
+            "encoded": 26320,
+            "decoded": 26320,
+            "transfer": 26620
+          },
+          {
+            "path": "/assets/author/studio/art-n03-owl-library-entry184.webp",
+            "initiator": "img",
+            "ms": 6.900000000023283,
+            "start": 180.09999999997672,
+            "encoded": 15450,
+            "decoded": 15450,
+            "transfer": 15750
+          },
+          {
+            "path": "/assets/author/studio/art-n02-rabbit-painting-entry184.webp",
+            "initiator": "img",
+            "ms": 10.79999999993015,
+            "start": 180.20000000006985,
+            "encoded": 13370,
+            "decoded": 13370,
+            "transfer": 13670
+          },
+          {
+            "path": "/release.json",
+            "initiator": "fetch",
+            "ms": 49.90000000002328,
+            "start": 194.59999999997672,
+            "encoded": 22,
+            "decoded": 22,
+            "transfer": 322
+          }
+        ],
+        "warmWorkspace": [
+          {
+            "open": 9.099999999976717,
+            "feedback": 66.80000000004657
+          },
+          {
+            "open": 67.80000000004657,
+            "feedback": 94
+          },
+          {
+            "open": 10.400000000023283,
+            "feedback": 38.90000000002328
+          },
+          {
+            "open": 37.5,
+            "feedback": 60.20000000006985
+          },
+          {
+            "open": 80.89999999990687,
+            "feedback": 16.800000000046566
+          },
+          {
+            "open": 25.20000000006985,
+            "feedback": 12.400000000023283
+          },
+          {
+            "open": 30,
+            "feedback": 17.099999999976717
+          },
+          {
+            "open": 83.59999999997672,
+            "feedback": 3.400000000023283
+          },
+          {
+            "open": 73.40000000002328,
+            "feedback": 97.19999999995343
+          },
+          {
+            "open": 21.099999999976717,
+            "feedback": 5.299999999930151
+          },
+          {
+            "open": 96.90000000002328,
+            "feedback": 3.099999999976717
+          },
+          {
+            "open": 78.80000000004657,
+            "feedback": 8.900000000023283
+          },
+          {
+            "open": 75,
+            "feedback": 8.70000000006985
+          },
+          {
+            "open": 81.19999999995343,
+            "feedback": 3.099999999976717
+          },
+          {
+            "open": 65.80000000004657,
+            "feedback": 25
+          },
+          {
+            "open": 63.90000000002328,
+            "feedback": 2.900000000023283
+          },
+          {
+            "open": 63.09999999997672,
+            "feedback": 14
+          },
+          {
+            "open": 7.800000000046566,
+            "feedback": 52.09999999997672
+          },
+          {
+            "open": 56.699999999953434,
+            "feedback": 25.5
+          },
+          {
+            "open": 15,
+            "feedback": 17.900000000023283
+          }
+        ],
+        "warmOpen": {
+          "p50": 63.09999999997672,
+          "p95": 83.59999999997672,
+          "max": 96.90000000002328,
+          "variance": 819.7503999995992
+        },
+        "warmControlFeedback": {
+          "p50": 16.800000000046566,
+          "p95": 94,
+          "max": 97.19999999995343,
+          "variance": 845.3172749999346
+        }
+      }
+    },
+    "webkit": {
+      "browserVersion": "27.2",
+      "baseline": {
+        "coldHome": [
+          {
+            "loadMs": 3687,
+            "readyMs": 3579,
+            "encoded": 1192731,
+            "code": 1085809
+          },
+          {
+            "loadMs": 3800,
+            "readyMs": 3707,
+            "encoded": 1191651,
+            "code": 1085809
+          },
+          {
+            "loadMs": 5031,
+            "readyMs": 5006,
+            "encoded": 1192191,
+            "code": 1085809
+          },
+          {
+            "loadMs": 8635,
+            "readyMs": 8535,
+            "encoded": 1190321,
+            "code": 1085809
+          },
+          {
+            "loadMs": 7310,
+            "readyMs": 7153,
+            "encoded": 1192191,
+            "code": 1085809
+          },
+          {
+            "loadMs": 6182,
+            "readyMs": 6149,
+            "encoded": 1190951,
+            "code": 1085809
+          },
+          {
+            "loadMs": 6313,
+            "readyMs": 6132,
+            "encoded": 1190321,
+            "code": 1085809
+          },
+          {
+            "loadMs": 6609,
+            "readyMs": 6523,
+            "encoded": 1192731,
+            "code": 1085809
+          },
+          {
+            "loadMs": 8132,
+            "readyMs": 8030,
+            "encoded": 1191651,
+            "code": 1085809
+          },
+          {
+            "loadMs": 6883,
+            "readyMs": 6810,
+            "encoded": 1190951,
+            "code": 1085809
+          }
+        ],
+        "waterfall": [
+          {
+            "path": "/",
+            "initiator": "navigation",
+            "ms": 3687,
+            "start": 0,
+            "encoded": 987250,
+            "decoded": 987250,
+            "transfer": 987550
+          },
+          {
+            "path": "/learning-art-1536.css",
+            "initiator": "link",
+            "ms": 22,
+            "start": 73,
+            "encoded": 129,
+            "decoded": 129,
+            "transfer": 429
+          },
+          {
+            "path": "/studio-layout.css",
+            "initiator": "link",
+            "ms": 26,
+            "start": 74,
+            "encoded": 69516,
+            "decoded": 69516,
+            "transfer": 69816
+          },
+          {
+            "path": "/studio-friends.js",
+            "initiator": "script",
+            "ms": 25,
+            "start": 75,
+            "encoded": 8471,
+            "decoded": 8471,
+            "transfer": 8771
+          },
+          {
+            "path": "/studio-drawings.js",
+            "initiator": "script",
+            "ms": 24,
+            "start": 76,
+            "encoded": 17156,
+            "decoded": 17156,
+            "transfer": 17456
+          },
+          {
+            "path": "/classic-art-153.js",
+            "initiator": "script",
+            "ms": 28,
+            "start": 76,
+            "encoded": 1072,
+            "decoded": 1072,
+            "transfer": 1372
+          },
+          {
+            "path": "/classic-art-155.js",
+            "initiator": "script",
+            "ms": 28,
+            "start": 76,
+            "encoded": 1106,
+            "decoded": 1106,
+            "transfer": 1406
+          },
+          {
+            "path": "/andersen-art-156.js",
+            "initiator": "script",
+            "ms": 30,
+            "start": 76,
+            "encoded": 1109,
+            "decoded": 1109,
+            "transfer": 1409
+          },
+          {
+            "path": "/assets/author/studio/home-storybook-banner-560.webp",
+            "initiator": "img",
+            "ms": 2,
+            "start": 104,
+            "encoded": 34892,
+            "decoded": 34892,
+            "transfer": 35192
+          },
+          {
+            "path": "/assets/author/studio/home-egypt-cat-320x120.webp",
+            "initiator": "img",
+            "ms": 34,
+            "start": 106,
+            "encoded": 5526,
+            "decoded": 5526,
+            "transfer": 5826
+          },
+          {
+            "path": "/assets/ui/home-sprite-1548.webp",
+            "initiator": "css",
+            "ms": 5,
+            "start": 343,
+            "encoded": 4330,
+            "decoded": 4330,
+            "transfer": 4630
+          },
+          {
+            "path": "/assets/ui/writer-squirrel-144-v1.webp",
+            "initiator": "img",
+            "ms": 4,
+            "start": 3572,
+            "encoded": 5232,
+            "decoded": 5232,
+            "transfer": 5532
+          },
+          {
+            "path": "/assets/author/studio/art-n03-owl-library-entry184.webp",
+            "initiator": "img",
+            "ms": 1,
+            "start": 3580,
+            "encoded": 15450,
+            "decoded": 15450,
+            "transfer": 15750
+          },
+          {
+            "path": "/assets/author/friends/hero-owl-scene01-288.webp",
+            "initiator": "img",
+            "ms": 2,
+            "start": 3580,
+            "encoded": 28100,
+            "decoded": 28100,
+            "transfer": 28400
+          },
+          {
+            "path": "/assets/author/studio/art-n02-rabbit-painting-entry184.webp",
+            "initiator": "img",
+            "ms": 1,
+            "start": 3581,
+            "encoded": 13370,
+            "decoded": 13370,
+            "transfer": 13670
+          },
+          {
+            "path": "/release.json",
+            "initiator": "fetch",
+            "ms": 46,
+            "start": 3692,
+            "encoded": 22,
+            "decoded": 22,
+            "transfer": 322
+          }
+        ],
+        "warmWorkspace": [
+          {
+            "open": 138,
+            "feedback": 606
+          },
+          {
+            "open": 57,
+            "feedback": 732
+          },
+          {
+            "open": 123,
+            "feedback": 673
+          },
+          {
+            "open": 148,
+            "feedback": 597
+          },
+          {
+            "open": 101,
+            "feedback": 1099
+          },
+          {
+            "open": 174,
+            "feedback": 667
+          },
+          {
+            "open": 171,
+            "feedback": 797
+          },
+          {
+            "open": 139,
+            "feedback": 851
+          },
+          {
+            "open": 87,
+            "feedback": 701
+          },
+          {
+            "open": 75,
+            "feedback": 531
+          },
+          {
+            "open": 138,
+            "feedback": 746
+          },
+          {
+            "open": 157,
+            "feedback": 884
+          },
+          {
+            "open": 196,
+            "feedback": 543
+          },
+          {
+            "open": 210,
+            "feedback": 548
+          },
+          {
+            "open": 178,
+            "feedback": 754
+          },
+          {
+            "open": 113,
+            "feedback": 684
+          },
+          {
+            "open": 26,
+            "feedback": 589
+          },
+          {
+            "open": 172,
+            "feedback": 737
+          },
+          {
+            "open": 213,
+            "feedback": 877
+          },
+          {
+            "open": 275,
+            "feedback": 522
+          }
+        ],
+        "warmOpen": {
+          "p50": 139,
+          "p95": 213,
+          "max": 275,
+          "variance": 3279.0474999999997
+        },
+        "warmControlFeedback": {
+          "p50": 684,
+          "p95": 884,
+          "max": 1099,
+          "variance": 20245.389999999992
+        }
+      },
+      "candidate": {
+        "coldHome": [
+          {
+            "loadMs": 3717,
+            "readyMs": 3638,
+            "encoded": 1096973,
+            "code": 990051
+          },
+          {
+            "loadMs": 5278,
+            "readyMs": 5179,
+            "encoded": 1097037,
+            "code": 990051
+          },
+          {
+            "loadMs": 4427,
+            "readyMs": 4334,
+            "encoded": 1095893,
+            "code": 990051
+          },
+          {
+            "loadMs": 7590,
+            "readyMs": 7411,
+            "encoded": 1098313,
+            "code": 990051
+          },
+          {
+            "loadMs": 10480,
+            "readyMs": 10316,
+            "encoded": 1096433,
+            "code": 990051
+          },
+          {
+            "loadMs": 7367,
+            "readyMs": 7222,
+            "encoded": 1092559,
+            "code": 990051
+          },
+          {
+            "loadMs": 6299,
+            "readyMs": 6199,
+            "encoded": 1095193,
+            "code": 990051
+          },
+          {
+            "loadMs": 6580,
+            "readyMs": 6401,
+            "encoded": 1093545,
+            "code": 990051
+          },
+          {
+            "loadMs": 8109,
+            "readyMs": 7974,
+            "encoded": 1096973,
+            "code": 990051
+          },
+          {
+            "loadMs": 7009,
+            "readyMs": 6912,
+            "encoded": 1094563,
+            "code": 990051
+          }
+        ],
+        "waterfall": [
+          {
+            "path": "/",
+            "initiator": "navigation",
+            "ms": 3717,
+            "start": 0,
+            "encoded": 891366,
+            "decoded": 891366,
+            "transfer": 891666
+          },
+          {
+            "path": "/learning-art-1536.css",
+            "initiator": "link",
+            "ms": 6,
+            "start": 109,
+            "encoded": 129,
+            "decoded": 129,
+            "transfer": 429
+          },
+          {
+            "path": "/studio-layout.css",
+            "initiator": "link",
+            "ms": 9,
+            "start": 109,
+            "encoded": 69516,
+            "decoded": 69516,
+            "transfer": 69816
+          },
+          {
+            "path": "/studio-friends.js",
+            "initiator": "script",
+            "ms": 5,
+            "start": 115,
+            "encoded": 8471,
+            "decoded": 8471,
+            "transfer": 8771
+          },
+          {
+            "path": "/studio-drawings.js",
+            "initiator": "script",
+            "ms": 5,
+            "start": 115,
+            "encoded": 17282,
+            "decoded": 17282,
+            "transfer": 17582
+          },
+          {
+            "path": "/classic-art-153.js",
+            "initiator": "script",
+            "ms": 6,
+            "start": 116,
+            "encoded": 1072,
+            "decoded": 1072,
+            "transfer": 1372
+          },
+          {
+            "path": "/classic-art-155.js",
+            "initiator": "script",
+            "ms": 5,
+            "start": 117,
+            "encoded": 1106,
+            "decoded": 1106,
+            "transfer": 1406
+          },
+          {
+            "path": "/andersen-art-156.js",
+            "initiator": "script",
+            "ms": 5,
+            "start": 117,
+            "encoded": 1109,
+            "decoded": 1109,
+            "transfer": 1409
+          },
+          {
+            "path": "/assets/author/studio/home-egypt-cat-320x120.webp",
+            "initiator": "img",
+            "ms": 1,
+            "start": 122,
+            "encoded": 5526,
+            "decoded": 5526,
+            "transfer": 5826
+          },
+          {
+            "path": "/assets/author/studio/home-storybook-banner-560.webp",
+            "initiator": "img",
+            "ms": 2,
+            "start": 122,
+            "encoded": 34892,
+            "decoded": 34892,
+            "transfer": 35192
+          },
+          {
+            "path": "/assets/ui/home-sprite-1548.webp",
+            "initiator": "css",
+            "ms": 3,
+            "start": 531,
+            "encoded": 4330,
+            "decoded": 4330,
+            "transfer": 4630
+          },
+          {
+            "path": "/assets/ui/writer-squirrel-144-v1.webp",
+            "initiator": "img",
+            "ms": 2,
+            "start": 3631,
+            "encoded": 5232,
+            "decoded": 5232,
+            "transfer": 5532
+          },
+          {
+            "path": "/assets/author/friends/hero-owl-scene01-288.webp",
+            "initiator": "img",
+            "ms": 1,
+            "start": 3635,
+            "encoded": 28100,
+            "decoded": 28100,
+            "transfer": 28400
+          },
+          {
+            "path": "/assets/author/studio/art-n03-owl-library-entry184.webp",
+            "initiator": "img",
+            "ms": 9,
+            "start": 3643,
+            "encoded": 15450,
+            "decoded": 15450,
+            "transfer": 15750
+          },
+          {
+            "path": "/assets/author/studio/art-n02-rabbit-painting-entry184.webp",
+            "initiator": "img",
+            "ms": 10,
+            "start": 3643,
+            "encoded": 13370,
+            "decoded": 13370,
+            "transfer": 13670
+          },
+          {
+            "path": "/release.json",
+            "initiator": "fetch",
+            "ms": 75,
+            "start": 3722,
+            "encoded": 22,
+            "decoded": 22,
+            "transfer": 322
+          }
+        ],
+        "warmWorkspace": [
+          {
+            "open": 119,
+            "feedback": 487
+          },
+          {
+            "open": 206,
+            "feedback": 710
+          },
+          {
+            "open": 27,
+            "feedback": 462
+          },
+          {
+            "open": 200,
+            "feedback": 1057
+          },
+          {
+            "open": 123,
+            "feedback": 843
+          },
+          {
+            "open": 317,
+            "feedback": 958
+          },
+          {
+            "open": 106,
+            "feedback": 703
+          },
+          {
+            "open": 193,
+            "feedback": 618
+          },
+          {
+            "open": 177,
+            "feedback": 693
+          },
+          {
+            "open": 106,
+            "feedback": 691
+          },
+          {
+            "open": 61,
+            "feedback": 691
+          },
+          {
+            "open": 171,
+            "feedback": 581
+          },
+          {
+            "open": 180,
+            "feedback": 709
+          },
+          {
+            "open": 186,
+            "feedback": 770
+          },
+          {
+            "open": 152,
+            "feedback": 731
+          },
+          {
+            "open": 39,
+            "feedback": 1195
+          },
+          {
+            "open": 150,
+            "feedback": 836
+          },
+          {
+            "open": 71,
+            "feedback": 631
+          },
+          {
+            "open": 84,
+            "feedback": 812
+          },
+          {
+            "open": 115,
+            "feedback": 571
+          }
+        ],
+        "warmOpen": {
+          "p50": 123,
+          "p95": 206,
+          "max": 317,
+          "variance": 4457.227500000002
+        },
+        "warmControlFeedback": {
+          "p50": 703,
+          "p95": 1057,
+          "max": 1195,
+          "variance": 30651.947500000002
+        }
+      }
+    }
+  },
+  "serviceWorkerFirstInstall": {
+    "baseline": {
+      "settle": [
+        {
+          "name": "skazki-shell-1.5.207",
+          "rows": [
+            {
+              "path": "/assets/author/studio/home-storybook-banner-560.webp",
+              "bytes": 34892,
+              "hash": "84a08d3507e802e7d5286b222bf40d4786e011e883ae573a57c7cb828f38c3e6"
+            },
+            {
+              "path": "/assets/author/studio/home-egypt-cat-320x120.webp?v=206",
+              "bytes": 5526,
+              "hash": "af8e75714e128470c3381676c62ece1e22c32d228c41022e6a018e34ee63db49"
+            },
+            {
+              "path": "/learning-art-1536.css?v=1.5.207",
+              "bytes": 129,
+              "hash": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7"
+            },
+            {
+              "path": "/assets/ui/home-sprite-1548.webp",
+              "bytes": 4330,
+              "hash": "1e974ad768ec11b50d63b52675b99621b6d28667e22f06bbcb318bcb687a3ed8"
+            },
+            {
+              "path": "/assets/ui/writer-squirrel-144-v1.webp",
+              "bytes": 5232,
+              "hash": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee"
+            },
+            {
+              "path": "/studio-layout.css?v=1.5.207",
+              "bytes": 69516,
+              "hash": "98e0a666106d69a52b72022f7c88c5141819e2600e8ffc0c9471806419f46dd4"
+            },
+            {
+              "path": "/classic-art-153.js?v=1.5.207",
+              "bytes": 1072,
+              "hash": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9"
+            },
+            {
+              "path": "/classic-art-155.js?v=1.5.207",
+              "bytes": 1106,
+              "hash": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8"
+            },
+            {
+              "path": "/assets/ui/learning-sprite-1536.webp",
+              "bytes": 78056,
+              "hash": "e4b8ec07f3417b50023021aa542de958db0a4df397864b5687da50584e9208fd"
+            },
+            {
+              "path": "/andersen-art-156.js?v=1.5.207",
+              "bytes": 1109,
+              "hash": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b"
+            },
+            {
+              "path": "/world-scenes-194.js?v=1.5.207",
+              "bytes": 15978,
+              "hash": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4"
+            },
+            {
+              "path": "/studio-drawings.js?v=1.5.207",
+              "bytes": 17156,
+              "hash": "28cb3d0525f1e820163721450b8ed8ed714f51409680fb594fd4e8abd50dce9c"
+            },
+            {
+              "path": "/studio-friends.js?v=1.5.207",
+              "bytes": 8471,
+              "hash": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858"
+            },
+            {
+              "path": "/index.html",
+              "bytes": 987250,
+              "hash": "1641c608ed1e1b84a5e9be061cde20b6fca25fafc055fe3a7dac7e5c3b01ead1"
+            }
+          ]
+        },
+        {
+          "name": "skazki-book-art-v1",
+          "rows": [
+            {
+              "path": "/assets/author/friends/hero-kitten-scene01-288.webp",
+              "bytes": 25690,
+              "hash": "46e50905fa792cdcdec6e31594e033e1f155f9b09d3a69f3defaede1542467e0"
+            }
+          ]
+        }
+      ],
+      "idle": [
+        {
+          "name": "skazki-shell-1.5.207",
+          "rows": [
+            {
+              "path": "/assets/author/studio/home-storybook-banner-560.webp",
+              "bytes": 34892,
+              "hash": "84a08d3507e802e7d5286b222bf40d4786e011e883ae573a57c7cb828f38c3e6"
+            },
+            {
+              "path": "/assets/author/studio/home-egypt-cat-320x120.webp?v=206",
+              "bytes": 5526,
+              "hash": "af8e75714e128470c3381676c62ece1e22c32d228c41022e6a018e34ee63db49"
+            },
+            {
+              "path": "/learning-art-1536.css?v=1.5.207",
+              "bytes": 129,
+              "hash": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7"
+            },
+            {
+              "path": "/assets/ui/home-sprite-1548.webp",
+              "bytes": 4330,
+              "hash": "1e974ad768ec11b50d63b52675b99621b6d28667e22f06bbcb318bcb687a3ed8"
+            },
+            {
+              "path": "/assets/ui/writer-squirrel-144-v1.webp",
+              "bytes": 5232,
+              "hash": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee"
+            },
+            {
+              "path": "/studio-layout.css?v=1.5.207",
+              "bytes": 69516,
+              "hash": "98e0a666106d69a52b72022f7c88c5141819e2600e8ffc0c9471806419f46dd4"
+            },
+            {
+              "path": "/classic-art-153.js?v=1.5.207",
+              "bytes": 1072,
+              "hash": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9"
+            },
+            {
+              "path": "/classic-art-155.js?v=1.5.207",
+              "bytes": 1106,
+              "hash": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8"
+            },
+            {
+              "path": "/assets/ui/learning-sprite-1536.webp",
+              "bytes": 78056,
+              "hash": "e4b8ec07f3417b50023021aa542de958db0a4df397864b5687da50584e9208fd"
+            },
+            {
+              "path": "/andersen-art-156.js?v=1.5.207",
+              "bytes": 1109,
+              "hash": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b"
+            },
+            {
+              "path": "/world-scenes-194.js?v=1.5.207",
+              "bytes": 15978,
+              "hash": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4"
+            },
+            {
+              "path": "/studio-drawings.js?v=1.5.207",
+              "bytes": 17156,
+              "hash": "28cb3d0525f1e820163721450b8ed8ed714f51409680fb594fd4e8abd50dce9c"
+            },
+            {
+              "path": "/studio-friends.js?v=1.5.207",
+              "bytes": 8471,
+              "hash": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858"
+            },
+            {
+              "path": "/index.html",
+              "bytes": 987250,
+              "hash": "1641c608ed1e1b84a5e9be061cde20b6fca25fafc055fe3a7dac7e5c3b01ead1"
+            }
+          ]
+        },
+        {
+          "name": "skazki-book-art-v1",
+          "rows": [
+            {
+              "path": "/assets/author/friends/hero-kitten-scene01-288.webp",
+              "bytes": 25690,
+              "hash": "46e50905fa792cdcdec6e31594e033e1f155f9b09d3a69f3defaede1542467e0"
+            }
+          ]
+        }
+      ],
+      "requests": [
+        {
+          "path": "/sw.js",
+          "encoded": 6878
+        },
+        {
+          "path": "/classic-art-153.js?v=1.5.207",
+          "encoded": 1072
+        },
+        {
+          "path": "/classic-art-155.js?v=1.5.207",
+          "encoded": 1106
+        },
+        {
+          "path": "/index.html",
+          "encoded": 987250
+        },
+        {
+          "path": "/andersen-art-156.js?v=1.5.207",
+          "encoded": 1109
+        },
+        {
+          "path": "/learning-art-1536.css?v=1.5.207",
+          "encoded": 129
+        },
+        {
+          "path": "/world-scenes-194.js?v=1.5.207",
+          "encoded": 15978
+        },
+        {
+          "path": "/studio-drawings.js?v=1.5.207",
+          "encoded": 17156
+        },
+        {
+          "path": "/studio-layout.css?v=1.5.207",
+          "encoded": 69516
+        },
+        {
+          "path": "/studio-friends.js?v=1.5.207",
+          "encoded": 8471
+        },
+        {
+          "path": "/assets/ui/home-sprite-1548.webp",
+          "encoded": 4330
+        },
+        {
+          "path": "/assets/ui/writer-squirrel-144-v1.webp",
+          "encoded": 5232
+        },
+        {
+          "path": "/assets/ui/learning-sprite-1536.webp",
+          "encoded": 78056
+        },
+        {
+          "path": "/assets/author/studio/home-storybook-banner-560.webp",
+          "encoded": 34892
+        },
+        {
+          "path": "/assets/author/studio/home-egypt-cat-320x120.webp?v=206",
+          "encoded": 5526
+        },
+        {
+          "path": "/assets/author/friends/hero-kitten-scene01-288.webp",
+          "encoded": 25690
+        }
+      ]
+    },
+    "kniga-skazok": {
+      "settle": [
+        {
+          "name": "skazki-shell-1.5.207",
+          "rows": [
+            {
+              "path": "/assets/ui/writer-squirrel-144-v1.webp",
+              "bytes": 5232,
+              "hash": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee"
+            },
+            {
+              "path": "/assets/author/studio/home-storybook-banner-560.webp",
+              "bytes": 34892,
+              "hash": "84a08d3507e802e7d5286b222bf40d4786e011e883ae573a57c7cb828f38c3e6"
+            },
+            {
+              "path": "/learning-art-1536.css?v=1.5.207",
+              "bytes": 129,
+              "hash": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7"
+            },
+            {
+              "path": "/assets/ui/home-sprite-1548.webp",
+              "bytes": 4330,
+              "hash": "1e974ad768ec11b50d63b52675b99621b6d28667e22f06bbcb318bcb687a3ed8"
+            },
+            {
+              "path": "/classic-art-153.js?v=1.5.207",
+              "bytes": 1072,
+              "hash": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9"
+            },
+            {
+              "path": "/studio-layout.css?v=1.5.207",
+              "bytes": 69516,
+              "hash": "98e0a666106d69a52b72022f7c88c5141819e2600e8ffc0c9471806419f46dd4"
+            },
+            {
+              "path": "/assets/ui/learning-sprite-1536.webp",
+              "bytes": 78056,
+              "hash": "e4b8ec07f3417b50023021aa542de958db0a4df397864b5687da50584e9208fd"
+            },
+            {
+              "path": "/classic-art-155.js?v=1.5.207",
+              "bytes": 1106,
+              "hash": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8"
+            },
+            {
+              "path": "/andersen-art-156.js?v=1.5.207",
+              "bytes": 1109,
+              "hash": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b"
+            },
+            {
+              "path": "/world-scenes-194.js?v=1.5.207",
+              "bytes": 15978,
+              "hash": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4"
+            },
+            {
+              "path": "/studio-drawings.js?v=1.5.207",
+              "bytes": 17282,
+              "hash": "2565ae0d9ce9e940ad1fa63b2627dfec8453d71452159bd4e1b6143ade5f5930"
+            },
+            {
+              "path": "/studio-friends.js?v=1.5.207",
+              "bytes": 8471,
+              "hash": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858"
+            },
+            {
+              "path": "/assets/author/studio/home-egypt-cat-320x120.webp?v=206",
+              "bytes": 5526,
+              "hash": "af8e75714e128470c3381676c62ece1e22c32d228c41022e6a018e34ee63db49"
+            },
+            {
+              "path": "/studio-engine-208.js?v=1.5.207",
+              "bytes": 100572,
+              "hash": "5a639173f6441b0a122eee084a60ad64d378548249c893596c92f83890731e0a"
+            },
+            {
+              "path": "/index.html",
+              "bytes": 891366,
+              "hash": "e4d80350f52c5ed0761c140aec1ac9282d9b93a219bbbfafd177e557f398cf67"
+            }
+          ]
+        },
+        {
+          "name": "skazki-book-art-v1",
+          "rows": [
+            {
+              "path": "/assets/author/friends/hero-bat-scene01-288.webp",
+              "bytes": 24672,
+              "hash": "c1201bc1965234d1ba41f9243daf3e90fc92a383e537c93e8e7af24dad633d38"
+            }
+          ]
+        }
+      ],
+      "idle": [
+        {
+          "name": "skazki-shell-1.5.207",
+          "rows": [
+            {
+              "path": "/assets/ui/writer-squirrel-144-v1.webp",
+              "bytes": 5232,
+              "hash": "e6a651bf88b4dc69ad11cf2af471bf27a4fca021dcca06cd91b28f9bf800c0ee"
+            },
+            {
+              "path": "/assets/author/studio/home-storybook-banner-560.webp",
+              "bytes": 34892,
+              "hash": "84a08d3507e802e7d5286b222bf40d4786e011e883ae573a57c7cb828f38c3e6"
+            },
+            {
+              "path": "/learning-art-1536.css?v=1.5.207",
+              "bytes": 129,
+              "hash": "ab5b6e9a78ca081852cf233ba970b45be5672a80401719aca07414f00ea73fd7"
+            },
+            {
+              "path": "/assets/ui/home-sprite-1548.webp",
+              "bytes": 4330,
+              "hash": "1e974ad768ec11b50d63b52675b99621b6d28667e22f06bbcb318bcb687a3ed8"
+            },
+            {
+              "path": "/classic-art-153.js?v=1.5.207",
+              "bytes": 1072,
+              "hash": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9"
+            },
+            {
+              "path": "/studio-layout.css?v=1.5.207",
+              "bytes": 69516,
+              "hash": "98e0a666106d69a52b72022f7c88c5141819e2600e8ffc0c9471806419f46dd4"
+            },
+            {
+              "path": "/assets/ui/learning-sprite-1536.webp",
+              "bytes": 78056,
+              "hash": "e4b8ec07f3417b50023021aa542de958db0a4df397864b5687da50584e9208fd"
+            },
+            {
+              "path": "/classic-art-155.js?v=1.5.207",
+              "bytes": 1106,
+              "hash": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8"
+            },
+            {
+              "path": "/andersen-art-156.js?v=1.5.207",
+              "bytes": 1109,
+              "hash": "3be52eebc1c3c16a7c6bd53773789c0c2814cc243b970d84e4d1f4a57487e86b"
+            },
+            {
+              "path": "/world-scenes-194.js?v=1.5.207",
+              "bytes": 15978,
+              "hash": "22896c7cbedb1baab8a76e14b4832beee49926ffe394542bc84591b1086ccbe4"
+            },
+            {
+              "path": "/studio-drawings.js?v=1.5.207",
+              "bytes": 17282,
+              "hash": "2565ae0d9ce9e940ad1fa63b2627dfec8453d71452159bd4e1b6143ade5f5930"
+            },
+            {
+              "path": "/studio-friends.js?v=1.5.207",
+              "bytes": 8471,
+              "hash": "cedc82a759532ba7fea6ef9777010c0a639d881665c0815ed975c04ec4453858"
+            },
+            {
+              "path": "/assets/author/studio/home-egypt-cat-320x120.webp?v=206",
+              "bytes": 5526,
+              "hash": "af8e75714e128470c3381676c62ece1e22c32d228c41022e6a018e34ee63db49"
+            },
+            {
+              "path": "/studio-engine-208.js?v=1.5.207",
+              "bytes": 100572,
+              "hash": "5a639173f6441b0a122eee084a60ad64d378548249c893596c92f83890731e0a"
+            },
+            {
+              "path": "/index.html",
+              "bytes": 891366,
+              "hash": "e4d80350f52c5ed0761c140aec1ac9282d9b93a219bbbfafd177e557f398cf67"
+            }
+          ]
+        },
+        {
+          "name": "skazki-book-art-v1",
+          "rows": [
+            {
+              "path": "/assets/author/friends/hero-bat-scene01-288.webp",
+              "bytes": 24672,
+              "hash": "c1201bc1965234d1ba41f9243daf3e90fc92a383e537c93e8e7af24dad633d38"
+            }
+          ]
+        }
+      ],
+      "requests": [
+        {
+          "path": "/sw.js",
+          "encoded": 7062
+        },
+        {
+          "path": "/classic-art-153.js?v=1.5.207",
+          "encoded": 1072
+        },
+        {
+          "path": "/classic-art-155.js?v=1.5.207",
+          "encoded": 1106
+        },
+        {
+          "path": "/index.html",
+          "encoded": 891366
+        },
+        {
+          "path": "/andersen-art-156.js?v=1.5.207",
+          "encoded": 1109
+        },
+        {
+          "path": "/world-scenes-194.js?v=1.5.207",
+          "encoded": 15978
+        },
+        {
+          "path": "/learning-art-1536.css?v=1.5.207",
+          "encoded": 129
+        },
+        {
+          "path": "/studio-drawings.js?v=1.5.207",
+          "encoded": 17282
+        },
+        {
+          "path": "/studio-layout.css?v=1.5.207",
+          "encoded": 69516
+        },
+        {
+          "path": "/studio-friends.js?v=1.5.207",
+          "encoded": 8471
+        },
+        {
+          "path": "/studio-engine-208.js?v=1.5.207",
+          "encoded": 100572
+        },
+        {
+          "path": "/assets/ui/home-sprite-1548.webp",
+          "encoded": 4330
+        },
+        {
+          "path": "/assets/ui/learning-sprite-1536.webp",
+          "encoded": 78056
+        },
+        {
+          "path": "/assets/ui/writer-squirrel-144-v1.webp",
+          "encoded": 5232
+        },
+        {
+          "path": "/assets/author/studio/home-storybook-banner-560.webp",
+          "encoded": 34892
+        },
+        {
+          "path": "/assets/author/studio/home-egypt-cat-320x120.webp?v=206",
+          "encoded": 5526
+        },
+        {
+          "path": "/assets/author/friends/hero-bat-scene01-288.webp",
+          "encoded": 24672
+        }
+      ]
+    }
+  }
+}

@@ -11,7 +11,7 @@ module.exports=async function verifyWatercolorDrawing(browser,url){
       await page.locator('#homeNewStory').click();
       await page.locator('#storyBody').fill('Белочка нарисовала сову над рекой.');
       await page.locator('#drawStory').click();
-      assert.ok(await page.locator('#drawingCanvas').isVisible(),'real canvas should be visible');
+      await page.locator('#drawingCanvas').waitFor({state:'visible',timeout:5000});
       const measure=await page.evaluate(()=>{
         const box=id=>{const element=$(id),rect=element.getBoundingClientRect();return {
           id,x:rect.x,y:rect.y,width:rect.width,height:rect.height,
@@ -72,4 +72,42 @@ module.exports=async function verifyWatercolorDrawing(browser,url){
     }finally{await context.close()}
     console.log('PASS R05/R15 watercolor drawing workspace '+width+'x'+height);
   }
+
+  for (const [width, height] of [[320, 640], [360, 780], [390, 844], [430, 932]]) {
+    const context = await browser.newContext({viewport: {width, height}, hasTouch: true, serviceWorkers: 'block'});
+    try {
+      const page = await context.newPage();
+      const tap = id => page.locator('#' + id).tap();
+      const canvas = page.locator('#drawingCanvas');
+      const panel = page.locator('#drawingPanel');
+      const geometry = () => panel.evaluate(panel => {
+        const bounds = panel.getBoundingClientRect();
+        const sheet = panel.querySelector('canvas').getBoundingClientRect();
+        return {scroll: panel.scrollLeft, overflow: panel.scrollWidth - panel.clientWidth,
+          visibleSheet: sheet.left >= bounds.left - 1 && sheet.right <= bounds.right + 1 && sheet.height >= 44};
+      });
+      await page.goto(url);
+      await tap('homeCreate');
+      await tap('childDraw');
+      await canvas.waitFor({state: 'visible'});
+      assert.ok(await page.locator('#studioPro').evaluate(button => {
+        const box = button.getBoundingClientRect();
+        return box.height >= 44 && box.width >= 44 && button.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+      }), 'professional palette must be reachable without scrolling the workspace at ' + width);
+      const initial = await geometry();
+      assert.ok(initial.visibleSheet && initial.scroll === 0 && initial.overflow <= 1,
+        'the viewport keeps the sheet inside the workspace at ' + width + 'px: ' + JSON.stringify(initial));
+      await tap('studioPro');
+      assert.ok(await page.locator('#studioProPane').isVisible());
+      await tap('studioProClose');
+      assert.deepEqual(await geometry(), initial, 'opening and closing the palette must preserve the sheet position');
+      await canvas.tap();
+      assert.ok(await page.locator('#drawingSave').isEnabled());
+      await tap('drawingSave');
+      await page.locator('#galleryGrid .gallery-piece').waitFor({state: 'visible'});
+    } finally {
+      await context.close();
+    }
+  }
+  console.log('PASS G29 mobile free drawing and palette at 320, 360, 390 and 430 CSS px');
 };

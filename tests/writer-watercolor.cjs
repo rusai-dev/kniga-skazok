@@ -58,7 +58,7 @@ module.exports=async function verifyWatercolorWriter(browser,url){
 
       await page.locator('#drawStory').click();
       const canvas=page.locator('#drawingCanvas');
-      assert.ok(await canvas.isVisible(),'real drawing canvas must open from the editor');
+      await canvas.waitFor({state:'visible',timeout:5000});
       await canvas.click({position:{x:45,y:45}});
       await page.locator('#drawingSave').click();
       const marker='\n[[рисунок:1]]\n';

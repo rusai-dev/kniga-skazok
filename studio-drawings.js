@@ -5,6 +5,7 @@
 function storyStudio(form, from, host) {
   let state = from || { sheets: [], originals: [] };
   let current = null;
+  let opening = 0;
   const body = form.querySelector('#storyBody');
 
   function write(next, save = host.save) {
@@ -25,13 +26,21 @@ function storyStudio(form, from, host) {
     const { before = '', after = '' } = sheet.position || {};
     const context = before + after;
     const saved = sheet.anchor;
-    if (context && text.slice(saved - before.length, saved + after.length) === context) return saved;
+    if (!Number.isInteger(saved)) return { offset: body.selectionStart, stale: false };
+    if (context && text.slice(saved - before.length, saved + after.length) === context) return { offset: saved, stale: false };
     const match = context && text.indexOf(context);
-    if (context && match >= 0 && text.indexOf(context, match + 1) < 0) return match + before.length;
-    return body.selectionStart;
+    if (context && match >= 0 && text.indexOf(context, match + 1) < 0) return { offset: match + before.length, stale: false };
+    return { offset: body.selectionStart, stale: Boolean(context || text) };
   }
 
-  function open(sheet = state.sheets.find(item => item.slot === undefined)) {
+  function rememberAnchor(sheet, offset) {
+    sheet.anchor = offset;
+    sheet.position = { before: body.value.slice(Math.max(0, offset - 32), offset), after: body.value.slice(offset, offset + 32) };
+  }
+
+  async function open(sheet = state.sheets.find(item => item.slot === undefined)) {
+    const request = ++opening;
+    if (!await host.prepare() || request !== opening) return;
     if (sheet?.slot !== undefined && sheet.base !== previewKey(sheet.slot)) {
       // A removed or replaced illustration must never receive an old edit.
       sheet = { ...sheet, slot: undefined, base: undefined };
@@ -40,10 +49,9 @@ function storyStudio(form, from, host) {
       current = sheet ? { ...sheet } : { id: host.id() };
       form.loadDrawing(current.src, current.outline);
     }
-    current.anchor = anchorFor(current);
-    const pos = current.anchor;
-    current.position = { before: body.value.slice(Math.max(0, pos - 32), pos), after: body.value.slice(pos, pos + 32) };
-    host.open(current);
+    const anchor = anchorFor(current);
+    if (!anchor.stale) rememberAnchor(current, anchor.offset);
+    host.open({ ...current, anchor: anchor.offset });
   }
 
   function addButton(root, title, action) {
@@ -65,6 +73,9 @@ function storyStudio(form, from, host) {
       root.lastElementChild.prepend(preview);
     });
     addButton(root, 'Новый рисунок', () => open({ id: host.id() }));
+    addButton(root, 'Проекты рисунков', async () => {
+      if (await loadDrawingEngine() && root.isConnected) showStoryProjects(form, root);
+    });
     const legacy = host.legacy();
     if (legacy) addButton(root, 'Копировать незаконченный рисунок', () => open({ id: host.id(), src: legacy }));
   }
@@ -92,8 +103,11 @@ function storyStudio(form, from, host) {
   }
 
   function finish(preview, src) {
+    if (!current) return false;
+    const anchor = anchorFor(current);
+    if (current.slot === undefined && anchor.stale && !confirm('Текст рядом с рисунком изменился. Вставить рисунок рядом с текущим положением курсора?')) return false;
     const slot = current.slot ?? host.free();
-    if (slot >= 5) return host.insert(preview);
+    if (slot >= 5) return host.insert(preview, false, anchor.offset);
     const originals = state.originals.slice();
     const prior = originals[slot];
     const id = current.slot === undefined ? current.id : (prior?.id || current.id);
@@ -103,10 +117,11 @@ function storyStudio(form, from, host) {
       src,
       previewKey: drawingFingerprint(preview),
       previous: prior?.src || host.preview(slot) || undefined,
-      previousPreview: host.preview(slot) || undefined
+      previousPreview: host.preview(slot) || undefined,
+      previousProject: prior?.project
     };
     const next = { originals, sheets: state.sheets.filter(sheet => sheet.id !== current.id) };
-    const saved = write(next, () => current.slot === undefined ? host.insert(preview) : host.replace(slot, preview));
+    const saved = write(next, () => current.slot === undefined ? host.insert(preview, false, anchor.offset) : host.replace(slot, preview));
     if (saved) current = null;
     host.paint();
     return saved;
@@ -131,18 +146,27 @@ function storyStudio(form, from, host) {
     Array.from(tray.children).forEach(card => {
       const slot = Number(card.querySelector('[data-picture]').dataset.picture);
       const prior = state.originals[slot];
+      if (prior?.project && prior.previewKey === previewKey(slot)) {
+        addButton(card, 'Открыть слои', async () => {
+          if (await loadDrawingEngine() && card.isConnected) openStoryProject(form, prior.project, host.returnWriter);
+        });
+      }
       if (!prior?.previous || !prior.previousPreview || prior.previewKey !== previewKey(slot)) return;
       addButton(card, 'Вернуть прежний рисунок', () => {
         const originals = state.originals.slice();
         originals[slot] = {
           id: prior.id, revision: host.id(), src: prior.previous,
           previewKey: drawingFingerprint(prior.previousPreview),
-          previous: prior.src, previousPreview: host.preview(slot)
+          previous: prior.src, previousPreview: host.preview(slot), project: prior.previousProject, previousProject: prior.project
         };
         write({ ...state, originals }, () => host.replace(slot, prior.previousPreview));
         host.paint();
       }).className = 'cover-choice';
     });
+  }
+
+  function attachProject(receipt, src, offset, prior) {
+    return writeStoryProject(state, host, write, previewKey, receipt, src, offset, prior);
   }
 
   function result(bookId) {
@@ -168,18 +192,17 @@ function storyStudio(form, from, host) {
     card.append(note);
   }
 
-  const tools = form.querySelector('.studio-tools');
-  addButton(tools, 'К сказке', () => form.querySelector('#drawingCancel').click());
-  tools.lastElementChild.id = 'studioBackFull';
-
   return {
+    projectScope: host.scope,
+    projectReceipts: slots => state.originals.flatMap((item, i) => item?.project && item.previewKey === previewKey(i) ? [slots ? {...item.project, slot: i} : item.project] : []),
+    attachProject,
     get data() {
       const caret = [body.selectionStart, body.selectionEnd, body.scrollTop];
-      return state.sheets.length || state.originals.some(Boolean) || caret.some(Boolean) ? { ...state, caret } : undefined;
+      return state.sheets.length || state.originals.some(Boolean) || caret.some(Boolean) ? { ...state, caret, direction: body.selectionDirection } : undefined;
     },
     restoreCaret() {
       if (!from?.caret) return;
-      body.setSelectionRange(from.caret[0], from.caret[1]);
+      body.setSelectionRange(from.caret[0], from.caret[1], from.direction || 'none');
       body.scrollTop = from.caret[2];
     },
     get pending() { return state.sheets.some(sheet => sheet.slot === undefined); },
@@ -192,14 +215,16 @@ function validStoryStudio(value) {
   const image = src => typeof src === 'string' && src.length <= 3000000 &&
     /^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(src);
   const record = item => item && typeof item.id === 'string' && item.id.length <= 180 && image(item.src);
+  const link = p => p === undefined || p && [p.id,p.documentId,p.revision,p.scope].every(x => typeof x === 'string' && x.length > 0 && x.length <= 640);
   return value && (value.caret === undefined || Array.isArray(value.caret) &&
     value.caret.length === 3 && value.caret.every(n => Number.isFinite(n) && n >= 0)) &&
+    (value.direction === undefined || ['none', 'forward', 'backward'].includes(value.direction)) &&
     Array.isArray(value.sheets) && value.sheets.length <= 8 &&
     value.sheets.every(sheet => record(sheet) && (sheet.slot === undefined ||
       Number.isInteger(sheet.slot) && sheet.slot >= 0 && sheet.slot < 5)) &&
     new Set(value.sheets.map(sheet => sheet.id)).size === value.sheets.length &&
     Array.isArray(value.originals) && value.originals.length <= 5 &&
-    value.originals.every(item => item === null || record(item) && typeof item.revision === 'string' &&
+    value.originals.every(item => item === null || record(item) && typeof item.revision === 'string' && link(item.project) && link(item.previousProject) &&
       (item.previous === undefined || image(item.previous)) &&
       (item.previousPreview === undefined || image(item.previousPreview)));
 }
@@ -214,7 +239,7 @@ function drawingStorage(legacyKey, outlineKey, story, fingerprint) {
   return {
     current: () => !!story || same(),
     load() {
-      if (!raw) return {};
+      if (raw === null) return {};
       let outline = null;
       try {
         const meta = JSON.parse(localStorage.getItem(outlineKey) || 'null');
@@ -257,6 +282,93 @@ function drawingStorage(legacyKey, outlineKey, story, fingerprint) {
       }
     }
   };
+}
+
+function readImageBytes(blob) {
+  if (typeof blob.arrayBuffer === 'function') return blob.arrayBuffer();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(Error('read'));
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
+function jpegDimensions(view) {
+  let start = 2;
+  while (start + 3 < view.byteLength) {
+    if (view.getUint8(start++) !== 0xff) break;
+    while (start < view.byteLength && view.getUint8(start) === 0xff) start++;
+    if (start + 2 >= view.byteLength) break;
+    const marker = view.getUint8(start++);
+    if (marker === 0 || marker === 0xda || marker === 0xd9) break;
+    if (marker === 1) continue;
+    const length = view.getUint16(start);
+    if (length < 2 || start + length > view.byteLength) break;
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker) && length >= 8) {
+      return {type: 'image/jpeg', width: view.getUint16(start + 5), height: view.getUint16(start + 3)};
+    }
+    start += length;
+  }
+}
+
+function rasterImageHeader(view, size) {
+  if (view.byteLength >= 2 && view.getUint16(0) === 0xffd8) return jpegDimensions(view);
+  if (view.byteLength < 20) return;
+  if (view.byteLength >= 33 && view.getUint32(0) === 0x89504e47 && view.getUint32(4) === 0x0d0a1a0a &&
+      view.getUint32(8) === 13 && view.getUint32(12) === 0x49484452) {
+    return {type: 'image/png', width: view.getUint32(16), height: view.getUint32(20)};
+  }
+  const riffEnd = view.getUint32(4, true) + 8;
+  if (view.getUint32(0) !== 0x52494646 || view.getUint32(8) !== 0x57454250 || riffEnd > size) return;
+  const chunk = view.getUint32(12), length = view.getUint32(16, true), type = 'image/webp';
+  if (length + 20 > riffEnd) return;
+  if (chunk === 0x56503858 && length === 10 && view.byteLength >= 30) {
+    const dimension = offset => 1 + view.getUint16(offset, true) + (view.getUint8(offset + 2) << 16);
+    return {type, width: dimension(24), height: dimension(27)};
+  }
+  if (chunk === 0x5650384c && length >= 5 && view.byteLength >= 25 && view.getUint8(20) === 0x2f) {
+    const bits = view.getUint32(21, true);
+    return {type, width: 1 + (bits & 0x3fff), height: 1 + ((bits >>> 14) & 0x3fff)};
+  }
+  if (chunk === 0x56503820 && length >= 10 && view.byteLength >= 30 && view.getUint8(23) === 0x9d && view.getUint16(24) === 0x012a) {
+    return {type, width: view.getUint16(26, true) & 0x3fff, height: view.getUint16(28, true) & 0x3fff};
+  }
+}
+
+function allowedImageDimensions(width, height) {
+  return width > 0 && height > 0 && Math.max(width, height) <= 8192 && width * height <= 16777216;
+}
+
+function imageMime(file) {
+  return file.type.split(';', 1)[0].trim().toLowerCase();
+}
+
+async function inspectStoryImage(file) {
+  if (!file || !file.size || file.size > 15000000) throw Error('size');
+  const prefix = new DataView(await readImageBytes(file.slice(0, 65536)));
+  let info = rasterImageHeader(prefix, file.size);
+  if (!info && file.size > prefix.byteLength && prefix.getUint16(0) === 0xffd8) {
+    info = rasterImageHeader(new DataView(await readImageBytes(file)), file.size);
+  }
+  const mime = imageMime(file);
+  const type = ({'image/jpg': 'image/jpeg', 'image/pjpeg': 'image/jpeg', 'image/x-png': 'image/png'})[mime] || mime;
+  if (!info || (type && type !== info.type)) throw Error('unsupported');
+  if (!allowedImageDimensions(info.width, info.height)) throw Error('dimensions');
+  return file.type === info.type ? file : file.slice(0, file.size, info.type);
+}
+
+const approvedStoryVectors = {
+  'library-lantern': '44ee2f65f973b1b542022b525c99c76455e6fe07e71b2ab4e7dd0bbfea8a670b',
+  'star-journey': 'a164908915041480242c15d8f62e311ccde77c0fb421a9fd386b5b13227ac37c'
+};
+
+async function inspectStoryVector(cover, file) {
+  if (!approvedStoryVectors[cover] || imageMime(file) !== 'image/svg+xml' || file.size > 6000) throw Error('cover');
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', await readImageBytes(file)));
+  const hex = Array.from(hash, byte => byte.toString(16).padStart(2, '0')).join('');
+  if (hex !== approvedStoryVectors[cover]) throw Error('cover');
+  return file;
 }
 
 // Approved watercolors replace the decorative navigation art, never the work surface.

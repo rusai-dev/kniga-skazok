@@ -36,3 +36,29 @@ jobs:
       - run: node tests/browser-smoke.cjs
         env:
           BROWSER: ${{ matrix.browser }}
+  legacy-upgrade:
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - run: npm install --no-save --package-lock=false playwright@1.65.1
+      - name: Exact published 1.5.207 upgrade (synthetic data only)
+        timeout-minutes: 4
+        run: node tests/release-207-to-208.cjs
+        env:
+          BROWSER: ${{ matrix.browser }}
+  release-ready:
+    needs: [regression, browser, legacy-upgrade]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - run: echo "Regression, full browser checks and exact legacy upgrade passed. Visual, device and backup acceptance remain separate release gates."

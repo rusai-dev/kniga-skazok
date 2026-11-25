@@ -1,5 +1,30 @@
 # Section-by-section acceptance / Книга сказок
 
+## CORE GOLD STANDARD · контрольная точка 24.11.2026
+
+| Критерий | Статус среза | Проверяемый результат |
+| --- | --- | --- |
+| ST, G21–G22 | PASS по целевым сценариям | Повреждённые JPEG/PNG, позднее декодирование, `pagehide` и задержанный выход при сохранении. При отказе записи удерживаются холст и прежняя редакция. Данные синтетической сказки и прогресса сравниваются побайтно. |
+| ST, G21–G23 · проекты | Частично | История, атомарная запись, проверка редакции между вкладками, экспорт и восстановление отдельной копией. Связь с существующей сказкой проходит отдельный сценарий DATA02. |
+| G24 · локальный импорт изображений | PASS по целевым сценариям | JPEG, PNG, WebP, лимиты до декодирования, подмена MIME и изменённая проектная SVG-обложка. Полный многослойный архив рассматривается отдельно. |
+| IN, G14 | PASS по целевым сценариям | Завершение штриха, отмена, ширина, масштабирование двумя касаниями, клавиши и перемещение мышью. Для проектов проверены 100–800%, сохранение центра и совпадение PNG после поворота. Физический Apple Pencil проверяется отдельно. |
+| CL, PRO-04 | Частично | Точные 72 цвета и 12 семейств, RGB/HEX/альфа, круг HSV и SV, 24 последних цвета, два источника пипетки и смешивание sRGB/линейного света. Лупа, пользовательские наборы и профили остаются открыты. |
+| PERF, G05/G07/G09 | Частично | Ленивый вход и разметка обоих маршрутов, повтор после отказа загрузки, защита при закрытии. Стартовый HTML, JS и CSS — 986 367 байт. Ориентир 850 000 байт и длительные аппаратные замеры остаются открыты. |
+| DATA02 · связь рисунка со сказкой | Частично | Отказы на трёх границах записи, восстановление и повтор без дубля. Подтверждённое обновление сохраняет место иллюстрации, рукопись и возможность вернуть предыдущий рисунок. Совместный архив остаётся открытым. |
+| FLOW2 · позиция рисунка | Частично | Текущий курсор подтверждается при потере контекста, отмена сохраняет текст и холст. Журнал сохраняет связь с редакцией проекта, восстанавливает подтверждение и исключает повторную вставку. Совместный архив обоих хранилищ остаётся открытым. |
+| FLOW, G25–G28 | PASS в синтетическом переходе | Проверка хэшей, ожидание старых клиентов, сетевой отказ, квота, неправильный MIME и содержимое. Версии N и N+1 открываются после подтверждения и откатываются офлайн. Фактическое развёртывание и Safari/PWA отдельно. |
+| C, G29–G32 | Частично | Панель свободного рисунка держит холст на месте при открытии палитры на 320, 360, 390 и 430 CSS px. Проверены зеркальная раскладка, режим «Только перо» и возврат обычного ввода, 30 комбинаций размеров и DPR в двух маршрутах. Физические устройства остаются открытыми. |
+| G19–G20 · рост проектов | Частично | Счётчики PNG и редакций, отдельная оценка квоты и резервный архив. Подтверждено сохранение и повторное открытие после 30 минут синтетической нагрузки. При подтверждённом выходе освобождаются растровые буферы. Длительный аппаратный замер и доказательство отсутствия утечек остаются открытыми. |
+| G33 · задержка | Частично | В 30-минутном прогоне Linux WebKit p95 интервала кадров 49–61 мс. В двух коротких сравнениях подсказка для редактируемых слоёв снизила p95 с 53–55 до 24–27 мс. Длительный повтор и замер физического Pencil остаются открытыми. |
+| ST3–ST4 · история проектов | Частично | 105 воспроизводимых штрихов с попиксельной отменой и повтором на 720×480, объединённое автосохранение и отдельная рабочая копия выбранной редакции. Нагрузки больших профилей и долговременный аппаратный прогон остаются открытыми. |
+| LY01 · слои | Частично | Независимые растровые слои, порядок, имя, скрытие, блокировка, прозрачность, семь режимов смешивания, отмена и повторное открытие. Проверены перетаскивание, группы, блокировка группы и обратимое объединение двух обычных слоёв. Аппаратные профили остаются открытыми. |
+| LY02 · маски | Частично | Альфа-замок, обтравка, редактируемая альфа-маска, инверсия, временное отключение и сохранение маски отдельным PNG. Референсный слой ограничивает заливку и сохраняет исходный хэш. Маски на больших профилях требуют отдельной проверки. |
+| CAN01–CAN04 · холст | Частично | Создание профилей и собственных размеров, расчёт бюджета, 2048×2048 с восемью слоями, полный PNG/JPEG, прозрачный фон и архив. Профиль 4096² отклоняется до записи. Замеры 3072²/4096² и iPad остаются открытыми. |
+| BR, ED, FX, ST, PRO-01–08 | Частично | Проверены отпечатки 11 рисующих материалов и отдельный ластик, настройки, импорт и экспорт пресетов, непрозрачность маркера и отмена. Проверен видимый контур выделения на 800% без выделения буфера на весь лист. Полная проверка эффектов, выделения и трансформаций остаётся открытой. |
+| HARDWARE / CHILD UX / FAMILY | NOT TESTED | Физический iPad, самостоятельные задачи художника и фактическая семейная доставка требуют отдельных сессий. |
+
+DEPLOYMENT — ветка разработки. Для релиза нужны оставшиеся критерии PDF и явное разрешение владельца.
+
 Active: **01 — Мои сказки / авторская мастерская**. Status: **technical release merged; deployment and full acceptance pending**.
 Current verified main: 1.5.176, de9a4e9cfc5ff54372ce57009806b161ccc8f2d9. Historical entries retain their base SHAs.
 Last integrated PR: #141. All mandatory CI checks passed; live deployment, physical iPad and full acceptance unverified.
@@ -371,3 +396,15 @@ Required release gates: exact final-SHA regression, browser smoke in Chromium an
 - The visible zoom controls reach all four scales and retain the canvas bitmap. Brush, palette, undo, redo, PNG rescue and save behavior continue through the original drawing engine.
 - The personal reader opens at the selected chapter or illustration. A previously selected personal cover and the story record survive reading and a reload. The book, chapter syntax and drawing storage formats are unchanged.
 - The before/after browser evidence covers the editor, drawing workspace, personal shelf and book in landscape and portrait tablet sizes. Physical iPad screenshots and Pencil confirmation are pending.
+
+
+## Release Ready — контроль выпуска 1.5.208
+Предыдущий кандидат `4d46ea1`: WebKit exact 207→208 и полный smoke PASS; regression и visual PASS. Chromium exact upgrade отменён по лимиту времени, корневая причина пока не доказана. В новом срезе upgrade вынесен в параллельные задания, добавлены дедлайны и журнал фаз; код приложения не изменён. Результаты нового SHA ожидают проверки. См. `docs/RELEASE_READY.md`. Реальная резервная копия и физический iPad не подтверждены.
+
+
+### 25.11 — exact upgrade / Chromium
+На `3c56d82` шесть из семи технических проверок успешны, включая полный smoke обоих движков и exact upgrade WebKit. Chromium остановился до начала обновления: старый worker installing, пустой кэш, в журнале запросов только первые ресурсы старой оболочки. Гипотеза: конкурирующая загрузка страницы и/или транспорт HTTP/1.1 с непрочитанными телами ответов. Тестовый сервер теперь отправляет обычные gzip-ответы с Content-Length, Connection: close и журналом завершения, устанавливает точный старый worker со страницы release.json до открытия интерфейса, проверяет SHA-256 старого HTML и worker. Исходные worker, приложение и условия сохранности не изменены. Результат нового SHA ещё не подтверждён. Физический iPad и независимая резервная копия работ остаются открытыми.
+
+
+### 25.11 — legacy Chromium install throttle / separate fixture and acceptance
+HTTP/2 run `056b237` reproduced exactly three resource requests and stopped before any upgrade. Historical 1.5.207 worker awaits all fetch headers before consuming bodies. Chromium source implements throttling during install (https://chromium.googlesource.com/chromium/src/+/5970f41e7be0a8b4b0876c56f0c8895a439c61c3/third_party/blink/renderer/modules/service_worker/service_worker_global_scope.cc); a historical worker-dev report describes this exact three-request deadlock (https://groups.google.com/a/chromium.org/g/worker-dev/c/y8b7V1waNK4). Transport changes did not resolve it. New isolated fixture bootstraps the exact old worker using a temporary Chromium profile with only the install-throttle feature disabled, verifies old worker/index SHA and cache, closes the browser and reopens the same profile in DEFAULT Chromium before writing data and attempting upgrade. All update, waiting, byte preservation and offline assertions then run with default settings. Additional clean default Chromium scenario uses synthetic legacy data generated by the real old editor, installs candidate normally and verifies offline reopening and original PNG. This does not claim to fix cold installation of the historical 1.5.207 worker or prove recovery of an already-stuck registration. No application bytes or production data changed. CI on this candidate, physical iPad and independent backup remain unverified.

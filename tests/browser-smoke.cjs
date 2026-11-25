@@ -25,6 +25,9 @@ const initialBytes=initialFiles.reduce((n,name)=>n+fs.statSync(path.join(root,na
 assert.ok(initialBytes<=1000000,'initial source budget exceeded: '+initialBytes);
 console.log('INITIAL SOURCE BYTES',initialBytes);
 const release=JSON.parse(fs.readFileSync(path.join(root,'release.json'),'utf8')).version;
+const workerSource=fs.readFileSync(path.join(root,'sw.js'),'utf8');
+const {fingerprint,resources:releaseResources}=require('../tools/shell-integrity.cjs').shellDefinition(workerSource);
+const verifiedShell='skazki-shell-'+release+'-'+fingerprint;
 assert.ok(fs.readFileSync(path.join(root,'index.html'),'utf8').includes('<footer>Книга сказок · версия '+release+'</footer>'),'manifest matches HTML');
 assert.ok(fs.readFileSync(path.join(root,'sw.js'),'utf8').includes("const REV='"+release+"'"),'manifest matches worker');
 const entry=fs.readFileSync(path.join(root,'index.html'),'utf8');
@@ -37,7 +40,7 @@ async function verifySpriteReuse(source){
  const slice=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexOf(a)+1));
  const sprite='https://test/assets/ui/sprite-v1.webp',core='https://test/index.html',bad=new Response('bad',{headers:{'content-type':'text/plain'}}),valid=new Response('image',{headers:{'content-type':'image/webp'}}),freshResponse=new Response('fresh');
  const reads=[],fetches=[];
- const api=new Function('CACHE','UI_SPRITES','find','isImage','fresh',slice('function olderShellNames(','self.addEventListener(\'install\'')+slice('function shellRevision(','function obsoleteShells(')+'return {olderShellNames,installCore}')('skazki-shell-1.5.123',[sprite],async(name,url)=>{reads.push([name,url]);return name==='skazki-shell-1.5.122'?bad:name==='skazki-shell-1.5.121'?valid:undefined},r=>r.ok&&(r.headers.get('content-type')||'').toLowerCase().startsWith('image/'),async url=>{fetches.push(url);return freshResponse});
+ const api=new Function('CACHE','UI_SPRITES','find','verifiedResource','fresh',slice('function olderShellNames(','self.addEventListener(\'install\'')+slice('function shellRevision(','function obsoleteShells(')+'return {olderShellNames,installCore}')('skazki-shell-1.5.123',[sprite],async(name,url)=>{reads.push([name,url]);return name==='skazki-shell-1.5.122'?bad:name==='skazki-shell-1.5.121'?valid:undefined},async(url,r)=>url===sprite&&r===valid,async url=>{fetches.push(url);return freshResponse});
  const older=api.olderShellNames(['unrelated','skazki-shell-1.5.124','skazki-shell-1.5.123','skazki-shell-1.5.121','skazki-shell-1.5.122']);
  assert.deepEqual(older,['skazki-shell-1.5.122','skazki-shell-1.5.121']);
  assert.equal(await api.installCore(sprite,older),valid);assert.equal(fetches.length,0);assert.equal(reads.length,2);
@@ -79,7 +82,7 @@ const server=http.createServer((req,res)=>{
  res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream'});fs.createReadStream(file).pipe(res);
 });
 (async()=>{
- await verifySpriteReuse(fs.readFileSync(path.join(root,'sw.js'),'utf8'));
+ await verifySpriteReuse(workerSource);
  assert.ok(await verifyWriterRetry(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext('))+entry.slice(entry.indexOf('function ghDecision('),entry.indexOf('function ghCachedRevision('))+entry.slice(entry.indexOf('async function ghWriterTick('),entry.indexOf('function ghWriterStart('))));
  await verifyOtherTransportRaces(entry.slice(entry.indexOf('function publicationMatches('),entry.indexOf('function fnext(')),entry.slice(entry.indexOf('function fsend('),entry.indexOf('function ftick(')),entry.slice(entry.indexOf('async function cloudTick('),entry.indexOf('function cloudStart(')));
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -93,6 +96,23 @@ const server=http.createServer((req,res)=>{
  await require("./shelf-watercolor.cjs")(browser,url);
  await require("./writer-watercolor.cjs")(browser,url);
  await require("./drawing-watercolor.cjs")(browser,url);
+ await require("./drawing-engine-loading.cjs")(browser,url);
+ await require("./drawing-recovery.cjs")(browser,url);
+ await require("./drawing-input.cjs")(browser,url);
+ await require("./image-import.cjs")(browser,url);
+ await require("./studio-projects.cjs")(browser,url);
+ await require("./project-layers.cjs")(browser,url);
+ await require("./project-history.cjs")(browser,url);
+ await require("./drawing-story-context.cjs")(browser,url);
+ await require("./project-profiles.cjs")(browser,url);
+ await require("./story-project-link.cjs")(browser,url);
+ await require("./project-selection.cjs")(browser,url);
+ await require("./project-color.cjs")(browser,url);
+ await require("./project-filters.cjs")(browser,url);
+ await require("./drawing-gestures.cjs")(browser,url);
+ await require("./project-groups.cjs")(browser,url);
+ await require("./project-storage.cjs")(browser,url);
+ await require("./project-brushes.cjs")(browser,url);
  await require("./family-cloud-routing.cjs")(browser,url);
  await require("./family-peer-fallback.cjs")(browser,url);
  await require("./family-disconnect.cjs")(browser,url);
@@ -198,10 +218,14 @@ const server=http.createServer((req,res)=>{
  };
  const paint=async(x,y)=>page.locator('#drawingCanvas').click({position:{x,y}});
  const back=async()=>page.locator('#drawingCancel').click();
- const loaded=async()=>page.waitForFunction(()=>!$('drawingStatus').textContent.startsWith('Открываем'));
+ const loaded=async()=>{
+  await page.locator('#drawingCanvas').waitFor({state:'visible'});
+  await page.waitForFunction(()=>!$('drawingStatus').textContent.startsWith('Открываем'));
+ };
  await newBook('Две картинки');
  await page.locator('#storyBody').evaluate(e=>e.setSelectionRange(15,15));
  await page.locator('#drawStory').click();
+ await loaded();
  assert.equal(await page.locator('#drawingSave').isEnabled(),false,'legacy draft never assigned automatically');
  await paint(30,30);await back();
  const sheet=(await read('Две картинки')).studio.sheets[0];
@@ -358,9 +382,9 @@ const server=http.createServer((req,res)=>{
    await page.locator('#drawStory').click();
    const canvas=page.locator('#drawingCanvas');
    try{
-    await page.waitForFunction(()=>$('drawingCanvas').getBoundingClientRect().height>=44,undefined,{timeout:5000});
+    await page.waitForFunction(()=>($('drawingCanvas')?.getBoundingClientRect().height??0)>=44,undefined,{timeout:5000});
    }catch(error){
-    const layout=await page.evaluate(()=>Object.fromEntries(['modal','drawingPanel','studioViewport','drawingCanvas'].map(id=>[id,$(id).getBoundingClientRect().toJSON()])));
+    const layout=await page.evaluate(()=>Object.fromEntries(['modal','drawingPanel','studioViewport','drawingCanvas'].map(id=>[id,$(id)?.getBoundingClientRect().toJSON()??null])));
     throw Error('Studio canvas geometry at '+width+'×'+height+' '+JSON.stringify(layout),{cause:error});
    }
    await canvas.click();
@@ -578,14 +602,15 @@ const server=http.createServer((req,res)=>{
  console.log('PASS full cover reuse, capacity refusal and failed-save retry');
  }
 
+ await require('./shell-update.cjs')(browser);
  // Chromium: verify real service-worker caching with an isolated profile.
  if(engine===chromium){
   const ctx=await browser.newContext({serviceWorkers:'allow'}),page=await ctx.newPage();
   try{
    await page.goto(new URL('release.json',url).href);
    const parts=release.split('.').map(Number),rev=offset=>[parts[0],parts[1],parts[2]+offset].join('.'),shell=offset=>'skazki-shell-'+rev(offset);
-   const obsolete=[-5,-4,-3].map(shell),keep=[-2,-1,0,1].map(shell).concat(['skazki-shell-v2','unrelated-cache']),previousCore='./classic-art-153.js?v='+rev(-1);
-   await page.evaluate(async({names,oldName,previousCore})=>{for(const name of names)await caches.open(name);const old=await caches.open(oldName);await old.put(new URL(previousCore,location.href).href,new Response('/* previous core */'));},{names:obsolete.concat(keep.filter(n=>n!==shell(0))),oldName:shell(-1),previousCore});
+   const obsolete=[-5,-4,-3].map(shell),keep=[-2,-1,1].map(shell).concat([verifiedShell,'skazki-shell-v2','unrelated-cache']),previousCore='./classic-art-153.js?v='+rev(-1);
+   await page.evaluate(async({names,oldName,previousCore})=>{for(const name of names)await caches.open(name);const old=await caches.open(oldName);await old.put(new URL(previousCore,location.href).href,new Response('/* previous core */'));},{names:obsolete.concat(keep.filter(n=>n!==verifiedShell)),oldName:shell(-1),previousCore});
    await page.evaluate(async path=>{
      const stale=await caches.open('skazki-book-art-v1');
      await stale.put(new URL(path,location.href),new Response('stale art',{headers:{'Content-Type':'image/webp'}}));
@@ -593,6 +618,9 @@ const server=http.createServer((req,res)=>{
    await page.goto(url);
    await page.evaluate(async()=>{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});await navigator.serviceWorker.ready});
    await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
+   const missingCore='./classic-art-155.js?v='+rev(-5);
+   assert.equal(await page.evaluate(async path=>(await fetch(path)).status,missingCore),410,'an old missing script never receives current release bytes');
+   assert.equal(await page.evaluate(async path=>(await fetch(path)).text(),previousCore),'/* previous core */');
    await page.waitForFunction(async obsolete=>{const keys=await caches.keys();return obsolete.every(k=>!keys.includes(k))},obsolete);
    const retained=await page.evaluate(()=>caches.keys());for(const name of keep)assert.ok(retained.includes(name),'retained '+name);
    await page.reload();
@@ -616,7 +644,7 @@ const server=http.createServer((req,res)=>{
    assert.ok(await page.locator('#storybookHome').isVisible());
    assert.equal(await page.evaluate(()=>localStorage.getItem('skazki-reading-size-v1')),'28');
    assert.ok(await page.evaluate(async path=>{const img=new Image();img.src=path;await img.decode();return img.naturalWidth>180},artPath));
-   assert.equal(await page.evaluate(async name=>{const keys=await (await caches.open(name)).keys();return keys.length},shell(0)),14,'complete versioned core including offline studio scripts, styles and on-demand world scenes');
+   assert.equal(await page.evaluate(async name=>{const keys=await (await caches.open(name)).keys();return keys.length},verifiedShell),releaseResources.length+1,'verified cache marker and complete offline release closure');
    for(const [selector,asset] of [['.home-hero-watercolor',bannerManifest],['.home-feature-art img',catManifest]]){
      const image=await page.locator(selector).evaluate(async (img,name)=>{
        await img.decode();
@@ -625,10 +653,10 @@ const server=http.createServer((req,res)=>{
        const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',buffer));
        const sha256=Array.from(digest,byte=>byte.toString(16).padStart(2,'0')).join('');
        return {width:img.naturalWidth,height:img.naturalHeight,bytes:buffer.byteLength,sha256};
-     },shell(0));
+     },verifiedShell);
      assert.deepEqual(image,{width:asset.width,height:asset.height,bytes:asset.bytes,sha256:asset.sha256},'verified home artwork survives offline with stale legacy artwork cache');
    }
-   const uiSprites=await page.evaluate(async name=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp','./assets/ui/writer-squirrel-144-v1.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open(name);return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))},shell(0));assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
+   const uiSprites=await page.evaluate(async name=>{const paths=['./assets/ui/home-sprite-1548.webp','./assets/ui/learning-sprite-1536.webp','./assets/ui/writer-squirrel-144-v1.webp'];return Promise.all(paths.map(async path=>{const img=new Image();img.src=path;await img.decode();const cache=await caches.open(name);return {width:img.naturalWidth,height:img.naturalHeight,cached:!!await cache.match(new URL(path,location.href).href)}}))},verifiedShell);assert.ok(uiSprites.every(x=>x.width>100&&x.height>100&&x.cached),'both unmodified UI sprites decode offline');
    await page.evaluate(()=>worldRoom(4));await page.waitForFunction(()=>[...document.querySelectorAll('.world-cover img')].length===2&&[...document.querySelectorAll('.world-cover img')].every(img=>!img.hidden&&img.naturalWidth===128&&img.naturalHeight===128));assert.ok(await page.locator('.world-cover img').evaluateAll(imgs=>imgs.every(img=>img.getBoundingClientRect().width<=64.1&&img.getBoundingClientRect().height>=40&&img.alt==='')));assert.ok(await page.locator('[data-world="egypt-nile"]').isVisible());await page.waitForFunction(()=>{const img=document.querySelector('.world-scene img');return img&&!img.hidden&&img.complete&&img.naturalWidth>=320});assert.ok(await page.locator('.world-scene img').evaluate(img=>img.getBoundingClientRect().width<=320.1&&img.getBoundingClientRect().height>100&&img.currentSrc.includes('-v1.webp')));await page.evaluate(()=>nightRead(2));await page.waitForFunction(()=>{const img=document.querySelector('.world-scene img');return img&&!img.hidden&&img.naturalWidth>=320&&img.currentSrc.includes('night-roost-scene')});await page.evaluate(()=>nightRead(7));await page.waitForFunction(()=>{const img=document.querySelector('.world-scene img');return img&&!img.hidden&&img.complete&&img.naturalWidth>=320});assert.ok(await page.locator('.world-scene img').evaluate(img=>img.getBoundingClientRect().width<=320.1&&img.getBoundingClientRect().height>100&&img.currentSrc.includes('-v1.webp')));assert.ok(await page.locator('.night-layout>div:first-child svg').isVisible());
    assert.equal(await page.evaluate(()=>readingBooksCache===undefined),true,'catalog remains lazy offline before first reading');
    const sourceCatalog=JSON.parse(fs.readFileSync(path.join(root,'content','reading-catalog.json'),'utf8'));
@@ -910,6 +938,13 @@ const server=http.createServer((req,res)=>{
  const homeSnapshot=async()=>page.evaluate(()=>{const nav=performance.getEntriesByType('navigation')[0],resources=[nav,...performance.getEntriesByType('resource')].filter(x=>x&&x.name.startsWith(location.origin)).map(x=>({path:new URL(x.name).pathname,bytes:x.encodedBodySize,transfer:x.transferSize}));return {encoded:resources.reduce((n,x)=>n+x.bytes,0),transferred:resources.reduce((n,x)=>n+x.transfer,0),loadMs:nav.loadEventEnd,domReadyMs:nav.domContentLoadedEventEnd,resources}});
  assert.equal(await page.locator('#topics button,#authors button,#books > *,#heroArt > *').count(),0,'hidden shelf not built on cold home');assert.equal(await page.locator('#creativeHome .child-picture > *').count(),0,'hidden creative artwork deferred');assert.equal(await page.evaluate(()=>readingBooksCache===undefined),true,'book data allocated only on demand');
  const cold=await homeSnapshot();assert.ok(cold.resources.every(x=>x.path!=='/world-scenes-194.js'),'world scene data must not load on story-first cold home');assert.ok(cold.resources.every(x=>x.path!=='/assets/ui/learning-sprite-1536.webp'),'full learning sprite must not load on story-first cold home');assert.ok(await page.locator('#otherArt svg').evaluate(el=>{const r=el.getBoundingClientRect();return el.getAttribute('viewBox')==='85 0 150 150'&&r.width>=24&&r.height>=24}),'compact learning artwork must remain visible');assert.ok(cold.resources.every(x=>!x.path.endsWith('/content/reading-catalog.json')&&!x.path.endsWith('/content/reading-banks.json')),'editable catalog and banks never fetched by app');console.log('COLD HOME RESOURCE BYTES',JSON.stringify({viewport,...cold}));assert.ok(cold.encoded>0&&cold.encoded<=1200000,'cold home encoded response budget exceeded: '+cold.encoded);assert.equal(cold.resources.filter(x=>x.path.includes('/author/friends/')).length,1);assert.ok(cold.resources.every(x=>x.path.includes('/author/friends/')||/\/assets\/author\/studio\/art-n0[23]-(?:rabbit-painting|owl-library)-entry184\.webp$/.test(x.path)||x.path==='/'+bannerManifest.path||x.path==='/assets/author/studio/home-egypt-cat-320x120.webp'||!/(\/assets\/(books|world|author)\/|\/(art-152|paintings-154|peerjs\.min)\.js$)/.test(x.path)),'only approved navigation and main-hero watercolor assets may load before optional art');
+ const eagerCodeBytes=await page.evaluate(()=>{
+  const code=performance.getEntriesByType('resource').filter(entry=>entry.initiatorType==='script'||/\.(css|js|mjs)$/.test(new URL(entry.name).pathname));
+  if(code.some(entry=>!entry.decodedBodySize))return null;
+  return performance.getEntriesByType('navigation')[0].decodedBodySize+code.reduce((sum,entry)=>sum+entry.decodedBodySize,0);
+ });
+ assert.ok(eagerCodeBytes>0&&eagerCodeBytes<=1000000,'transitive cold-home HTML/JS/CSS budget: '+eagerCodeBytes);
+ console.log('EAGER SOURCE BYTES',eagerCodeBytes);
  const selectedCompanion=cold.resources.find(x=>x.path.includes('/author/friends/'));
  const worstColdHome=cold.encoded-selectedCompanion.bytes+largestCompanion;
  assert.ok(worstColdHome<=1200000,'cold home must fit with largest companion: '+worstColdHome);
@@ -1314,6 +1349,14 @@ const server=http.createServer((req,res)=>{
  const pro=page.locator('#studioProPane'),proButton=page.locator('#studioPro');
  await proButton.click();assert.ok(await pro.isVisible());assert.equal(await page.locator('#proEffect option').count(),30);
  await page.locator('#proPalette').selectOption('all');assert.equal(await page.locator('#proSwatches button').count(),72);
+ const reference=await page.locator('#proSwatches button').evaluateAll(swatches=>swatches.map(button=>button.dataset.color));
+ const paletteSource=require('../content/studio-palette-srgb.json');
+ assert.equal(paletteSource.colorSpace,'sRGB');
+ assert.deepEqual(reference,paletteSource.families.flatMap(family=>family.colors.map(color=>color.toLowerCase())));
+ assert.equal(require('node:crypto').createHash('sha256').update(reference.join('')).digest('hex'),'bb524e9463cdd72e196398f54353029f7e8b1410dab6b778d4a5309a3214f687','exact ordered sRGB values from CORE GOLD');
+ await page.locator('#proPalette').selectOption({label:'Бирюза'});
+ assert.deepEqual(await page.locator('#proSwatches button').evaluateAll(swatches=>swatches.map(button=>button.dataset.color)),reference.slice(30,36));
+ await page.locator('#proPalette').selectOption('all');
  // Width, opacity and RGB mixing must not replace palette controls or lose keyboard focus.
  const paletteResult=await page.evaluate(()=>{const host=document.getElementById('proSwatches'),before=Array.from(host.children),shade=document.getElementById('proShades').children[3],preview=document.getElementById('proPreview');const change=(id,v)=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}))};before[5].focus();before[5].click();const focused=document.activeElement===before[5];change('proWidth','32');change('proOpacity','55');const pixels=preview.toDataURL();change('proRatio','23');const stablePreview=pixels===preview.toDataURL();const stable=before.every((node,i)=>host.children[i]===node)&&document.getElementById('proShades').children[3]===shade;return {focused,stable,stablePreview,selected:before[5].getAttribute('aria-pressed'),shadeMatches:shade.dataset.color===document.getElementById('proColor').value}});assert.deepEqual(paletteResult,{focused:true,stable:true,stablePreview:true,selected:'true',shadeMatches:true});
 
@@ -1458,7 +1501,7 @@ const server=http.createServer((req,res)=>{
  await page.locator('[data-tool="brush"]').click();
  const lifecycle=await page.evaluate(()=>{const c=$('drawingCanvas'),r=c.getBoundingClientRect(),f=$('standaloneDrawing')||$('storyForm'),key=DRAWING_DRAFT,changes=[];const stroke=(id,x,color)=>{$('drawingCustom').value=color;$('drawingCustom').dispatchEvent(new Event('input',{bubbles:true}));c.dispatchEvent(new PointerEvent('pointerdown',{pointerId:id,pointerType:'touch',clientX:r.x+r.width*x,clientY:r.y+r.height*.12,bubbles:true}));c.dispatchEvent(new PointerEvent('pointermove',{pointerId:id,pointerType:'touch',clientX:r.x+r.width*x,clientY:r.y+r.height*.23,bubbles:true}))};for(const [id,x,color,kind] of [[71,.12,'#01eafb','hidden'],[72,.88,'#f900e8','pagehide']]){const before=localStorage.getItem(key);stroke(id,x,color);const pending=f.dataset.drawingDirty==='yes'&&before===localStorage.getItem(key);if(kind==='hidden'){const original=Object.getOwnPropertyDescriptor(document,'hidden');try{Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'))}finally{if(original)Object.defineProperty(document,'hidden',original);else delete document.hidden}}else window.dispatchEvent(new Event('pagehide'));const saved=localStorage.getItem(key);c.dispatchEvent(new PointerEvent('pointerup',{pointerId:id,bubbles:true}));changes.push({pending,updated:saved!==before,clean:f.dataset.drawingDirty==='no',stable:saved===localStorage.getItem(key)})}return changes});assert.deepEqual(lifecycle,[{pending:true,updated:true,clean:true,stable:true},{pending:true,updated:true,clean:true,stable:true}]);
  // Missing pointerup: a fresh primary stroke or toolbar action must release stale drawing state without clearing pixels.
- const recovered=await page.evaluate(()=>{const c=$('drawingCanvas'),r=c.getBoundingClientRect(),f=$('standaloneDrawing')||$('storyForm');const stroke=(id,x)=>c.dispatchEvent(new PointerEvent('pointerdown',{pointerId:id,pointerType:'touch',isPrimary:true,clientX:r.x+r.width*x,clientY:r.y+r.height*.55,bubbles:true}));$('drawingCustom').value='#ff00aa';$('drawingCustom').dispatchEvent(new Event('input',{bubbles:true}));stroke(81,.17);const first=c.toDataURL();stroke(82,.83);const second=c.toDataURL();c.dispatchEvent(new PointerEvent('pointerup',{pointerId:82,bubbles:true}));stroke(83,.4);const before=c.toDataURL();document.querySelector('[data-tool="brush"]').click();const kept=before===c.toDataURL(),saved=f.dataset.drawingDirty==='no';stroke(84,.62);document.querySelector('[data-width]').click();return {resumed:first!==second,kept,saved,widthSaved:f.dataset.drawingDirty==='no'}});assert.deepEqual(recovered,{resumed:true,kept:true,saved:true,widthSaved:true});
+ const recovered=await page.evaluate(()=>{const c=$('drawingCanvas'),r=c.getBoundingClientRect(),f=$('standaloneDrawing')||$('storyForm');const stroke=(id,x)=>c.dispatchEvent(new PointerEvent('pointerdown',{pointerId:id,pointerType:'touch',isPrimary:true,clientX:r.x+r.width*x,clientY:r.y+r.height*.55,bubbles:true}));$('drawingCustom').value='#ff00aa';$('drawingCustom').dispatchEvent(new Event('input',{bubbles:true}));stroke(81,.17);const first=c.toDataURL();stroke(82,.83);const second=c.toDataURL();c.dispatchEvent(new PointerEvent('pointerup',{pointerId:82,pointerType:'touch',clientX:r.x+r.width*.83,clientY:r.y+r.height*.55,bubbles:true}));stroke(83,.4);const before=c.toDataURL();document.querySelector('[data-tool="brush"]').click();const kept=before===c.toDataURL(),saved=f.dataset.drawingDirty==='no';stroke(84,.62);document.querySelector('[data-width]').click();return {resumed:first!==second,kept,saved,widthSaved:f.dataset.drawingDirty==='no'}});assert.deepEqual(recovered,{resumed:true,kept:true,saved:true,widthSaved:true});
  const draft=await page.evaluate(()=>localStorage.getItem('skazki-unfinished-drawing-v1'));assert.ok(draft?.startsWith('data:image/jpeg;base64,'));
  await page.evaluate(()=>{window.__encodeCalls=0;const original=HTMLCanvasElement.prototype.toDataURL;HTMLCanvasElement.prototype.toDataURL=function(...args){window.__encodeCalls++;return original.apply(this,args)}});
  await page.locator('#drawingCancel').click();assert.equal(await page.evaluate(()=>window.__encodeCalls),0,'closing an already saved drawing must not encode again');
