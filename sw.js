@@ -73,7 +73,7 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   const response=await find(CACHE,url);
   return await verifiedResource(url,response)?response:null;
  })):[];
- if(retained.length&&retained.every(Boolean))return;
+ if(retained.length&&retained.every(Boolean)){await self.skipWaiting();return;}
  const older=olderShellNames(await caches.keys());
  const responses=await Promise.all(RELEASE_URLS.map(async(url,index)=>{
   if(retained[index])return null;
@@ -89,7 +89,8 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
   if(!alreadyVerified)await caches.delete(CACHE).catch(()=>false);
   throw error;
  }
- // Natural activation waits for all clients of the preceding worker to close.
+ // Activate only after the complete shell is verified. Existing pages are not reloaded.
+ await self.skipWaiting();
 })()));
 // Retain the current release and two nearest older releases; never delete an
 // unrelated cache, an artwork cache, legacy fallback, or an installing newer shell.
@@ -103,7 +104,7 @@ function obsoleteShells(names,current=CACHE){
 async function pruneShells(){
  try{await Promise.all((obsoleteShells(await caches.keys())).map(name=>caches.delete(name).catch(()=>false)))}catch(e){/* Storage cleanup is best effort. */}
 }
-self.addEventListener('activate',event=>event.waitUntil((async()=>{await self.clients.claim();await pruneShells()})()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{await self.clients.claim();/* Keep older shells while existing clients may still use them. */})()));
 function unavailable(status=503){
  return new Response(status===503?'Не удалось открыть проверенную версию. Подключись к интернету, закрой все вкладки «Книги сказок» и открой её снова.':null,
   {status,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});
@@ -148,6 +149,7 @@ self.addEventListener('fetch',event=>{
  if(ART.has(url.href)||url.href.startsWith(ROOT+'assets/author/friends/hero-')&&url.pathname.endsWith('.webp')){
   event.respondWith((async()=>{const cached=await find(ART_CACHE,url.href);if(cached)return cached;const r=await fresh(url.href);if(isImage(r))await save(ART_CACHE,url.href,r);return r})());return;
  }
+ if(url.pathname===new URL(INDEX).pathname&&url.searchParams.has('_check')){event.respondWith(fresh(url.href));return;}
  if(req.mode!=='navigate'||(url.pathname!==base.pathname&&url.pathname!==new URL(INDEX).pathname))return;
  event.respondWith(serveRelease(INDEX));
 });
