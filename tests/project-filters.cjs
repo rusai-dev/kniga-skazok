@@ -20,12 +20,25 @@ module.exports = async function verifyProjectFilters(browser, url) {
       const input = $('drawingCustom'); input.value = '#25364b';
       input.dispatchEvent(new Event('input', {bubbles: true}));
     });
-    const bounds = await canvas.boundingBox(), x = Math.floor(150*720/bounds.width), y = Math.floor(140*480/bounds.height);
+    // Use the actual pointer position seen by the drawing engine, not a
+    // bounding box sampled before Playwright scrolls the canvas into view.
+    await canvas.scrollIntoViewIfNeeded();
+    await canvas.evaluate(sheet => {
+      sheet.addEventListener('pointerdown', event => {
+        const r = sheet.getBoundingClientRect();
+        sheet.dataset.testStrokeX = String(Math.floor((event.clientX-r.left)*sheet.width/r.width));
+        sheet.dataset.testStrokeY = String(Math.floor((event.clientY-r.top)*sheet.height/r.height));
+      }, {capture: true, once: true});
+    });
     await canvas.click({position: {x: 150, y: 140}});
+    const [x, y] = await canvas.evaluate(sheet => [Number(sheet.dataset.testStrokeX), Number(sheet.dataset.testStrokeY)]);
+    assert.ok(Number.isInteger(x) && Number.isInteger(y) && x>12 && x<708 && y>12 && y<468,
+      'The real pointer stroke must be inside the canvas');
     await page.locator('#drawingStatus').filter({hasText: 'Проект сохранён'}).waitFor();
     const png = () => canvas.evaluate(sheet => sheet.toDataURL());
     const pixel = (x, y) => canvas.evaluate((sheet, [x, y]) => Array.from(sheet.getContext('2d').getImageData(x, y, 1, 1).data), [x, y]);
     const stored = () => page.evaluate(async () => (await (await studioProjectStore()).list())[0].revision);
+    assert.deepEqual(await pixel(x, y), [37, 54, 75, 255], 'Source brush stroke must be opaque before testing effects');
     const original = await png(), revision = await stored();
     const open = async () => {
       if (!await more.evaluate(details => details.open)) await more.locator('summary').click();
