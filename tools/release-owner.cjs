@@ -52,16 +52,44 @@ async function checkQuality(sha, branch, allowPullRequest) {
   const {jobs} = api(root + `/actions/runs/${run.id}/attempts/${run.run_attempt}/jobs?per_page=100`);
   validateRun(run, jobs, sha, repository, allowPullRequest);
 }
+async function awaitPublication(run) {
+  console.log(run.html_url);
+  let finished = await waitFor(()=>{
+    const current = api(root + '/actions/runs/' + run.id);
+    return current.status === 'completed' && current;
+  }, 'Release Guard');
+  if (finished.conclusion === 'failure' && finished.run_attempt === 1) {
+    // The retry workflow is trusted to classify the exact metadata error.
+    // Do not independently dispatch a second release or retry arbitrary errors.
+    const title = 'Retry Release Guard #' + run.id;
+    const retry = await waitFor(()=>runs('release-retry.yml', 'main', run.head_sha)
+      .find(candidate=>candidate.display_title===title), 'проверка возможности безопасного повтора', 90000);
+    await checkedRun('Release Guard retry', retry);
+    const restarted = await waitFor(()=>{
+      const current = api(root + '/actions/runs/' + run.id);
+      return current.run_attempt===2 && current;
+    }, 'разрешённая повторная попытка (иначе выпуск заблокирован)', 45000);
+    finished = restarted.status==='completed' ? restarted : await checkedRun('Release Guard', restarted);
+  }
+  assert.equal(finished.conclusion, 'success', 'Выпуск заблокирован: ' + finished.html_url);
+  return finished;
+}
+async function automaticPublication(sha) {
+  const run = await waitFor(()=>runs('release.yml','main',sha).find(value=>
+    value.event==='workflow_run' && value.display_title==='Публикуй · Release Guard'),
+    'автоматическая публикация точного SHA',90000);
+  return awaitPublication(run);
+}
 async function dispatch(operation, ref, sha) {
   const title = operation + ' · Release Guard';
   const matching = ()=>runs('release.yml', ref, sha).filter(run=>run.event === 'workflow_dispatch' && run.display_title === title);
   const recent = matching();
   const active = recent.find(run=>run.status !== 'completed');
-  if (active) return checkedRun('Release Guard', active);
+  if (active) return operation==='Публикуй' ? awaitPublication(active) : checkedRun('Release Guard', active);
   const known = new Set(recent.map(run=>run.id));
   api(root + '/actions/workflows/release.yml/dispatches', 'POST', {ref, inputs:{operation,expected_sha:sha}});
   const run = await waitFor(()=>matching().find(value=>!known.has(value.id)), 'новый запуск Release Guard', 90000);
-  return checkedRun('Release Guard', run);
+  return operation==='Публикуй' ? awaitPublication(run) : checkedRun('Release Guard', run);
 }
 function readPull() {
   const pull = api(root + '/pulls/' + pullNumber);
@@ -97,13 +125,20 @@ async function release() {
     assert.equal(readPull().head.sha, sha, 'SHA кандидата изменился');
     if (pull.draft) gh(['pr','ready',pullNumber,'--repo',repository]);
     assert.equal(mainSha(), base, 'Ветка main изменилась');
-    const merge = api(root + '/pulls/' + pullNumber + '/merge', 'PUT', {sha, merge_method:'merge'});
+    const manifest = api(root + '/contents/release.json?ref=' + sha);
+    const version = JSON.parse(Buffer.from(manifest.content, 'base64').toString('utf8')).version;
+    assert.match(version, /^\d+\.\d+\.\d+$/);
+    const merge = api(root + '/pulls/' + pullNumber + '/merge', 'PUT', {
+      sha, merge_method:'merge', commit_title:'Публикуй: ' + version
+    });
     assert.ok(merge.merged, merge.message);
     mergedSha = merge.sha;
   }
   assert.equal(mainSha(), mergedSha, 'Итоговый SHA PR должен быть вершиной main');
   await checkQuality(mergedSha, 'main', false);
   assert.equal(mainSha(), mergedSha, 'Ветка main изменилась после тестирования');
+  const commit = api(root + '/commits/' + mergedSha);
+  if (commit.commit.message.startsWith('Публикуй: ')) return automaticPublication(mergedSha);
   return dispatch(command, 'main', mergedSha);
 }
 

@@ -1,0 +1,84 @@
+name: Release Guard retry
+run-name: 'Retry Release Guard #${{ github.event.workflow_run.id }}'
+on:
+  workflow_run:
+    workflows: [Release Guard]
+    types: [completed]
+    branches: [main]
+permissions:
+  actions: write
+  contents: read
+concurrency:
+  group: release-retry-${{ github.event.workflow_run.id }}
+  cancel-in-progress: false
+jobs:
+  retry-publish:
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.path == '.github/workflows/release.yml' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_sha == github.sha && github.event.workflow_run.actor.login == github.repository_owner && github.event.workflow_run.triggering_actor.login == github.repository_owner && github.event.workflow_run.display_title == 'Публикуй · Release Guard'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Повторить только подтверждённый сбой регистрации Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FAILED_RUN: ${{ github.event.workflow_run.id }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          [[ "$FAILED_RUN" =~ ^[1-9][0-9]*$ ]]
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]
+          api="repos/$GITHUB_REPOSITORY"
+          [ "$(gh api "$api/git/ref/heads/main" --jq .object.sha)" = "$TARGET_SHA" ] || exit 0
+          gh api "$api/actions/runs/$FAILED_RUN" > /tmp/run.json
+          jq -e --arg sha "$TARGET_SHA" --arg owner "$OWNER" --arg repo "$GITHUB_REPOSITORY" '
+            .run_attempt==1 and .status=="completed" and .conclusion=="failure" and
+            .path==".github/workflows/release.yml" and .head_branch=="main" and
+            .head_sha==$sha and .head_repository.full_name==$repo and
+            .actor.login==$owner and .triggering_actor.login==$owner and
+            .display_title=="Публикуй · Release Guard"
+          ' /tmp/run.json >/dev/null || exit 0
+          gh api "$api/actions/runs/$FAILED_RUN/attempts/1/jobs?per_page=100" > /tmp/jobs.json
+          job=$(jq -er '
+            [.jobs[]|select(.name=="preflight" and .conclusion=="success")] | length==1
+          ' /tmp/jobs.json) || exit 0
+          [ "$job" = true ] || exit 0
+          job=$(jq -er '
+            [.jobs[]|select(.name=="publish" and .conclusion=="failure" and
+              ([.steps[]|select(.conclusion=="failure")]|length)==1 and
+              ([.steps[]|select(.conclusion=="failure" and (.name=="Run actions/deploy-pages@v4" or .name=="Дождаться регистрации точного архива Pages"))]|length)==1)]
+            | if length==1 then .[0].id else empty end
+          ' /tmp/jobs.json) || exit 0
+          [[ "$job" =~ ^[1-9][0-9]*$ ]] || exit 0
+          failed_step=$(jq -er --arg id "$job" '.jobs[]|select((.id|tostring)==$id)|.steps[]|select(.conclusion=="failure")|.name' /tmp/jobs.json)
+          # No checkout or execution of untrusted workflow artifacts or logs.
+          gh api "$api/actions/jobs/$job/logs" > /tmp/publish.log
+          if grep -Fq 'Creating Pages deployment' /tmp/publish.log; then exit 0; fi
+          if [ "$failed_step" = 'Дождаться регистрации точного архива Pages' ]; then
+            grep -Eq 'Z ЗАБЛОКИРОВАНО: точный архив не зарегистрирован в пределах 62 секунд$' /tmp/publish.log || exit 0
+            if grep -F '##[error]' /tmp/publish.log | grep -Fv -e 'Process completed with exit code 1' >/tmp/other-errors; then exit 0; fi
+          else
+            [ "$failed_step" = 'Run actions/deploy-pages@v4' ] || exit 0
+            grep -Fq 'Found 0 artifact(s)' /tmp/publish.log || exit 0
+            grep -Fq 'Fetching artifact metadata failed' /tmp/publish.log || exit 0
+            grep -Fq 'No artifacts named "github-pages-1" were found for this workflow run' /tmp/publish.log || exit 0
+            # Reject any additional failure reason; never retry a possibly created deployment.
+            if grep -F '##[error]' /tmp/publish.log | grep -Fv -e 'Fetching artifact metadata failed' -e 'No artifacts named "github-pages-1" were found for this workflow run' -e 'Process completed with exit code 1' > /tmp/other-errors; then
+              echo 'Иная причина сбоя: автоматический повтор запрещён'
+              exit 0
+            fi
+          fi
+          artifact_ready=false
+          for delay in 0 2 4 8 12; do
+            sleep "$delay"
+            if gh api "$api/actions/runs/$FAILED_RUN/artifacts?name=github-pages-1" --jq '.artifacts' > /tmp/artifacts.json &&
+               jq -e 'length==1 and (.[0]|.name=="github-pages-1" and .expired==false and .size_in_bytes>0)' /tmp/artifacts.json >/dev/null; then
+              artifact_ready=true
+              break
+            fi
+          done
+          [ "$artifact_ready" = true ] || exit 1
+          [ "$(gh api "$api/git/ref/heads/main" --jq .object.sha)" = "$TARGET_SHA" ] || exit 0
+          [ "$(gh api "$api/actions/runs/$FAILED_RUN" --jq '[.run_attempt,.status,.conclusion]|join("/")')" = '1/completed/failure' ] || exit 0
+          gh api --method POST "$api/actions/jobs/$job/rerun"
+          echo "Повторена только публикация SHA $TARGET_SHA, максимум одна попытка" | tee -a "$GITHUB_STEP_SUMMARY"
