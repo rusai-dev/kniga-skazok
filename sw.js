@@ -2,9 +2,9 @@
 'use strict';
 const REV='1.5.210',ART_CACHE='skazki-book-art-v1';
 // BEGIN GENERATED SHELL INTEGRITY
-const SHELL_FINGERPRINT='3479e42cd7ac6b2e96b4f1ee';
+const SHELL_FINGERPRINT='0a9a0088d03b66f92485dda6';
 const SHELL_SHA256={
-  "index.html": "2e053d2b6e88ce406fe4b4fe0946230ac4d1909df9efb68a7d14193244d117fc",
+  "index.html": "a29c44264c85c0b2959ee30ff0d1e9bc66ae381eccf10bfb82cba7eec67aa700",
   "release.json": "651bf7c7d7245942f735ff9fd06c1ce96677c4a9e91e8e2e576e51b3b9e1c5e5",
   "classic-art-153.js?v=1.5.210": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
   "classic-art-155.js?v=1.5.210": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8",
@@ -92,13 +92,46 @@ self.addEventListener('install',event=>event.waitUntil((async()=>{
  }
  // Wait by default. A compatible page may request activation from its home screen.
 })()));
+let activationVote;
+async function voteForActivation(){
+ const start=Date.now();
+ const scope=new URL(ROOT);
+ const appWindows=async()=> (await self.clients.matchAll({type:'window',includeUncontrolled:true})).filter(client=>{
+  const url=new URL(client.url);
+  return url.origin===scope.origin&&(url.pathname===scope.pathname||url.pathname===scope.pathname+'index.html');
+ });
+ const windows=await appWindows();
+ if(!windows.length)return;
+ const ports=[];
+ let activating=false;
+ try{
+  const votes=await Promise.all(windows.map(client=>new Promise(resolve=>{
+   const channel=new MessageChannel();
+   const timer=setTimeout(()=>resolve(false),1200);
+   ports.push(channel.port1);
+   channel.port1.onmessage=({data})=>{clearTimeout(timer);resolve(data===true)};
+   try{client.postMessage({type:'skazki-release-reserve'},[channel.port2])}catch(e){clearTimeout(timer);resolve(false)}
+  })));
+  if(!votes.every(Boolean))return;
+  const current=await appWindows();
+  if(Date.now()-start<1500&&current.length===windows.length&&current.every(client=>windows.some(item=>item.id===client.id))){
+   await self.skipWaiting();
+   activating=true;
+  }
+ }finally{
+  for(const port of ports){if(!activating)port.postMessage('release');port.close()}
+ }
+}
 self.addEventListener('message',event=>{
  const message=event.data;
  if(!event.source?.url?.startsWith(ROOT)||!['skazki-release-state','skazki-release-activate'].includes(message?.type))return;
  event.waitUntil((async()=>{
   if(!await sealed(CACHE))return;
   if(message.type==='skazki-release-state')event.ports[0]?.postMessage({version:REV,shell:SHELL_FINGERPRINT});
-  else if(message.version===REV&&message.shell===SHELL_FINGERPRINT)await self.skipWaiting();
+  else if(message.version===REV&&message.shell===SHELL_FINGERPRINT){
+   activationVote??=voteForActivation().finally(()=>{activationVote=null});
+   await activationVote;
+  }
  })());
 });
 // Retain the current release and two nearest older releases; never delete an

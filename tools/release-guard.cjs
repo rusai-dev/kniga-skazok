@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
 const { createHash } = require('node:crypto');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const SITE = 'https://rusai-dev.github.io/kniga-skazok/';
@@ -22,6 +23,10 @@ const MAX_PACKAGE = 64 * 1024 * 1024;
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 function output(name, value) {
   if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
+}
+class PublishedIntegrityError extends Error {}
+function matchesPublished(actual, expected, file) {
+  if (actual !== expected) throw new PublishedIntegrityError('Published bytes mismatch: ' + file);
 }
 function git(...args) {
   return execFileSync('git', ['-c', 'safe.directory=' + process.cwd(), ...args], {maxBuffer: MAX_PACKAGE});
@@ -107,7 +112,8 @@ async function fetchPublic(site, file, token) {
   url.searchParams.set('_release_guard', token);
   const response = await fetch(url, {cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(10000)});
   if (!response.ok) {
-    const error = new Error(`HTTP ${response.status} ${url.pathname}`);
+    const ErrorType = response.status === 404 || response.status === 410 ? PublishedIntegrityError : Error;
+    const error = new ErrorType(`HTTP ${response.status} ${url.pathname}`);
     error.status = response.status;
     throw error;
   }
@@ -120,11 +126,11 @@ async function checkLive(proof, site = SITE, full = false, now = String(Date.now
     for (let i = worker; i < files.length; i += 12) {
       const file = files[i];
       const response = await fetchPublic(site, file, now);
-      assert.equal(digest(Buffer.from(await response.arrayBuffer())), proof.files[file], 'Published bytes mismatch: ' + file);
+      matchesPublished(digest(Buffer.from(await response.arrayBuffer())), proof.files[file], file);
     }
   }));
   const front = await fetchPublic(site, './', now);
-  assert.equal(digest(Buffer.from(await front.arrayBuffer())), proof.files['index.html'], 'Homepage does not match the build');
+  matchesPublished(digest(Buffer.from(await front.arrayBuffer())), proof.files['index.html'], './');
 }
 async function liveIdentity(site = SITE) {
   const stamp = String(Date.now());
@@ -139,6 +145,22 @@ async function liveIdentity(site = SITE) {
   }
   if (proof) assert.equal(proof.version, release.version, 'Published version and proof differ');
   return {sha: proof?.sha || LEGACY_RELEASES[release.version], version: release.version, proof};
+}
+async function requirePublishedProof(proof, site = SITE) {
+  assert.deepEqual(await readPublishedProof(site), proof, 'Published build identity differs');
+}
+async function readPublishedProof(site = SITE) {
+  const response = await fetchPublic(site, PROOF, String(Date.now()));
+  return validateProof(await response.json());
+}
+async function diagnoseLive() {
+  const live = await liveIdentity();
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'kniga-diagnostics-'));
+  try {
+    const proof = live.proof || stage(live.sha, path.join(directory, 'live'));
+    await checkLive(proof, SITE, true);
+    console.log(`СЕРВЕР ПРОВЕРЕН ${proof.version} ${proof.sha} ${proof.build}`);
+  } finally {fs.rmSync(directory, {recursive:true,force:true})}
 }
 async function prepare(directory) {
   const sha = git('rev-parse', 'HEAD').toString().trim();
@@ -223,7 +245,15 @@ async function select(directory, runFile, jobsFile, sha, repository, operation) 
   assert.equal(receipt.candidate.sha, sha);
   assert.equal(receipt.upgrade, true);
   assert.ok(newer(receipt.candidate.version, receipt.stable.version));
-  validateRun(JSON.parse(fs.readFileSync(runFile)), JSON.parse(fs.readFileSync(jobsFile)), sha, repository, operation === 'Проверить');
+  validateRun(JSON.parse(fs.readFileSync(runFile)), JSON.parse(fs.readFileSync(jobsFile)), sha, repository, ['Проверь','Проверить'].includes(operation));
+  if (operation === 'Восстанови') {
+    await requirePublishedProof(receipt.candidate);
+    assert.ok(rollbackAllowed(receipt.candidate, receipt.stable), 'Rollback data compatibility is unverified');
+    output('version', receipt.stable.version);
+    output('rollback', true);
+    console.log('ВОССТАНОВЛЕНИЕ ' + receipt.stable.version + ' ' + receipt.stable.sha);
+    return;
+  }
   const live = await liveIdentity();
   assert.equal(live.sha, receipt.stable.sha, 'Live base has changed');
   assert.equal(live.version, receipt.stable.version, 'Live version has changed');
@@ -232,6 +262,7 @@ async function select(directory, runFile, jobsFile, sha, repository, operation) 
   output('version', receipt.candidate.version);
   output('build', receipt.candidate.build);
   output('rollback', rollbackAllowed(receipt.candidate, receipt.stable));
+  console.log(`ГОТОВО К ПУБЛИКАЦИИ ${receipt.candidate.version} ${receipt.candidate.sha} ${receipt.candidate.build}`);
 }
 function rollbackAllowed(candidate, stable) {
   // Each allowed pair must exercise the exact rollback in both browser jobs.
@@ -245,8 +276,12 @@ async function recheck(directory, side) {
   assert.equal(receipt.upgrade, true);
   for (const key of ['candidate', 'stable']) validateProof(receipt[key]);
   checkedTar(path.join(directory, side + '.tar'), receipt[side + 'Tar']);
-  if (side === 'stable') assert.ok(rollbackAllowed(receipt.candidate, receipt.stable), 'Rollback data compatibility is unverified');
-  const expected = receipt[side === 'candidate' ? 'stable' : 'candidate'];
+  if (side === 'stable') {
+    assert.ok(rollbackAllowed(receipt.candidate, receipt.stable), 'Rollback data compatibility is unverified');
+    await requirePublishedProof(receipt.candidate);
+    return;
+  }
+  const expected = receipt.stable;
   const live = await liveIdentity();
   assert.equal(live.sha, expected.sha, 'Live deployment has changed');
   assert.equal(live.version, expected.version, 'Live release has changed');
@@ -257,24 +292,27 @@ async function verifyPublished(directory, side) {
   assert.ok(['candidate', 'stable'].includes(side));
   const receipt = JSON.parse(fs.readFileSync(path.join(directory, 'receipt.json')));
   const proof = validateProof(receipt[side]);
-  let failure;
+  let failure, integrityFailures = 0;
   for (let attempt = 0; attempt < 10; attempt++) {
+    let exactProof = false;
     try {
-      await checkLive(proof);
-      const result = await (await fetchPublic(SITE, PROOF, String(Date.now()))).json();
-      assert.deepEqual(result, proof, 'Published build identity differs');
+      await requirePublishedProof(proof);
+      exactProof = true;
+      await checkLive(proof, SITE, true);
       output('version', proof.version);
       console.log(`${proof.version} ${proof.sha} ${proof.build}`);
       return;
     } catch (error) {
       failure = error;
+      integrityFailures = exactProof && error instanceof PublishedIntegrityError ? integrityFailures + 1 : 0;
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
   }
+  if (integrityFailures >= 2) output('critical', true);
   throw failure;
 }
 
-module.exports = {digest, newer, validateProof, validateRun, expectedJobs, rollbackAllowed, checkLive, visualLimit};
+module.exports = {digest, newer, validateProof, validateRun, expectedJobs, rollbackAllowed, checkLive, visualLimit, PublishedIntegrityError};
 
 if (require.main === module) {
   const [command, ...args] = process.argv.slice(2);
@@ -286,6 +324,8 @@ if (require.main === module) {
       case 'select': return select(...args);
       case 'published': return verifyPublished(...args);
       case 'recheck': return recheck(...args);
+      case 'live-sha': return readPublishedProof().then(live=>console.log(live.sha));
+      case 'diagnose': return diagnoseLive();
       default: throw new Error('Unknown Release Guard command');
     }
   }).catch(error => { console.error('ЗАБЛОКИРОВАНО', error.message); process.exitCode = 1; });

@@ -1,7 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
-const {digest, newer, validateProof, validateRun, expectedJobs, rollbackAllowed, visualLimit} = require('../tools/release-guard.cjs');
+const {digest, newer, validateProof, validateRun, expectedJobs, rollbackAllowed, visualLimit, checkLive, PublishedIntegrityError} = require('../tools/release-guard.cjs');
 
 const {releaseSources} = require('../tools/shell-integrity.cjs');
 const synced = releaseSources("const APP_RELEASE='1.5.208'; a?v=1.5.208; Книга сказок · версия 1.5.208", "const REV='1.5.208';", '1.5.209');
@@ -45,4 +45,18 @@ assert.equal(visualLimit('1.5.208','1.5.209','shelf.png',844,390),25);
 assert.ok(22 > visualLimit('1.5.208','1.5.210','shelf.png',844,390));
 assert.ok(0.7 > visualLimit('1.5.208','1.5.209','canvas.png',844,390));
 assert.equal(visualLimit('1.5.208','1.5.209','egypt-cat.png',844,390),0);
-console.log('PASS release guard version, proof, stale candidate, coverage and rollback policy');
+async function verifyPublishedIntegrity() {
+  const original = global.fetch;
+  try {
+    global.fetch = async url=>new Response(new URL(url).pathname.slice(1)||'index.html');
+    await checkLive(candidate, 'https://example.test/', true);
+    global.fetch = async ()=>new Response('damaged');
+    await assert.rejects(checkLive(candidate, 'https://example.test/'), PublishedIntegrityError);
+    global.fetch = async ()=>new Response(null, {status:404});
+    await assert.rejects(checkLive(candidate, 'https://example.test/'), PublishedIntegrityError);
+    global.fetch = async ()=>new Response(null, {status:503});
+    await assert.rejects(checkLive(candidate, 'https://example.test/'), error=>!(error instanceof PublishedIntegrityError));
+  } finally {global.fetch = original}
+}
+verifyPublishedIntegrity().then(()=>console.log('PASS release guard version, proof, stale candidate, coverage, integrity and rollback policy'))
+  .catch(error=>{console.error(error);process.exitCode=1});

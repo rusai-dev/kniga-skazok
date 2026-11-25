@@ -2720,9 +2720,27 @@ return m?m[1]:''
 }
 function releaseAlreadyAttempted(version,href=location.href){return new URL(href).searchParams.get('_release')===version}
 function canAutoUpdate(){
- return document.body.dataset.homeScreen==='home'&&storageOK&&!document.hidden&&
-  !$('modal').hasAttribute('open')&&$('familyViewer').hidden&&!$('familyReading')?.matches(':not([hidden])')&&
-  !document.activeElement?.matches('input,textarea,select,[contenteditable=true]')&&!/^#(?:writer|cloudwriter)=/.test(location.hash);
+ return document.body.dataset.homeScreen==='home'&&!document.hidden&&releaseWorkClosed()&&
+  $('familyViewer').hidden&&!$('familyReading')?.matches(':not([hidden])');
+}
+function releaseWorkClosed(){
+ return storageOK&&!$('modal').hasAttribute('open')&&!document.activeElement?.matches('input,textarea,select,[contenteditable=true]')&&
+  !/^#(?:writer|cloudwriter)=/.test(location.hash);
+}
+function reserveReleaseWindow(event){
+ const port=event.ports[0];
+ if(!port||event.data?.type!=='skazki-release-reserve'||event.source!==releaseRegistration?.waiting)return;
+ if(!releaseWorkClosed()||!('inert' in document.body)||document.body.inert){port.postMessage(false);port.close();return}
+ // Reserve this window briefly so a tap cannot reopen an editor between the vote and activation.
+ document.body.inert=true;
+ const finish=()=>{
+  clearTimeout(timer);document.body.inert=false;port.close();
+  navigator.serviceWorker.removeEventListener('controllerchange',finish);
+ };
+ const timer=setTimeout(finish,2000);
+ navigator.serviceWorker.addEventListener('controllerchange',finish);
+ port.onmessage=finish;
+ port.postMessage(true);
 }
 function readReleaseWorker(worker){
  return new Promise(resolve=>{
@@ -2774,7 +2792,7 @@ async function activateRelease(){
   const next=await readReleaseWorker(waiting);
   if(!next||!newerRelease(next.version,APP_RELEASE)||releaseRegistration.waiting!==waiting||!canAutoUpdate())return;
   waitingReleaseRequest={worker:waiting,at:Date.now()};
-  try{waiting.postMessage({type:'skazki-release-activate',...next})}catch(e){waitingReleaseRequest=null}
+  try{waiting.postMessage({type:'skazki-release-activate',...next});setTimeout(activateRelease,5000)}catch(e){waitingReleaseRequest=null}
  }finally{
   releaseActivationBusy=false;
   if(releaseActivationAgain){releaseActivationAgain=false;queueMicrotask(activateRelease)}
@@ -2921,6 +2939,7 @@ reg.addEventListener('updatefound',watch);watch();
 wakeRelease();
 }).catch(()=>{});
 navigator.serviceWorker.addEventListener('controllerchange',activateRelease);
+navigator.serviceWorker.addEventListener('message',reserveReleaseWindow);
 const safeScreen=new MutationObserver(activateRelease);
 safeScreen.observe(document.body,{attributes:true,attributeFilter:['data-home-screen']});
 safeScreen.observe($('modal'),{attributes:true,attributeFilter:['open']});

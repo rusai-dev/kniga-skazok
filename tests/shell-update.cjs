@@ -128,7 +128,9 @@ module.exports = async function verifyShellUpdate(browser) {
     await page.locator('#drawingCanvas').click();
     await page.evaluate(() => {
       window.switches = 0;
+      window.updateVotes = 0;
       navigator.serviceWorker.addEventListener('controllerchange', () => window.switches++);
+      navigator.serviceWorker.addEventListener('message',event=>{if(event.data?.type==='skazki-release-reserve')window.updateVotes++});
     });
     const original = await storedDraft(page);
 
@@ -154,11 +156,15 @@ module.exports = async function verifyShellUpdate(browser) {
     await sibling.evaluate(async ({name, url, body}) => (await caches.open(name)).put(new URL(url, location.href), new Response(body, {headers: {'Content-Type': 'text/css'}})), {name: previous.cache, url: oldCss, body: intactCss});
 
     await sibling.locator('#home').click();
+    await page.waitForFunction(()=>window.updateVotes>0);
+    await expectRevision(sibling, previous);
+    assert.equal(await page.evaluate(()=>window.switches),0,'one open editor blocks worker activation for every window');
+    assert.ok(await page.locator('#drawingCanvas').isVisible());
+    await page.locator('#drawingCancel').click();
+    await page.locator('#saveStoryNow').click();
+    await page.locator('#modal').waitFor({state:'hidden'});
     await sibling.waitForFunction(version=>typeof APP_RELEASE==='string'&&APP_RELEASE===version,next.version);
-    await expectRevision(page, previous);
-    assert.ok(await page.locator('#drawingCanvas').isVisible(),'update in another window leaves the editor open');
-    assert.equal(await page.locator('#storyBody').inputValue(),original.body);
-    assert.equal(await page.evaluate(async url => (await fetch(url)).text(), oldCss),intactCss);
+    assert.equal(await sibling.evaluate(async url => (await fetch(url)).text(), oldCss),intactCss);
     await page.close();
     await context.setOffline(true);
     const updated = sibling;
@@ -184,5 +190,5 @@ module.exports = async function verifyShellUpdate(browser) {
     await context.close();
     await new Promise(resolve => server.close(resolve));
   }
-  console.log('PASS G25–G28 verified update, manifest and shell install failures, another window editing, offline and rollback');
+  console.log('PASS G25–G28 verified update, manifest and shell failures, all windows idle, offline and safe rollback');
 };
