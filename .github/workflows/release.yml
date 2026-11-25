@@ -1,10 +1,12 @@
 name: Release Guard
-run-name: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }} · Release Guard
+run-name: ${{ github.event_name == 'workflow_run' && 'Публикуй' || (github.event_name == 'issues' && (startsWith(github.event.issue.title, 'Публикуй: ') && 'Публикуй' || 'Проверь')) || inputs.operation }} · Release Guard
 on:
   workflow_run:
     workflows: [Quality checks]
     types: [completed]
     branches: [main]
+  issues:
+    types: [opened]
   workflow_dispatch:
     inputs:
       operation:
@@ -27,50 +29,69 @@ defaults:
   run:
     shell: bash
 concurrency:
-  group: pages-production
+  group: ${{ github.event_name != 'issues' && 'pages-production' || ((github.event_name == 'issues' && github.event.action == 'opened' && github.event.issue.user.login == github.repository_owner && github.event.sender.login == github.repository_owner && github.actor == github.repository_owner && github.triggering_actor == github.repository_owner && github.run_attempt == 1 && github.event.issue.body == 'Release Guard owner command v1' && (startsWith(github.event.issue.title, 'Публикуй: ') || startsWith(github.event.issue.title, 'Проверь: '))) && 'pages-production' || format('ignored-release-request-{0}', github.run_id)) }}
   cancel-in-progress: false
 jobs:
   preflight:
     if: >-
-      github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_sha == github.sha && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.actor.login == github.repository_owner && github.event.workflow_run.triggering_actor.login == github.repository_owner && startsWith(github.event.workflow_run.head_commit.message, 'Публикуй: '))
+      (github.event_name == 'issues' && github.event.action == 'opened' && github.event.issue.user.login == github.repository_owner && github.event.sender.login == github.repository_owner && github.actor == github.repository_owner && github.triggering_actor == github.repository_owner && github.run_attempt == 1 && github.event.issue.body == 'Release Guard owner command v1' && (startsWith(github.event.issue.title, 'Публикуй: ') || startsWith(github.event.issue.title, 'Проверь: '))) || github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository && github.event.workflow_run.head_sha == github.sha && github.event.workflow_run.run_attempt == 1 && github.event.workflow_run.actor.login == github.repository_owner && github.event.workflow_run.triggering_actor.login == github.repository_owner && startsWith(github.event.workflow_run.head_commit.message, 'Публикуй: '))
     runs-on: ubuntu-24.04
     timeout-minutes: 4
     outputs:
+      operation: ${{ steps.authorization.outputs.operation }}
       version: ${{ steps.guard.outputs.version }}
       build: ${{ steps.guard.outputs.build }}
       rollback: ${{ steps.guard.outputs.rollback }}
       run_id: ${{ steps.run.outputs.run_id }}
     steps:
       - name: Авторизованная команда
+        id: authorization
         env:
-          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }}
+          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || (github.event_name == 'issues' && (startsWith(github.event.issue.title, 'Публикуй: ') && 'Публикуй' || 'Проверь')) || inputs.operation }}
           OWNER: ${{ github.repository_owner }}
           ACTOR: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.actor.login || github.actor }}
           TRIGGER: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.triggering_actor.login || github.triggering_actor }}
           EXPECTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_sha }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          ISSUE_SENDER: ${{ github.event.sender.login }}
         run: |
-          set -eu
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = issues ]; then
+            [ "$GITHUB_RUN_ATTEMPT" = 1 ] &&
+            [ "$ISSUE_AUTHOR" = "$OWNER" ] &&
+            [ "$ISSUE_SENDER" = "$OWNER" ] &&
+            [ "$ACTOR" = "$OWNER" ] &&
+            [ "$TRIGGER" = "$OWNER" ] &&
+            [ "$ISSUE_BODY" = 'Release Guard owner command v1' ] &&
+            [ "$ISSUE_TITLE" = "$COMMAND: $GITHUB_SHA" ] &&
+            [ "$GITHUB_REF" = refs/heads/main ] ||
+              { echo 'ЗАБЛОКИРОВАНО: неверная команда, автор или SHA'; exit 1; }
+            EXPECTED_SHA=$GITHUB_SHA
+          fi
           [ -z "$EXPECTED_SHA" ] || [ "$EXPECTED_SHA" = "$GITHUB_SHA" ] ||
             { echo 'ЗАБЛОКИРОВАНО: ветка изменилась после команды владельца'; exit 1; }
           if [ "$COMMAND" = 'Публикуй' ] || [ "$COMMAND" = 'Восстанови' ]; then
             [ "$GITHUB_REF" = refs/heads/main ] && [ "$ACTOR" = "$OWNER" ] && [ "$TRIGGER" = "$OWNER" ] ||
               { echo 'ЗАБЛОКИРОВАНО: выпуск и восстановление доступны владельцу из main'; exit 1; }
           fi
+          echo "operation=$COMMAND" >> "$GITHUB_OUTPUT"
           echo "ПОДГОТОВКА $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - if: inputs.operation == 'Проверь' && github.ref_name == 'main'
+      - if: steps.authorization.outputs.operation == 'Проверь' && github.ref_name == 'main'
         name: Проверить рабочий сайт
         run: node tools/release-guard.cjs diagnose | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Найти обязательный прогон точного коммита
-        if: github.event_name == 'workflow_run' || inputs.operation != 'Проверь' || github.ref_name != 'main'
+        if: steps.authorization.outputs.operation != 'Проверь' || github.ref_name != 'main'
         id: run
         env:
           GH_TOKEN: ${{ github.token }}
-          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }}
+          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || (github.event_name == 'issues' && (startsWith(github.event.issue.title, 'Публикуй: ') && 'Публикуй' || 'Проверь')) || inputs.operation }}
         run: |
           set -eu
           target=$GITHUB_SHA
@@ -114,12 +135,12 @@ jobs:
         if: steps.run.outputs.run_id != ''
         id: guard
         env:
-          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }}
+          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || (github.event_name == 'issues' && (startsWith(github.event.issue.title, 'Публикуй: ') && 'Публикуй' || 'Проверь')) || inputs.operation }}
           TARGET: ${{ steps.run.outputs.target }}
         run: |
           node tools/release-guard.cjs select /tmp/release /tmp/quality-run.json /tmp/quality-jobs.json "$TARGET" "$GITHUB_REPOSITORY" "$COMMAND" | tee -a "$GITHUB_STEP_SUMMARY"
   publish:
-    if: github.event_name == 'workflow_run' || inputs.operation == 'Публикуй'
+    if: needs.preflight.outputs.operation == 'Публикуй'
     needs: preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 8
@@ -180,6 +201,13 @@ jobs:
           done
           echo 'ЗАБЛОКИРОВАНО: точный архив не зарегистрирован в пределах 62 секунд'
           exit 1
+      - name: Финальный контроль main перед передачей в Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [ "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA" ] ||
+            { echo 'ЗАБЛОКИРОВАНО: main изменился перед развёртыванием'; exit 1; }
       - id: deploy
         uses: actions/deploy-pages@v4
         with:
@@ -297,7 +325,7 @@ jobs:
     timeout-minutes: 2
     steps:
       - env:
-          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || inputs.operation }}
+          COMMAND: ${{ github.event_name == 'workflow_run' && 'Публикуй' || (github.event_name == 'issues' && (startsWith(github.event.issue.title, 'Публикуй: ') && 'Публикуй' || 'Проверь')) || inputs.operation }}
           PREPARE: ${{ needs.preflight.result }}
           VERIFY: ${{ needs.verify.result }}
           RESTORE: ${{ needs.restore.result }}
