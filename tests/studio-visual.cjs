@@ -101,7 +101,7 @@ async function capture(browser,site,output,width,height) {
     await page.locator('.friends-grid img').first().evaluate(img=>img.decode());
     await take('friends');
     await page.locator('[data-close]').click();
-    await click('homeBooks');await take('personal-library');await click('home');
+    await openFromHome('homeBooks');await take('personal-library');await click('home');
     await click('adultEntry');await page.locator('#adultHome').waitFor({state:'visible'});
     if(await page.locator('#remoteReleaseStatus').count()){
       await page.locator('#remoteReleaseStatus').filter({hasText:'Версия на сервере:'}).waitFor({timeout:12000});

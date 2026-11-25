@@ -32,6 +32,8 @@ validateRun({...run, event: 'push', head_branch: 'main'}, jobs, sha, repository)
 assert.throws(() => validateRun({...run, head_sha: oldSha}, jobs, sha, repository), /Stale candidate/);
 assert.throws(() => validateRun({...run, head_repository: {full_name: 'other/repo'}}, jobs, sha, repository));
 assert.throws(() => validateRun({...run, event: 'pull_request'}, jobs, sha, repository), /exact candidate run/);
+validateRun({...run, event: 'pull_request'}, jobs, sha, repository, true);
+assert.throws(() => validateRun({...run, event: 'pull_request', head_repository: {full_name: 'other/repo'}}, jobs, sha, repository, true));
 assert.throws(() => validateRun({...run, event: 'push', head_branch: 'other'}, jobs, sha, repository), /exact candidate run/);
 assert.throws(() => validateRun({...run, conclusion: 'cancelled'}, jobs, sha, repository));
 assert.throws(() => validateRun(run, jobs.filter(job => job.name !== 'screens (webkit, mobile)'), sha, repository), /Missing successful job/);

@@ -185,13 +185,14 @@ function expectedJobs(upgrade) {
     ...(upgrade ? [`legacy-upgrade (${engine})`] : [])
   ])];
 }
-function validateRun(run, jobs, sha, repository) {
+function validateRun(run, jobs, sha, repository, allowPullRequest = false) {
   assert.match(sha, SHA);
   assert.equal(run.name, 'Quality checks');
   assert.equal(run.path, '.github/workflows/quality.yml');
   assert.equal(run.head_repository?.full_name, repository);
   assert.equal(run.head_sha, sha, 'Stale candidate SHA');
-  assert.ok(run.event === 'workflow_dispatch' || (run.event === 'push' && run.head_branch === 'main'), 'Expected an exact candidate run');
+  assert.ok(run.event === 'workflow_dispatch' || (run.event === 'push' && run.head_branch === 'main')
+    || (allowPullRequest && run.event === 'pull_request'), 'Expected an exact candidate run');
   assert.equal(run.status, 'completed');
   assert.equal(run.conclusion, 'success');
   for (const name of expectedJobs(true)) {
@@ -213,7 +214,7 @@ function seal(root, target) {
   fs.writeFileSync(path.join(target, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
   console.log('ПОДГОТОВКА — архив ' + receipt.candidate.sha + ' ' + receipt.candidate.build);
 }
-async function select(directory, runFile, jobsFile, sha, repository) {
+async function select(directory, runFile, jobsFile, sha, repository, operation) {
   const receipt = JSON.parse(fs.readFileSync(path.join(directory, 'receipt.json')));
   for (const side of ['candidate', 'stable']) {
     validateProof(receipt[side]);
@@ -222,7 +223,7 @@ async function select(directory, runFile, jobsFile, sha, repository) {
   assert.equal(receipt.candidate.sha, sha);
   assert.equal(receipt.upgrade, true);
   assert.ok(newer(receipt.candidate.version, receipt.stable.version));
-  validateRun(JSON.parse(fs.readFileSync(runFile)), JSON.parse(fs.readFileSync(jobsFile)), sha, repository);
+  validateRun(JSON.parse(fs.readFileSync(runFile)), JSON.parse(fs.readFileSync(jobsFile)), sha, repository, operation === 'Проверить');
   const live = await liveIdentity();
   assert.equal(live.sha, receipt.stable.sha, 'Live base has changed');
   assert.equal(live.version, receipt.stable.version, 'Live version has changed');

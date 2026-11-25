@@ -58,8 +58,8 @@ jobs:
           fi
           gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/quality.yml/runs" \
             -f head_sha="$GITHUB_SHA" -f branch="$GITHUB_REF_NAME" -F per_page=30 > /tmp/quality-runs.json
-          jq -e --arg ref "$GITHUB_REF_NAME" '[.workflow_runs[] |
-            select(.event=="workflow_dispatch" or (.event=="push" and $ref=="main"))] | first |
+          jq -e --arg ref "$GITHUB_REF_NAME" --arg command "$COMMAND" '[.workflow_runs[] |
+            select(.event=="workflow_dispatch" or (.event=="push" and $ref=="main") or (.event=="pull_request" and $command=="Проверить"))] | first |
             select(.status=="completed" and .conclusion=="success")' /tmp/quality-runs.json > /tmp/quality-run.json ||
             { echo 'ЗАБЛОКИРОВАНО: последний обязательный прогон этого SHA отсутствует или не завершился успешно'; exit 1; }
           run_id=$(jq -er .id /tmp/quality-run.json)
@@ -75,8 +75,10 @@ jobs:
           path: /tmp/release
       - name: Контроль SHA, архива и текущего сайта
         id: guard
+        env:
+          COMMAND: ${{ inputs.operation }}
         run: |
-          node tools/release-guard.cjs select /tmp/release /tmp/quality-run.json /tmp/quality-jobs.json "$GITHUB_SHA" "$GITHUB_REPOSITORY"
+          node tools/release-guard.cjs select /tmp/release /tmp/quality-run.json /tmp/quality-jobs.json "$GITHUB_SHA" "$GITHUB_REPOSITORY" "$COMMAND"
           echo "ГОТОВО К ПУБЛИКАЦИИ $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
   publish:
     if: inputs.operation == 'Публикуй'
