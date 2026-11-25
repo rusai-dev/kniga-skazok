@@ -1,9 +1,5 @@
 name: Live site navigation diagnostic
 on:
-  pull_request:
-    paths:
-      - tests/live-navigation.cjs
-      - .github/workflows/live-navigation.yml
   workflow_dispatch:
 permissions:
   contents: read

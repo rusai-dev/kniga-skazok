@@ -3,6 +3,16 @@
 const {chromium,webkit}=require('playwright');
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
+const shards=['studio','storage','offline','viewport','portrait','landscape'];
+const requested=process.env.SMOKE_SHARD;
+assert.ok(!requested||shards.includes(requested),'Unknown smoke shard: '+requested);
+const selected=name=>!requested||requested===name;
+const timed=async(name,test)=>{
+ const start=performance.now();
+ try{return await test()}
+ finally{console.log('SMOKE TIME',name,Math.round(performance.now()-start)+' ms')}
+};
+
 const mime={'.html':'text/html; charset=utf-8','.js':'application/javascript','.json':'application/json','.css':'text/css','.txt':'text/plain','.jpg':'image/jpeg','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'};
 const worldArtFiles=JSON.parse(fs.readFileSync(path.join(root,'assets/world/manifest.json'),'utf8')).assets;
 for(const a of worldArtFiles){const bytes=fs.readFileSync(path.join(root,a.path));assert.equal(bytes.length,a.bytes);assert.equal(require('node:crypto').createHash('sha256').update(bytes).digest('hex'),a.sha256);}
@@ -91,34 +101,37 @@ const server=http.createServer((req,res)=>{
  let browser;
  try{
  browser=await engine.launch({headless:true});
- await require("./studio-friends.cjs")(browser,url);
- await require("./home-watercolor.cjs")(browser,url);
- await require("./shelf-watercolor.cjs")(browser,url);
- await require("./writer-watercolor.cjs")(browser,url);
- await require("./drawing-watercolor.cjs")(browser,url);
- await require("./drawing-engine-loading.cjs")(browser,url);
- await require("./drawing-recovery.cjs")(browser,url);
- await require("./drawing-input.cjs")(browser,url);
- await require("./image-import.cjs")(browser,url);
- await require("./studio-projects.cjs")(browser,url);
- await require("./project-layers.cjs")(browser,url);
- await require("./project-history.cjs")(browser,url);
- await require("./drawing-story-context.cjs")(browser,url);
- await require("./project-profiles.cjs")(browser,url);
- await require("./story-project-link.cjs")(browser,url);
- await require("./project-selection.cjs")(browser,url);
- await require("./project-color.cjs")(browser,url);
- await require("./project-filters.cjs")(browser,url);
- await require("./drawing-gestures.cjs")(browser,url);
- await require("./project-groups.cjs")(browser,url);
- await require("./project-storage.cjs")(browser,url);
- await require("./project-brushes.cjs")(browser,url);
- await require("./family-cloud-routing.cjs")(browser,url);
- await require("./family-peer-fallback.cjs")(browser,url);
- await require("./family-disconnect.cjs")(browser,url);
- await require("./live-navigation.cjs")(browser,url);
- await require("./writer-background-save.cjs")(browser,url);
- await require("./writer-tab-conflict.cjs")(browser,url);
+ if(selected('studio'))await timed('studio',async()=>{
+  await timed('studio-friends',()=>require('./studio-friends.cjs')(browser,url));
+  await timed('home-watercolor',()=>require('./home-watercolor.cjs')(browser,url));
+  await timed('shelf-watercolor',()=>require('./shelf-watercolor.cjs')(browser,url));
+  await timed('writer-watercolor',()=>require('./writer-watercolor.cjs')(browser,url));
+  await timed('drawing-watercolor',()=>require('./drawing-watercolor.cjs')(browser,url));
+  await timed('drawing-engine-loading',()=>require('./drawing-engine-loading.cjs')(browser,url));
+  await timed('drawing-recovery',()=>require('./drawing-recovery.cjs')(browser,url));
+  await timed('drawing-input',()=>require('./drawing-input.cjs')(browser,url));
+  await timed('image-import',()=>require('./image-import.cjs')(browser,url));
+  await timed('studio-projects',()=>require('./studio-projects.cjs')(browser,url));
+  await timed('project-layers',()=>require('./project-layers.cjs')(browser,url));
+  await timed('project-history',()=>require('./project-history.cjs')(browser,url));
+  await timed('drawing-story-context',()=>require('./drawing-story-context.cjs')(browser,url));
+  await timed('project-profiles',()=>require('./project-profiles.cjs')(browser,url));
+  await timed('story-project-link',()=>require('./story-project-link.cjs')(browser,url));
+  await timed('project-selection',()=>require('./project-selection.cjs')(browser,url));
+  await timed('project-color',()=>require('./project-color.cjs')(browser,url));
+  await timed('project-filters',()=>require('./project-filters.cjs')(browser,url));
+  await timed('drawing-gestures',()=>require('./drawing-gestures.cjs')(browser,url));
+  await timed('project-groups',()=>require('./project-groups.cjs')(browser,url));
+  await timed('project-storage',()=>require('./project-storage.cjs')(browser,url));
+  await timed('project-brushes',()=>require('./project-brushes.cjs')(browser,url));
+  await timed('family-cloud-routing',()=>require('./family-cloud-routing.cjs')(browser,url));
+  await timed('family-peer-fallback',()=>require('./family-peer-fallback.cjs')(browser,url));
+  await timed('family-disconnect',()=>require('./family-disconnect.cjs')(browser,url));
+  await timed('live-navigation',()=>require('./live-navigation.cjs')(browser,url));
+  await timed('writer-background-save',()=>require('./writer-background-save.cjs')(browser,url));
+  await timed('writer-tab-conflict',()=>require('./writer-tab-conflict.cjs')(browser,url));
+ });
+ if(selected('storage'))await timed('storage',async()=>{
  // R14: isolated legacy drawing storage must roll back both source and metadata.
  {
  const ctx=await browser.newContext({serviceWorkers:'block'}),page=await ctx.newPage();
@@ -602,6 +615,8 @@ const server=http.createServer((req,res)=>{
  console.log('PASS full cover reuse, capacity refusal and failed-save retry');
  }
 
+ });
+ if(selected('offline'))await timed('offline',async()=>{
  await require('./shell-update.cjs')(browser);
  // Chromium: verify real service-worker caching with an isolated profile.
  if(engine===chromium){
@@ -676,6 +691,8 @@ const server=http.createServer((req,res)=>{
    console.log('PASS service worker offline artwork, catalog and storage');
   }finally{await ctx.close()}
  }
+ });
+ if(selected('viewport'))await timed('viewport',async()=>{
  // Exercise actual buttons with APIs absent on older iPad Safari (not a legacy engine emulator).
  const legacy=await browser.newContext({viewport:{width:768,height:1024},serviceWorkers:'block'});
  try{
@@ -916,7 +933,10 @@ const server=http.createServer((req,res)=>{
    }finally{await touch.close()}
   }
  }
- for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
+ });
+ for(const [mode,viewport] of [['portrait',{width:768,height:1024}],['landscape',{width:1024,height:768}]]){
+ if(!selected(mode))continue;
+ await timed(mode,async()=>{
  const ctx=await browser.newContext({viewport,serviceWorkers:'block'});const page=await ctx.newPage(),errors=[];
  page.on('pageerror',e=>errors.push(e.stack||e.message));
  const initialBookRequests=[];const trackBooks=req=>{if(new URL(req.url()).pathname.includes('/assets/books/'))initialBookRequests.push(req.url())};page.on('request',trackBooks);
@@ -1609,6 +1629,9 @@ const server=http.createServer((req,res)=>{
  });assert.deepEqual(failedShelf,[{shelf:'Свежий список сказок пока не получен.',status:'Библиотека временно недоступна.',count:0,busy:false,disabled:false},{shelf:'Сохранённая сказка',status:'Свежая версия недоступна. Показаны ранее полученные сказки.',count:1,busy:false,disabled:false}],'failed refresh is explicit on both empty and populated shelves');
  const rollback=await page.evaluate(()=>{const cache='qa-family-revision-cache',secret='b'.repeat(64),books=[{id:'latest',title:'Свежая сказка',theme:'Лес',body:'Текст.',icon:'📖'}];const previousReader=fget(FAMILY_READER),previousConfirmed=fget(FAMILY_CONFIRMED);try{fdel(cache);fdel(cache+'-revision');const s={cache,secret,books:[],received:false};ghPublicCache(s,{revision:3,books});const conflict=ghPublicCache(s,{revision:3,books:[]});if(conflict||s.books.length!==1||JSON.parse(fget(cache)).length!==1)throw Error('same revision conflict overwrote verified books');const reopened={cache,secret,books:JSON.parse(fget(cache)),ghRevision:ghCachedRevision({cache})};const stale=ghPublicCache(reopened,{revision:2,books:[]});const staleStatus=document.getElementById('familyViewStatus').textContent;const retry=ghPublicCache(reopened,{revision:3,books});return {revision:reopened.ghRevision,stale,count:JSON.parse(fget(cache)).length,status:staleStatus,retry,recovered:document.getElementById('familyViewStatus').textContent}}finally{fdel(cache);fdel(cache+'-revision');previousReader===null?fdel(FAMILY_READER):fput(FAMILY_READER,previousReader);previousConfirmed===null?fdel(FAMILY_CONFIRMED):fput(FAMILY_CONFIRMED,previousConfirmed)}});assert.equal(rollback.revision,3);assert.equal(rollback.stale,false);assert.equal(rollback.count,1);assert.ok(rollback.status.includes('не подтвердил свежую'));assert.equal(rollback.retry,true);assert.ok(rollback.recovered.includes('проверено и сохранено'));
  assert.deepEqual(errors,[]);await ctx.close();console.log('PASS',viewport);
+ });
  }
- }finally{if(browser)await browser.close();server.close()}
+ }finally{
+  try{if(browser)await browser.close()}finally{server.closeAllConnections?.();server.close()}
+ }
 })().catch(e=>{console.error(e);process.exitCode=1});
