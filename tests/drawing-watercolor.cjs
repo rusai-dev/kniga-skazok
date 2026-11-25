@@ -66,6 +66,27 @@ module.exports=async function verifyWatercolorDrawing(browser,url){
       await page.locator('#drawingExpand').click();
       assert.equal(await page.locator('#modal').evaluate(el=>el.classList.contains('canvas-full')),false,
         'fullscreen must close without losing the canvas');
+      // R05/R14/R17: rotate an actual marked sheet; a blank bitmap is not evidence
+      // that a child's drawing and its undo history survive changing layout.
+      if(width===1024||width===768){
+        await canvas.click({position:{x:35,y:35}});
+        const marked=await canvas.evaluate(el=>el.toDataURL());
+        assert.notEqual(marked,pixels,'rotation fixture must contain real ink');
+        await page.locator('#drawingExpand').click();
+        await page.setViewportSize({width:height,height:width});
+        await page.waitForFunction(({w,h})=>innerWidth===w&&innerHeight===h,{w:height,h:width});
+        await canvas.evaluate(el=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+        assert.equal(await canvas.evaluate(el=>el.toDataURL()),marked,'orientation change in fullscreen must preserve every pixel');
+        await page.locator('#drawingExpand').click();
+        await page.setViewportSize({width,height});
+        await page.waitForFunction(({w,h})=>innerWidth===w&&innerHeight===h,{w:width,h:height});
+        await canvas.evaluate(el=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+        assert.equal(await canvas.evaluate(el=>el.toDataURL()),marked,'return to original orientation must preserve every pixel');
+        await page.locator('#drawingUndo').click();
+        assert.equal(await canvas.evaluate(el=>el.toDataURL()),pixels,'undo history must survive rotation');
+        await page.locator('#drawingRedo').click();
+        assert.equal(await canvas.evaluate(el=>el.toDataURL()),marked,'redo must restore the exact marked sheet after rotation');
+      }
       const body=await page.locator('#storyBody').inputValue();
       assert.equal(body,'Белочка нарисовала сову над рекой.','restyle must not modify manuscript');
       assert.deepEqual(errors,[]);
