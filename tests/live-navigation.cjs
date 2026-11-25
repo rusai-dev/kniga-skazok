@@ -3,7 +3,8 @@ const {chromium,webkit}=require('playwright');
 const URL=process.env.SITE_URL||'https://rusai-dev.github.io/kniga-skazok/';
 const engine=process.env.BROWSER==='webkit'?webkit:chromium;
 async function verifyNavigation(browser,siteUrl=URL){
-  for(const viewport of [{width:1024,height:768},{width:768,height:1024},{width:390,height:700}]){
+  const sizes=[{width:1024,height:768},{width:768,height:1024},{width:390,height:700}];
+  for(const viewport of process.env.LIVE_RELEASE_ONLY==='1'?sizes.slice(0,1):sizes){
    const ctx=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'allow'});
    const page=await ctx.newPage(),errors=[],failed=[];
    page.on('pageerror',e=>errors.push(e.message));
@@ -25,11 +26,21 @@ async function verifyNavigation(browser,siteUrl=URL){
    }));
    console.log('LIVE',JSON.stringify({browser:process.env.BROWSER,viewport,htmlStatus,location,status,errors,failed}));
    if(htmlStatus!==200||!status.homeVisible||!status.startNoticeHidden||errors.length)throw Error('Site load/JS initialization failure');
-   if(status.current==='1.5.209'){
+   if(process.env.EXPECTED_LIVE_RELEASE&&status.current!==process.env.EXPECTED_LIVE_RELEASE)throw Error('Published browser version differs');
+   if(status.headerVersion!==null){
     if(!status.headerVersionVisible||status.headerVersion!=='v'+status.current)throw Error('Visible header version missing or incorrect');
+    const header=await page.evaluate(()=>{
+     const node=document.querySelector('.storybook-header'),label=document.getElementById('headerRelease'),button=label.parentElement;
+     const text=document.createRange();text.selectNodeContents(button.firstChild);
+     const textBox=text.getBoundingClientRect(),labelBox=label.getBoundingClientRect(),height=node.getBoundingClientRect().height;
+     label.hidden=true;const without=node.getBoundingClientRect().height;label.hidden=false;
+     return {height,without,separate:labelBox.top>=textBox.bottom-1};
+    });
+    if(header.height!==header.without||!header.separate)throw Error('Version label must fit without moving the header or covering its button text');
     await page.locator('#adultEntry').tap();await page.locator('#adultHome').waitFor({state:'visible'});
     if(!(await page.locator('#currentRelease').innerText()).includes(status.current))throw Error('Parent version mismatch');
-    await page.locator('#remoteReleaseStatus').waitFor({state:'visible'});
+    await page.locator('#remoteReleaseStatus').filter({hasText:'Версия на сервере:'}).waitFor({state:'visible',timeout:15000});
+    if(await page.locator('#toast').filter({hasText:'У тебя актуальная версия'}).isVisible())throw Error('Opening parent settings must not show an unsolicited version toast');
     await page.locator('#home').tap();await page.locator('#storybookHome').waitFor({state:'visible'});
    }
    for(const [id,landed,back] of [

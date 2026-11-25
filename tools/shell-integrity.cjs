@@ -35,16 +35,38 @@ function buildShellIntegrity(source, readResource) {
   ].join('\n'));
 }
 
+function releaseSources(html, worker, version) {
+  if (!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(version)) throw Error('Invalid release.json version');
+  const token = '[0-9]+\\.[0-9]+\\.[0-9]+';
+  const replace = (source, prefix, flags = '') => source.replace(new RegExp('(' + prefix + ')' + token, flags), (_whole, start) => start + version);
+  let nextHtml = replace(html, "const APP_RELEASE='");
+  nextHtml = replace(nextHtml, 'Книга сказок · версия ');
+  nextHtml = replace(nextHtml, 'id="currentRelease">Версия на устройстве: ');
+  nextHtml = replace(nextHtml, 'class="release-version-label">v');
+  nextHtml = replace(nextHtml, '[?]v=|_nav=', 'g');
+  return {html: nextHtml, worker: replace(worker, "const REV='")};
+}
+
 if (require.main === module) {
   const root = path.resolve(__dirname, '..');
   const file = path.join(root, 'sw.js');
-  const source = fs.readFileSync(file, 'utf8');
-  const next = buildShellIntegrity(source, name => fs.readFileSync(path.join(root, name)));
-  if (process.argv.includes('--check')) {
-    if (next !== source) throw Error('Shell integrity is out of date. Run node tools/shell-integrity.cjs');
-  } else if (next !== source) {
-    fs.writeFileSync(file, next);
+  const htmlFile = path.join(root, 'index.html');
+  const source = fs.readFileSync(file, 'utf8'), html = fs.readFileSync(htmlFile, 'utf8');
+  const {version} = JSON.parse(fs.readFileSync(path.join(root, 'release.json')));
+  const synced = releaseSources(html, source, version);
+  const sync = process.argv.includes('--sync-version');
+  const check = process.argv.includes('--check');
+  if (!sync && (synced.html !== html || synced.worker !== source)) {
+    throw Error('Runtime version differs from release.json. Run node tools/shell-integrity.cjs --sync-version');
+  }
+  const next = buildShellIntegrity(synced.worker, name => name === 'index.html'
+    ? Buffer.from(synced.html) : fs.readFileSync(path.join(root, name)));
+  if (check) {
+    if (next !== source || synced.html !== html) throw Error('Shell integrity or release version is out of date');
+  } else {
+    if (synced.html !== html) fs.writeFileSync(htmlFile, synced.html);
+    if (next !== source) fs.writeFileSync(file, next);
   }
 }
 
-module.exports = {buildShellIntegrity, shellDefinition};
+module.exports = {buildShellIntegrity, shellDefinition, releaseSources};

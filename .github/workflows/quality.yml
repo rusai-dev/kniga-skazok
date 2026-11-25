@@ -8,39 +8,88 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: quality-${{ github.ref }}
+  group: quality-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      sha: ${{ steps.prepare.outputs.sha }}
+      version: ${{ steps.prepare.outputs.version }}
+      stable_sha: ${{ steps.prepare.outputs.stable_sha }}
+      stable_version: ${{ steps.prepare.outputs.stable_version }}
+      upgrade: ${{ steps.prepare.outputs.upgrade }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: prepare
+        run: node tools/release-guard.cjs prepare /tmp/staged
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-receipt
+          path: /tmp/staged/receipt.json
+          retention-days: 14
+          if-no-files-found: error
+      - if: steps.prepare.outputs.upgrade == 'true'
+        run: node tools/release-guard.cjs seal /tmp/staged /tmp/packages
+      - if: steps.prepare.outputs.upgrade == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-packages
+          path: /tmp/packages
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
   regression:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - run: node tests/regression.cjs
+      - run: node tests/release-guard.cjs && node tests/regression.cjs
   browser:
+    needs: prepare
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.65.1-noble
-    timeout-minutes: 15
+    timeout-minutes: 7
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, webkit]
+        engine: [chromium, webkit]
+        shard: [studio, storage, offline, viewport, portrait, landscape]
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - run: npm install --no-save --package-lock=false playwright@1.65.1
-      - run: node tests/browser-smoke.cjs
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-receipt
+          path: /tmp/candidate-receipt
+      - run: node tools/release-guard.cjs verify /tmp/candidate-receipt/receipt.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: playwright-npm-1.65.1-${{ runner.os }}
+      - run: npm install --no-save --package-lock=false --prefer-offline --no-audit --no-fund playwright@1.65.1
+      - run: timeout --kill-after=10s 330s node tests/browser-smoke.cjs
         env:
-          BROWSER: ${{ matrix.browser }}
+          BROWSER: ${{ matrix.engine }}
+          SMOKE_SHARD: ${{ matrix.shard }}
   legacy-upgrade:
+    needs: prepare
+    if: needs.prepare.outputs.upgrade == 'true'
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.65.1-noble
-    timeout-minutes: 5
+    timeout-minutes: 6
     strategy:
       fail-fast: false
       matrix:
@@ -48,20 +97,92 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ needs.prepare.outputs.sha }}
           persist-credentials: false
           fetch-depth: 0
-      - run: npm install --no-save --package-lock=false playwright@1.65.1
-      - name: Exact published 1.5.208 upgrade (synthetic data only)
-        timeout-minutes: 4
-        run: node tests/release-207-to-208.cjs
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: playwright-npm-1.65.1-${{ runner.os }}
+      - run: npm install --no-save --package-lock=false --prefer-offline --no-audit --no-fund playwright@1.65.1
+      - name: Точные опубликованные байты и синтетические работы
+        run: timeout --kill-after=10s 230s node tests/release-207-to-208.cjs
         env:
           BROWSER: ${{ matrix.browser }}
-          QA_BASE_SHA: 3f24ecb06db8adc678fbbc2d91d1107e00bdca21
-          QA_BASE_VERSION: '1.5.208'
-          QA_TARGET_VERSION: '1.5.209'
+          QA_BASE_SHA: ${{ needs.prepare.outputs.stable_sha }}
+          QA_BASE_VERSION: ${{ needs.prepare.outputs.stable_version }}
+          QA_TARGET_VERSION: ${{ needs.prepare.outputs.version }}
+  screens:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+    timeout-minutes: 7
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+        group: [tablet, mobile]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: playwright-npm-1.65.1-${{ runner.os }}
+      - run: npm install --no-save --package-lock=false --prefer-offline --no-audit --no-fund playwright@1.65.1
+      - if: needs.prepare.outputs.upgrade == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-packages
+          path: /tmp/visual-package
+      - name: Проверка эталона и кандидата
+        env:
+          BROWSER: ${{ matrix.browser }}
+          VISUAL_GROUP: ${{ matrix.group }}
+        run: |
+          candidate=.
+          if [ -f /tmp/visual-package/candidate.tar ]; then
+            mkdir -p /tmp/visual-before /tmp/visual-after
+            tar -xf /tmp/visual-package/stable.tar -C /tmp/visual-before
+            tar -xf /tmp/visual-package/candidate.tar -C /tmp/visual-after
+            candidate=/tmp/visual-after
+            python3 -m http.server 8581 --bind 127.0.0.1 --directory /tmp/visual-before >/tmp/base.log 2>&1 &
+            export VISUAL_BASELINE_URL=http://127.0.0.1:8581/
+          fi
+          python3 -m http.server 8582 --bind 127.0.0.1 --directory "$candidate" >/tmp/candidate.log 2>&1 &
+          timeout --kill-after=10s 340s node tests/studio-visual.cjs http://127.0.0.1:8582/ screens
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: studio-${{ matrix.browser }}-${{ matrix.group }}
+          path: screens
   release-ready:
-    needs: [regression, browser, legacy-upgrade]
+    if: always()
+    needs: [prepare, regression, browser, legacy-upgrade, screens]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
-      - run: echo "Regression, full browser checks and exact legacy upgrade passed. Visual, device and backup acceptance remain separate release gates."
+      - name: Итоговый статус
+        env:
+          PREPARE: ${{ needs.prepare.result }}
+          REGRESSION: ${{ needs.regression.result }}
+          BROWSER: ${{ needs.browser.result }}
+          UPGRADE: ${{ needs.legacy-upgrade.result }}
+          SCREENS: ${{ needs.screens.result }}
+          HAS_UPGRADE: ${{ needs.prepare.outputs.upgrade }}
+          CANDIDATE: ${{ needs.prepare.outputs.sha }}
+        run: |
+          set -eu
+          if [ "$PREPARE/$REGRESSION/$BROWSER/$SCREENS" != success/success/success/success ] ||
+             { [ "$HAS_UPGRADE" = true ] && [ "$UPGRADE" != success ]; }; then
+            echo "ЗАБЛОКИРОВАНО: prepare=$PREPARE regression=$REGRESSION browser=$BROWSER upgrade=$UPGRADE screens=$SCREENS"
+            exit 1
+          fi
+          if [ "$HAS_UPGRADE" = true ]; then
+            echo "ГОТОВО К ПУБЛИКАЦИИ: $CANDIDATE" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'ПРОВЕРКА завершена, нового выпуска нет' | tee -a "$GITHUB_STEP_SUMMARY"
+          fi

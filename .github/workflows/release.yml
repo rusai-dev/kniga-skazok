@@ -1,0 +1,230 @@
+name: Release Guard
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Действие владельца
+        required: true
+        type: choice
+        options:
+          - Проверить
+          - Публикуй
+permissions:
+  contents: read
+  actions: read
+  pages: read
+concurrency:
+  group: pages-production
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    outputs:
+      version: ${{ steps.guard.outputs.version }}
+      build: ${{ steps.guard.outputs.build }}
+      rollback: ${{ steps.guard.outputs.rollback }}
+      run_id: ${{ steps.run.outputs.run_id }}
+    steps:
+      - name: Авторизованная команда
+        env:
+          COMMAND: ${{ inputs.operation }}
+          OWNER: ${{ github.repository_owner }}
+          ACTOR: ${{ github.actor }}
+          TRIGGER: ${{ github.triggering_actor }}
+        run: |
+          set -eu
+          if [ "$COMMAND" = 'Публикуй' ]; then
+            [ "$GITHUB_REF" = refs/heads/main ] && [ "$ACTOR" = "$OWNER" ] && [ "$TRIGGER" = "$OWNER" ] ||
+              { echo 'ЗАБЛОКИРОВАНО: публикация доступна владельцу из main'; exit 1; }
+          fi
+          echo "ПОДГОТОВКА $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Найти обязательный прогон точного коммита
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMAND: ${{ inputs.operation }}
+        run: |
+          set -eu
+          if [ "$COMMAND" = 'Публикуй' ]; then
+            [ "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA" ] ||
+              { echo 'ЗАБЛОКИРОВАНО: main изменился, запустите команду заново'; exit 1; }
+            [ "$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .build_type)" = workflow ] ||
+              { echo 'ЗАБЛОКИРОВАНО: источник Pages должен быть GitHub Actions'; exit 1; }
+          fi
+          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/quality.yml/runs" \
+            -f head_sha="$GITHUB_SHA" -f branch="$GITHUB_REF_NAME" -F per_page=30 > /tmp/quality-runs.json
+          jq -e --arg ref "$GITHUB_REF_NAME" '[.workflow_runs[] |
+            select(.event=="workflow_dispatch" or (.event=="push" and $ref=="main"))] | first |
+            select(.status=="completed" and .conclusion=="success")' /tmp/quality-runs.json > /tmp/quality-run.json ||
+            { echo 'ЗАБЛОКИРОВАНО: последний обязательный прогон этого SHA отсутствует или не завершился успешно'; exit 1; }
+          run_id=$(jq -er .id /tmp/quality-run.json)
+          attempt=$(jq -er .run_attempt /tmp/quality-run.json)
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/attempts/$attempt/jobs?per_page=100" \
+            --jq '.jobs' | jq -s 'add' > /tmp/quality-jobs.json
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.run.outputs.run_id }}
+          name: release-packages
+          path: /tmp/release
+      - name: Контроль SHA, архива и текущего сайта
+        id: guard
+        run: |
+          node tools/release-guard.cjs select /tmp/release /tmp/quality-run.json /tmp/quality-jobs.json "$GITHUB_SHA" "$GITHUB_REPOSITORY"
+          echo "ГОТОВО К ПУБЛИКАЦИИ $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+  publish:
+    if: inputs.operation == 'Публикуй'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.preflight.outputs.run_id }}
+          name: release-packages
+          path: /tmp/release
+      - name: Публикация проверенного архива
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          [ "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)" = "$GITHUB_SHA" ] ||
+            { echo 'ЗАБЛОКИРОВАНО: main изменился при подготовке'; exit 1; }
+          node tools/release-guard.cjs recheck /tmp/release candidate
+          mkdir /tmp/deploy
+          mv /tmp/release/candidate.tar /tmp/deploy/artifact.tar
+          echo "ПУБЛИКАЦИЯ $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-pages
+          path: /tmp/deploy/artifact.tar
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+      - id: deploy
+        uses: actions/deploy-pages@v4
+  verify:
+    needs: [preflight, publish]
+    runs-on: ubuntu-24.04
+    container: mcr.microsoft.com/playwright:v1.65.1-noble
+    timeout-minutes: 5
+    outputs:
+      critical: ${{ steps.smoke.outputs.critical }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.preflight.outputs.run_id }}
+          name: release-packages
+          path: /tmp/release
+      - name: Доступность версии и хэшей ресурсов
+        run: node tools/release-guard.cjs published /tmp/release candidate
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: playwright-npm-1.65.1-${{ runner.os }}
+      - run: npm install --no-save --package-lock=false --prefer-offline --no-audit --no-fund playwright@1.65.1
+      - name: Реальная навигация на опубликованной сборке
+        id: smoke
+        env:
+          BROWSER: chromium
+          LIVE_RELEASE_ONLY: '1'
+          EXPECTED_LIVE_RELEASE: ${{ needs.preflight.outputs.version }}
+        run: |
+          if timeout --kill-after=5s 50s node tests/live-navigation.cjs ||
+             timeout --kill-after=5s 50s node tests/live-navigation.cjs; then
+            echo "ОПУБЛИКОВАНО $EXPECTED_LIVE_RELEASE $GITHUB_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            node tools/release-guard.cjs recheck /tmp/release stable
+            echo 'critical=true' >> "$GITHUB_OUTPUT"
+            echo 'ЗАБЛОКИРОВАНО: подтверждённая сборка дважды не прошла проверку браузером'
+            exit 1
+          fi
+  restore:
+    if: always() && needs.verify.outputs.critical == 'true' && needs.preflight.outputs.rollback == 'true'
+    needs: [preflight, verify]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    permissions:
+      contents: read
+      actions: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.preflight.outputs.run_id }}
+          name: release-packages
+          path: /tmp/release
+      - name: Проверить неизменность сайта и совместимый архив
+        run: |
+          node tools/release-guard.cjs recheck /tmp/release stable
+          mkdir /tmp/recovery
+          mv /tmp/release/stable.tar /tmp/recovery/artifact.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-pages-rollback
+          path: /tmp/recovery/artifact.tar
+          compression-level: 0
+          retention-days: 7
+          if-no-files-found: error
+      - id: deploy
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-rollback
+      - run: |
+          node tools/release-guard.cjs published /tmp/release stable
+          echo 'ВОССТАНОВЛЕНО: точный стабильный архив снова доступен' | tee -a "$GITHUB_STEP_SUMMARY"
+  report:
+    if: always()
+    needs: [preflight, publish, verify, restore]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - env:
+          COMMAND: ${{ inputs.operation }}
+          PREPARE: ${{ needs.preflight.result }}
+          VERIFY: ${{ needs.verify.result }}
+          RESTORE: ${{ needs.restore.result }}
+        run: |
+          if [ "$RESTORE" = success ]; then
+            echo 'ВОССТАНОВЛЕНО' | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [ "$VERIFY" = success ]; then
+            echo 'ОПУБЛИКОВАНО' | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [ "$PREPARE" = success ] && [ "$COMMAND" = 'Проверить' ]; then
+            echo 'ГОТОВО К ПУБЛИКАЦИИ' | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'ЗАБЛОКИРОВАНО: смотрите завершившийся с ошибкой этап. Автоматический откат требует совместимой проверенной сборки.' | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
