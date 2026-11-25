@@ -2744,12 +2744,14 @@ function reportDeviceRelease(proof){
 }
 function clearReleaseAttempt(){
  const url=new URL(location.href);
- if(url.searchParams.has('_release')){url.searchParams.delete('_release');history.replaceState(null,'',url.href)}
+ if(url.searchParams.has('_release')){url.searchParams.delete('_release');history.replaceState(history.state,'',url.href)}
 }
 function renderReleaseNotice(){
  const pending=newerRelease(serverRelease,APP_RELEASE)&&canAutoUpdate();
  $('releaseNotice').hidden=!pending;
- if(pending)$('releaseText').textContent='Обновление '+serverRelease+' применится на главной после сохранения работы. Если версия не меняется, можно продолжить и попробовать позже.';
+ if(pending)$('releaseText').textContent=releaseAlreadyAttempted(serverRelease)
+  ?'Обновление пока не загрузилось. Можно продолжить работу или повторить попытку.'
+  :'Обновление '+serverRelease+' применится на главной после сохранения работы.';
 }
 async function activateRelease(){
  renderReleaseNotice();

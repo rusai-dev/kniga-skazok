@@ -208,7 +208,7 @@ jobs:
           artifact_name: github-pages-rollback
       - run: |
           node tools/release-guard.cjs published /tmp/release stable
-          echo 'ВОССТАНОВЛЕНО: точный стабильный архив снова доступен' | tee -a "$GITHUB_STEP_SUMMARY"
+          echo 'ВОССТАНОВЛЕНО НА СЕРВЕРЕ: точный стабильный архив снова доступен' | tee -a "$GITHUB_STEP_SUMMARY"
   report:
     if: always()
     needs: [preflight, publish, verify, restore]
@@ -222,7 +222,7 @@ jobs:
           RESTORE: ${{ needs.restore.result }}
         run: |
           if [ "$RESTORE" = success ]; then
-            echo 'ВОССТАНОВЛЕНО' | tee -a "$GITHUB_STEP_SUMMARY"
+            echo 'ВОССТАНОВЛЕНО НА СЕРВЕРЕ. ОБНОВЛЕНИЕ НА iPad ОЖИДАЕТ ПОДТВЕРЖДЕНИЯ.' | tee -a "$GITHUB_STEP_SUMMARY"
           elif [ "$VERIFY" = success ]; then
             echo 'ОПУБЛИКОВАНО НА СЕРВЕРЕ. ОБНОВЛЕНИЕ НА iPad ОЖИДАЕТ ПОДТВЕРЖДЕНИЯ.' | tee -a "$GITHUB_STEP_SUMMARY"
           elif [ "$PREPARE" = success ] && [ "$COMMAND" = 'Проверить' ]; then

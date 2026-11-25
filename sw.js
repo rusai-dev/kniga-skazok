@@ -2,9 +2,9 @@
 'use strict';
 const REV='1.5.210',ART_CACHE='skazki-book-art-v1';
 // BEGIN GENERATED SHELL INTEGRITY
-const SHELL_FINGERPRINT='dc15f1c400f11316d1d1952a';
+const SHELL_FINGERPRINT='3479e42cd7ac6b2e96b4f1ee';
 const SHELL_SHA256={
-  "index.html": "2b7c3772a98fb8b6324a11f761f03cd29839bfa7c953a1f2eeef91f50171a52a",
+  "index.html": "2e053d2b6e88ce406fe4b4fe0946230ac4d1909df9efb68a7d14193244d117fc",
   "release.json": "651bf7c7d7245942f735ff9fd06c1ce96677c4a9e91e8e2e576e51b3b9e1c5e5",
   "classic-art-153.js?v=1.5.210": "ce3eb9bf5f6715427bb27c4180a831f112fb454725995dd4ae1b95beebf141a9",
   "classic-art-155.js?v=1.5.210": "53ac42495ae327c0ac1202cb9dba26e47763248b2ceba7bc2886b792e8eb55b8",
