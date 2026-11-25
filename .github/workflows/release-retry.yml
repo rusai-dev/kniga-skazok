@@ -1,4 +1,5 @@
 name: Release Guard retry
+run-name: Retry Release Guard #${{ github.event.workflow_run.id }}
 on:
   workflow_run:
     workflows: [Release Guard]
@@ -45,20 +46,24 @@ jobs:
           job=$(jq -er '
             [.jobs[]|select(.name=="publish" and .conclusion=="failure" and
               ([.steps[]|select(.conclusion=="failure")]|length)==1 and
-              ([.steps[]|select(.conclusion=="failure" and .name=="Run actions/deploy-pages@v4")]|length)==1)]
+              ([.steps[]|select(.conclusion=="failure" and (.name=="Run actions/deploy-pages@v4" or .name=="Дождаться регистрации точного архива Pages"))]|length)==1)]
             | if length==1 then .[0].id else empty end
           ' /tmp/jobs.json) || exit 0
           [[ "$job" =~ ^[1-9][0-9]*$ ]] || exit 0
           # No checkout or execution of untrusted workflow artifacts or logs.
           gh api "$api/actions/jobs/$job/logs" > /tmp/publish.log
-          grep -Fq 'Found 0 artifact(s)' /tmp/publish.log || exit 0
-          grep -Fq 'Fetching artifact metadata failed' /tmp/publish.log || exit 0
-          grep -Fq 'No artifacts named "github-pages-1" were found for this workflow run' /tmp/publish.log || exit 0
           if grep -Fq 'Creating Pages deployment' /tmp/publish.log; then exit 0; fi
-          # Reject any additional failure reason; never retry a possibly created deployment.
-          if grep -F '##[error]' /tmp/publish.log | grep -Fv -e 'Fetching artifact metadata failed' -e 'No artifacts named "github-pages-1" were found for this workflow run' -e 'Process completed with exit code 1' > /tmp/other-errors; then
-            echo 'Иная причина сбоя: автоматический повтор запрещён'
-            exit 0
+          if grep -Fq 'ЗАБЛОКИРОВАНО: точный архив не зарегистрирован в пределах 62 секунд' /tmp/publish.log; then
+            if grep -F '##[error]' /tmp/publish.log | grep -Fv -e 'Process completed with exit code 1' >/tmp/other-errors; then exit 0; fi
+          else
+            grep -Fq 'Found 0 artifact(s)' /tmp/publish.log || exit 0
+            grep -Fq 'Fetching artifact metadata failed' /tmp/publish.log || exit 0
+            grep -Fq 'No artifacts named "github-pages-1" were found for this workflow run' /tmp/publish.log || exit 0
+            # Reject any additional failure reason; never retry a possibly created deployment.
+            if grep -F '##[error]' /tmp/publish.log | grep -Fv -e 'Fetching artifact metadata failed' -e 'No artifacts named "github-pages-1" were found for this workflow run' -e 'Process completed with exit code 1' > /tmp/other-errors; then
+              echo 'Иная причина сбоя: автоматический повтор запрещён'
+              exit 0
+            fi
           fi
           artifact_ready=false
           for delay in 0 2 4 8 12; do
