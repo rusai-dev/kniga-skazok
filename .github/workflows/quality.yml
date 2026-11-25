@@ -51,11 +51,14 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - run: npm install --no-save --package-lock=false playwright@1.65.1
-      - name: Exact published 1.5.207 upgrade (synthetic data only)
+      - name: Exact published 1.5.208 upgrade (synthetic data only)
         timeout-minutes: 4
         run: node tests/release-207-to-208.cjs
         env:
           BROWSER: ${{ matrix.browser }}
+          QA_BASE_SHA: 3f24ecb06db8adc678fbbc2d91d1107e00bdca21
+          QA_BASE_VERSION: '1.5.208'
+          QA_TARGET_VERSION: '1.5.209'
   release-ready:
     needs: [regression, browser, legacy-upgrade]
     runs-on: ubuntu-24.04
