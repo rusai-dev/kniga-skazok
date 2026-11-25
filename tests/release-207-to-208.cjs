@@ -119,7 +119,9 @@ async function verifyAutomaticActivation(page,context,url,ready){
   await canvas.tap({position:{x:140,y:125}});
   const painted=await canvas.evaluate(c=>c.toDataURL());
   serving=version;
-  await page.evaluate(()=>window.dispatchEvent(new Event('online')));
+  // Simulate returning to an already-open app after the check interval elapsed.
+  await page.clock.setFixedTime(Date.now()+61000);
+  await page.evaluate(()=>window.dispatchEvent(new Event('pageshow')));
   const installed=()=>page.evaluate(async shell=>{
     const reg=await navigator.serviceWorker.getRegistration();
     const marker=await caches.match(new URL('__skazki_shell_verified__',location.href),{cacheName:shell.name});
