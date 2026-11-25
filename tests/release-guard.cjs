@@ -45,6 +45,35 @@ assert.equal(visualLimit('1.5.208','1.5.209','shelf.png',844,390),25);
 assert.ok(22 > visualLimit('1.5.208','1.5.210','shelf.png',844,390));
 assert.ok(0.7 > visualLimit('1.5.208','1.5.209','canvas.png',844,390));
 assert.equal(visualLimit('1.5.208','1.5.209','egypt-cat.png',844,390),0);
+
+// Exercise the actual workflow authorization shell, not a duplicate policy.
+{
+  const fs = require('node:fs'), path = require('node:path'), os = require('node:os');
+  const {spawnSync} = require('node:child_process');
+  const yaml = fs.readFileSync(path.join(__dirname, '../.github/workflows/release.yml'), 'utf8');
+  const section = yaml.split('      - name: Авторизованная команда\n')[1].split('      - uses: actions/checkout@v4')[0];
+  const shell = section.split('        run: |\n')[1].split('\n').map(line=>line.replace(/^ {10}/,'')).join('\n');
+  assert.ok(shell.includes('ISSUE_TITLE') && shell.includes('GITHUB_RUN_ATTEMPT'));
+  assert.equal(spawnSync('bash',['-n','-c',shell]).status,0);
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'release-request-'));
+  try {
+    const env={...process.env,GITHUB_EVENT_NAME:'issues',GITHUB_RUN_ATTEMPT:'1',
+      COMMAND:'Публикуй',OWNER:'rusai-dev',ACTOR:'rusai-dev',TRIGGER:'rusai-dev',
+      ISSUE_AUTHOR:'rusai-dev',ISSUE_SENDER:'rusai-dev',ISSUE_BODY:'Release Guard owner command v1',
+      ISSUE_TITLE:'Публикуй: '+sha,EXPECTED_SHA:'',GITHUB_SHA:sha,GITHUB_REF:'refs/heads/main',
+      GITHUB_OUTPUT:path.join(dir,'output'),GITHUB_STEP_SUMMARY:path.join(dir,'summary')};
+    const runAuth=override=>spawnSync('bash',['-c',shell],{env:{...env,...override},encoding:'utf8'}).status;
+    assert.equal(runAuth({}),0,'Owner exact SHA release');
+    assert.equal(runAuth({COMMAND:'Проверь',ISSUE_TITLE:'Проверь: '+sha}),0,'Read-only diagnostic');
+    for(const override of [{ACTOR:'other'},{TRIGGER:'other'},{ISSUE_AUTHOR:'other'},{ISSUE_SENDER:'other'},
+      {ISSUE_TITLE:'Публикуй: '+oldSha},{ISSUE_TITLE:'Публикуй: '+sha+' extra'},
+      {ISSUE_BODY:'other'},{GITHUB_RUN_ATTEMPT:'2'},{GITHUB_REF:'refs/heads/other'}])
+      assert.notEqual(runAuth(override),0,'Reject '+JSON.stringify(override));
+    assert.equal(runAuth({GITHUB_EVENT_NAME:'workflow_dispatch',EXPECTED_SHA:sha}),0,'Existing manual path');
+    assert.notEqual(runAuth({GITHUB_EVENT_NAME:'workflow_dispatch',EXPECTED_SHA:oldSha}),0,'Existing stale SHA block');
+  } finally {fs.rmSync(dir,{recursive:true,force:true})}
+}
+
 async function verifyPublishedIntegrity() {
   const original = global.fetch;
   try {
