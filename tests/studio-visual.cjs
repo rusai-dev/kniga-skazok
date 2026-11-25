@@ -28,12 +28,33 @@ async function capture(browser,site,output,width,height) {
       localStorage.setItem('skazki-studio-motif','0');
     }
   });
-  const take = async (name,{editorTop=false,...options}={}) => {
-    const geometry=await page.evaluate(async editorTop=>{
+  const take = async (name,{editorTop=false,galleryView=false,...options}={}) => {
+    const geometry=await page.evaluate(async ({editorTop,galleryView})=>{
       // The open dialog is the subject. Compare the background from the same
       // scroll position, even when click() scrolled its opener into view.
       if(document.querySelector('#modal[open]'))document.scrollingElement.scrollTop=0;
       await document.fonts.ready;
+      if(galleryView){
+        const shelf=document.getElementById('writerArtShelf');
+        const toolbar=shelf.closest('.writer-artbar');
+        document.getElementById('writerGallery').focus({preventScroll:true});
+        toolbar.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+        // WebKit can adjust the nested dialog scroll after focus/viewport-fit.
+        // Require an unchanged layout for several consecutive animation frames.
+        let previous='', stable=0;
+        for(let i=0;i<60 && stable<5;i++){
+          await new Promise(resolve=>requestAnimationFrame(resolve));
+          const r=toolbar.getBoundingClientRect();
+          const sample=JSON.stringify([r.x,r.y,r.width,r.height,
+            document.getElementById('modal').scrollTop,
+            document.getElementById('modalBody').scrollTop,document.scrollingElement.scrollTop]);
+          stable=sample===previous?stable+1:0;previous=sample;
+        }
+        if(stable<5)throw Error('Writer gallery layout did not settle');
+        const box=shelf.getBoundingClientRect();
+        if(box.bottom<=0||box.top>=innerHeight||box.right<=0||box.left>=innerWidth)
+          throw Error('Writer gallery is not in the captured viewport');
+      }
       const visible=[...document.images].filter(img=>{
         if(!img.currentSrc||!img.getClientRects().length)return false;
         const box=img.getBoundingClientRect();
@@ -57,7 +78,7 @@ async function capture(browser,site,output,width,height) {
         document.getElementById('modalBody').scrollTop=0;
       }
       return {width:innerWidth,scroll:document.documentElement.scrollWidth};
-    },editorTop);
+    },{editorTop,galleryView});
     assert.ok(geometry.scroll<=geometry.width+1, 'Horizontal page overflow at '+name);
     await page.screenshot({path:path.join(dir,name+'.png'),animations:'disabled',caret:'hide',...options});
   };
@@ -143,14 +164,8 @@ async function capture(browser,site,output,width,height) {
     await click('writerGallery');
     const artShelf=page.locator('#writerArtShelf');
     await artShelf.waitFor({state:'visible'});
-    await artShelf.evaluate(async shelf=>{
-      // The artwork tools must start from an explicit scroll position after
-      // collapse, focus and the viewport-fit callback have finished.
-      await document.fonts.ready;
-      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-      shelf.closest('.writer-artbar').scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
-    });
-    await take('writer-gallery');
+    await page.locator('#toast').waitFor({state:'hidden'});
+    await take('writer-gallery',{galleryView:true});
     await click('writerGallery');
     record.typedFrameMs=await page.evaluate(async()=>{const body=$('storyBody');body.focus();const t=performance.now();body.setRangeText(' ',95,95,'end');body.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));return performance.now()-t});
     await page.evaluate(async()=>{
