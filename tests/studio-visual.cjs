@@ -99,8 +99,8 @@ async function capture(browser,width,height) {
     await click('publishStory');
     const card=page.locator('.own-book').filter({hasText:'Атлас серебряной реки'}).first();
     await card.waitFor();
-    const cover=card.locator('.shelf-cover-art');
-    if(await cover.count())await cover.waitFor({state:'visible'});
+    assert.equal(await card.locator('.shelf-cover-art').count(),0,'no identical owl overlay on authored books');
+    await card.locator('.cover-picture').waitFor({state:'visible'});
     await page.locator('#toast').waitFor({state:'hidden'});
     await take('shelf');
     await card.locator('.own-read').click();
