@@ -1792,3 +1792,13 @@ body[data-home-screen="home"]{
   background:linear-gradient(90deg,#e6dbf4,#f9f2fe 46%,#cfc1e1 50%,#f6eefc 54%,#e5f2ec);
 }
 #modal.reading-focus .own-reading[data-personal] :is(.reading-text,.facing-page) {background:#fffdf7}
+
+/* Short landscape: keep author actions fully inside the viewport without shrinking touch targets. */
+@media (max-height: 480px) and (min-width: 701px) {
+  #libraryHome[data-own-shelf=true] .hero {padding-block:8px;min-height:0;gap:8px;margin-bottom:8px}
+  #libraryHome[data-own-shelf=true] #heroArt {max-height:96px;min-height:0}
+  #libraryHome[data-own-shelf=true] #heroArt > * {max-height:96px;object-fit:contain}
+  #libraryHome[data-own-shelf=true] .hero-title {font-size:27px;margin-block:4px}
+  #libraryHome[data-own-shelf=true] #subtitle {margin-block:4px}
+  #libraryHome[data-own-shelf=true] .shelf-head {margin-block:4px}
+}

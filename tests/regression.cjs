@@ -44,16 +44,17 @@ function verify(html,sourceCatalog,drawingEngine=require('node:fs').readFileSync
  const readerPrefs=new Function(html.slice(html.indexOf('const portableKeys='),html.indexOf('function portableSnapshot('))+'return portableValid')();const offsets='skazki-reading-offsets-v1';for(const size of [undefined,18,21,24,28,32])assert(readerPrefs(offsets,JSON.stringify({'own:qa':{scene:0,offset:10,size}})),'compatible bookmark and font size');for(const size of [null,17,33,'24'])assert(!readerPrefs(offsets,JSON.stringify({'own:qa':{scene:0,offset:10,size}})),'invalid reader size rejected');
 
  // Personal shelf must show the same selected cover as reader/export.
+ const strictCoverAssert=require('node:assert/strict');
  const coverRender=new Function('richMeta','sceneArt','themeOf','esc',html.slice(html.indexOf('function coverPalettes('),html.indexOf('const premiumArt='))+'return coverArt;')(b=>b.rich,(theme,icon)=>'<svg data-theme="'+theme+'" data-icon="'+icon+'"></svg>',()=>({icon:'★'}),s=>s);
  const coverBase={title:'QA',theme:'Лес',icon:'🦉',rich:{cover:'turquoise',coverImage:-1,images:[]}};
  const savedCover={...coverBase,rich:{...coverBase.rich,coverImage:0,images:['data:image/jpeg;base64,QUJD']}};
  const coverBefore=JSON.stringify(savedCover);
- assert.equal(coverRender(coverBase,true),coverRender(coverBase,false),'personal shelf matches author-selected theme');
- assert.notEqual(coverRender(coverBase,true),coverRender({...coverBase,theme:'Зима'},true),'different themes do not share a fixed cover');
- assert.ok(!coverRender(coverBase,true).includes('owl-library-entry184'),'no global owl override');
- assert.ok(coverRender(savedCover,true).includes(savedCover.rich.images[0]),'explicit selected image remains first priority');
- assert.equal(coverRender(savedCover,true),coverRender(savedCover,false),'selected image consistent in shelf and reader');
- assert.equal(JSON.stringify(savedCover),coverBefore,'cover rendering must not mutate authored data');
+ strictCoverAssert.equal(coverRender(coverBase,true),coverRender(coverBase,false),'personal shelf matches author-selected theme');
+ strictCoverAssert.notEqual(coverRender(coverBase,true),coverRender({...coverBase,theme:'Зима'},true),'different themes do not share a fixed cover');
+ strictCoverAssert.ok(!coverRender(coverBase,true).includes('owl-library-entry184'),'no global owl override');
+ strictCoverAssert.ok(coverRender(savedCover,true).includes(savedCover.rich.images[0]),'explicit selected image remains first priority');
+ strictCoverAssert.equal(coverRender(savedCover,true),coverRender(savedCover,false),'selected image consistent in shelf and reader');
+ strictCoverAssert.equal(JSON.stringify(savedCover),coverBefore,'cover rendering must not mutate authored data');
  const paletteAPI=new Function(html.slice(html.indexOf('function coverPalettes('),html.indexOf('function coverArt('))+html.slice(html.indexOf('function richMeta('),html.indexOf('function storyPictureRemoval('))+'return {coverPalettes,coverPalette,richMeta}')();const palettes=paletteAPI.coverPalettes();assert(Object.keys(palettes).length===10,'ten cover colors');for(const k of Object.keys(palettes))assert(paletteAPI.richMeta({rich:{cover:k}}).cover===k,'palette persists '+k);for(const k of ['unknown','__proto__','constructor'])assert(paletteAPI.richMeta({rich:{cover:k}}).cover==='forest'&&JSON.stringify(paletteAPI.coverPalette(k))===JSON.stringify(palettes.forest),'invalid cover safe fallback');
  const pictureRemoval=new Function(html.slice(html.indexOf('function storyPictureRemoval('),html.indexOf('function richBody('))+'return storyPictureRemoval')();
  const picRich={images:['a','b','c'],markup:true,coverImage:1,font:'story'},picBody='Текст [[рисунок:2]]\n[[рисунок:1]]\n[[рисунок:2]]';
