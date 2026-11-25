@@ -2742,7 +2742,7 @@ const url=new URL('index.html',location.href);url.searchParams.set('_check',stam
 const response=await fetcher(url.href,opts);if(!response.ok)throw Error('network');
 const actual=releaseFromHtml(await response.text());if(!actual)throw Error('version');return actual;
 }
-async function checkRelease(manual=false){
+async function checkRelease(manual=false,announce=manual){
 if(window.__nativeMode||!/^https?:$/.test(location.protocol)||typeof fetch!=='function')return;
 if(releaseChecking||(!manual&&(!canAutoUpdate()||Date.now()-releaseCheckedAt<60000)))return;
 releaseChecking=true;releaseCheckedAt=Date.now();const controller=new AbortController();releaseController=controller;
@@ -2756,15 +2756,15 @@ if(newerRelease(remote,APP_RELEASE)){
 $('releaseNotice').hidden=false;$('releaseText').textContent='Доступна новая версия '+remote+'. Твои сказки останутся на устройстве.';
 $('releaseApply').onclick=()=>applyRelease(remote,true);
 if(releaseAlreadyAttempted(remote))$('releaseText').textContent='Обновление пока не загрузилось. Можно продолжать заниматься или повторить обновление.';else if(canAutoUpdate())applyRelease(remote,false);
-}else if(manual)toast(remote===APP_RELEASE?'У тебя актуальная версия '+APP_RELEASE+'.':'На сервере версия '+remote+'. Данные не изменены.');
-}catch(e){if(status)status.textContent='Версия на сервере: не удалось проверить';if(manual)toast('Не удалось проверить обновления. Попробуй немного позже.')}
+}else if(announce)toast(remote===APP_RELEASE?'У тебя актуальная версия '+APP_RELEASE+'.':'На сервере версия '+remote+'. Данные не изменены.');
+}catch(e){if(status)status.textContent='Версия на сервере: не удалось проверить';if(announce)toast('Не удалось проверить обновления. Попробуй немного позже.')}
 finally{clearTimeout(timer);releaseChecking=false;if(releaseController===controller)releaseController=null}
 }
 function flushDrawingDraft(){if($('modal').hasAttribute('open')&&(activeDialog==='editor'||activeDialog==='art')){($('storyForm')||$('standaloneDrawing'))?.flushDrawingDraft?.();if(activeDialog==='editor')$('storyForm')?.flushStoryDraft?.()}}
 window.addEventListener('pagehide',flushDrawingDraft);document.addEventListener('visibilitychange',()=>{if(document.hidden)flushDrawingDraft()});
 const APP_RELEASE='1.5.209';let releaseChecking=false,releaseCheckedAt=0,releaseController=null;
 if(!window.__nativeMode&&/^https?:$/.test(location.protocol)){
-$('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);$('adultEntry').addEventListener('click',()=>checkRelease(true));
+$('releaseCheck').hidden=false;$('releaseCheck').onclick=()=>checkRelease(true);$('adultEntry').addEventListener('click',()=>checkRelease(true,false));
 window.addEventListener('focus',()=>checkRelease());
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkRelease()});
 setInterval(()=>{if(!document.hidden)checkRelease()},60000);

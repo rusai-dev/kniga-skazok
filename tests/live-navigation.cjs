@@ -39,7 +39,8 @@ async function verifyNavigation(browser,siteUrl=URL){
     if(header.height!==header.without||!header.separate)throw Error('Version label must fit without moving the header or covering its button text');
     await page.locator('#adultEntry').tap();await page.locator('#adultHome').waitFor({state:'visible'});
     if(!(await page.locator('#currentRelease').innerText()).includes(status.current))throw Error('Parent version mismatch');
-    await page.locator('#remoteReleaseStatus').waitFor({state:'visible'});
+    await page.locator('#remoteReleaseStatus').filter({hasText:'Версия на сервере:'}).waitFor({state:'visible',timeout:15000});
+    if(await page.locator('#toast').filter({hasText:'У тебя актуальная версия'}).isVisible())throw Error('Opening parent settings must not show an unsolicited version toast');
     await page.locator('#home').tap();await page.locator('#storybookHome').waitFor({state:'visible'});
    }
    for(const [id,landed,back] of [
